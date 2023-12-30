@@ -76,6 +76,7 @@ fun Kt2Ts.buildCleaningRegex(): MutableMap<String, List<Pair<Regex, String>>> {
             Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
             Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w\.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
             Regex("""kotlin.collections.Map""") to "Record",
+            Regex(""", kotlin\.collections\.List<(.*?)>""") to ", $1[]", // handles Record<string, List<T>>,
             Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]",
             Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]", // in case of List<List<T>>
             Regex("""kotlin.Long""") to "number",

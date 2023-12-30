@@ -1,11 +1,9 @@
 package city.smartb.fixers.gradle.kotlin
 
 import city.smartb.gradle.dependencies.FixersPluginVersions
-import dev.petuska.npm.publish.NpmPublishPlugin
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.apply
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class MppJsPlugin : Plugin<Project> {

@@ -6,12 +6,9 @@ import city.smartb.gradle.config.fixers
 import city.smartb.gradle.config.model.Npm
 import dev.petuska.npm.publish.NpmPublishPlugin
 import dev.petuska.npm.publish.extension.NpmPublishExtension
-import dev.petuska.npm.publish.task.NpmAssembleTask
-import dev.petuska.npm.publish.task.NpmPackTask
 import dev.petuska.npm.publish.task.NpmPublishTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.publish.plugins.PublishingPlugin
 import org.gradle.kotlin.dsl.the
 
 class NpmPlugin : Plugin<Project> {
@@ -20,7 +17,7 @@ class NpmPlugin : Plugin<Project> {
 		target.logger.info("Apply NpmPlugin to ${target.name}")
 		target.afterEvaluate {
 			 target.rootProject.extensions.fixers?.takeIf { it.npm.publish }?.let {config ->
-				 target.logger.info("Apply PublishPlugin to ${target.name} - ${target.getVersion(config)}")
+				 target.logger.info("Apply NpmPlugin to ${target.name} - ${target.getVersion(config)}")
 				 target.configureNpmPublishPlugin(config)
 				 configurePackTsCleaning(config.npm)
 			}
