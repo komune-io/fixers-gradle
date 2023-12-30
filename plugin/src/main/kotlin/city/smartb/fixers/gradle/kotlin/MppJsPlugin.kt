@@ -16,7 +16,6 @@ class MppJsPlugin : Plugin<Project> {
         target.extensions.configure(KotlinMultiplatformExtension::class.java) {
             js(IR) {
                 binaries.library()
-                binaries.executable()
                 browser {
                     testTask (
                         Action {

@@ -5,9 +5,12 @@ import city.smartb.gradle.config.model.Publication
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.get
+import org.gradle.kotlin.dsl.withType
+import org.gradle.plugins.signing.Sign
 
 object PublishMppPlugin {
 
@@ -19,15 +22,23 @@ object PublishMppPlugin {
 	}
 
 	private fun Project.setupPublication(publication: Publication?) {
-		val variantName = name
+		val projectName = name
+
+		//TODO Check correction of https://github.com/gradle/gradle/issues/26091
+		tasks.withType<AbstractPublishToMaven>().configureEach {
+			val signingTasks = tasks.withType<Sign>()
+			mustRunAfter(signingTasks)
+		}
 		configure<PublishingExtension> {
-			publications.all {
-				val mavenPublication = this as? MavenPublication
-				mavenPublication?.artifactId = getArtifactId(variantName, name)
+			publications.withType<MavenPublication> {
+				val mavenPublication = this
+				mavenPublication.artifactId = getArtifactId(projectName, mavenPublication.name)
 				publication?.let {
-					mavenPublication?.pom(publication.configure)
+					mavenPublication.pom(publication.configure)
 				}
-				mavenPublication?.artifact(tasks["javadocJar"])
+
+				val javadocJarTask = tasks["javadocJar"]
+				mavenPublication.artifact(javadocJarTask)
 			}
 		}
 	}
