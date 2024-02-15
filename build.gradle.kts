@@ -1,8 +1,8 @@
 plugins {
 	kotlin("jvm") version PluginVersions.kotlinDsl apply false
 	id("com.gradle.plugin-publish") version PluginVersions.gradlePublish apply false
-	id("org.openrewrite.rewrite") version "6.8.2"
 }
+
 
 tasks.withType<JavaCompile> {
 	val toolchain = the<JavaPluginExtension>().toolchain
@@ -37,10 +37,4 @@ subprojects {
 			languageVersion = "1.4"
 		}
 	}
-}
-
-rewrite {
-	activeRecipe(
-		"org.openrewrite.kotlin.FindKotlinSources"
-	)
 }
