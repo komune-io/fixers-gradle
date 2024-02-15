@@ -16,4 +16,4 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Run unit tests
-        run: ./gradlew build --parallel
+        run: ./gradlew build --parallel --scan
