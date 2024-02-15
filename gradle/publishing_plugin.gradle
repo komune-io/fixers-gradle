@@ -37,25 +37,25 @@ afterEvaluate { Project project ->
             pluginMaven(MavenPublication) {
                 pom.withXml(configureMavenCentralMetadata)
             }
-            'city.smartb.fixers.gradle.configPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.configPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.dependenciesPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.dependenciesPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.kotlin.jvmPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.kotlin.mppPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.publishPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.publishPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.npmPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.npmPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.sonarPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.sonarPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
         }

@@ -1,7 +1,7 @@
-package city.smartb.gradle.sandbox.domain.api
+package io.komune.gradle.sandbox.domain.api
 
-import city.smartb.gradle.sandbox.domain.model.ObjectModel
-import city.smartb.gradle.sandbox.domain.model.ObjectName
+import io.komune.gradle.sandbox.domain.model.ObjectModel
+import io.komune.gradle.sandbox.domain.model.ObjectName
 import java.util.UUID
 
 class ObjectService {

@@ -1,4 +1,4 @@
-package city.smartb.gradle.sandbox.domain.model
+package io.komune.gradle.sandbox.domain.model
 
 typealias ObjectId = String
 typealias ObjectName = String

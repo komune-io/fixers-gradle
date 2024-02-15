@@ -1,6 +1,7 @@
 plugins {
 	kotlin("jvm") version PluginVersions.kotlinDsl apply false
 	id("com.gradle.plugin-publish") version PluginVersions.gradlePublish apply false
+	id("org.openrewrite.rewrite") version "6.8.2"
 }
 
 tasks.withType<JavaCompile> {
@@ -14,7 +15,7 @@ tasks.withType<JavaCompile> {
 
 allprojects {
 	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
-	group = "city.smartb.fixers.gradle"
+	group = "io.komune.fixers.gradle"
 	repositories {
 		mavenCentral()
 		gradlePluginPortal()
@@ -38,3 +39,8 @@ subprojects {
 	}
 }
 
+rewrite {
+	activeRecipe(
+		"org.openrewrite.kotlin.FindKotlinSources"
+	)
+}

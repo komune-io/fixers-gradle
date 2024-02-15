@@ -1,3 +1,3 @@
-package city.smartb.gradle.sandbox.domain
+package io.komune.gradle.sandbox.domain
 
 interface D2ObjectPage
