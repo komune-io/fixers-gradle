@@ -39,8 +39,8 @@ afterEvaluate { Project project ->
             maven {
                 url = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
                 credentials {
-                    username System.getenv("GITHUB_PKG_MAVEN_USERNAME")
-                    password System.getenv("GITHUB_PKG_MAVEN_TOKEN")
+                    username System.getenv("PKG_MAVEN_USERNAME")
+                    password System.getenv("PKG_MAVEN_TOKEN")
                 }
             }
         }
