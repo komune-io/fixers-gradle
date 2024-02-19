@@ -22,8 +22,7 @@ jobs:
           VERSION=$(cat VERSION)
           echo "${VERSION}"
       - name: Publish
-        with: # Set the secret as an input
-          env: # Or as an environment variable
-            GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-            GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
         run: VERSION=0.0.0 make publish-libs
