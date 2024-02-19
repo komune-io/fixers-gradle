@@ -28,5 +28,5 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
           PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
         run: VERSION=0.0.0 make publish-libs
