@@ -8,6 +8,8 @@ on: [push]
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - name: Setup Java 17
@@ -25,4 +27,5 @@ jobs:
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+          GITHUB_PKG_MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: VERSION=0.0.0 make publish-libs
