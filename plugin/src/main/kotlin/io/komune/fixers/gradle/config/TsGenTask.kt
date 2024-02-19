@@ -24,7 +24,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
                 val inputDir = if(config.inputDirectory != null) {
                     config.inputDirectory!!
                 } else {
-                    "${this.project.buildDir.absolutePath}/js/packages/".also {
+                    "${this.project.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
                         target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
                     }
                 }
@@ -55,7 +55,7 @@ fun Project.cleanSubProjects(cleaning: MutableMap<String, List<Pair<Regex, Strin
 fun Project.cleanProject(cleaning: MutableMap<String, List<Pair<Regex, String>>>) {
     project.logger.info("//////////////////////////")
     project.logger.info("//////////////////////////")
-    val folder = "${project.buildDir.absolutePath}/packages/js"
+    val folder = "${project.layout.buildDirectory.asFile.get().absolutePath}/packages/js"
     project.logger.info(folder)
     File(folder).listFiles()?.forEach { file ->
         file.cleanFile(cleaning)

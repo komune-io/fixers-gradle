@@ -11,13 +11,13 @@ data class Repository(
 ) {
 	companion object
 	fun getUrl(project: Project): URI {
-		val version = project.version.toString().takeIf { it.isNotBlank() } ?: getenv("VERSION") ?: "experimental-SNAPSHOT"
+//		val version = project.version.toString().takeIf { it.isNotBlank() } ?: getenv("VERSION") ?: "experimental-SNAPSHOT"
+//		credentials {
+//			username System.getenv("PKG_MAVEN_USERNAME")
+//			password System.getenv("PKG_MAVEN_TOKEN")
+//		}
 		return URI.create(
-			if (version.endsWith("-SNAPSHOT")) {
-				"https://oss.sonatype.org/content/repositories/snapshots"
-			} else {
-				"https://oss.sonatype.org/service/local/staging/deploy/maven2"
-			}
+			"https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
 		)
 	}
 }
@@ -25,7 +25,7 @@ data class Repository(
 fun Repository.Companion.sonatype(project: Project): Repository {
 	return Repository(
 		name = "sonatype",
-		username = getenv("sonatypeUsername") ?:  project.findProperty("sonatype.username").toString(),
-		password = getenv("sonatypePassword") ?: project.findProperty("sonatype.password").toString(),
+		username = getenv("PKG_MAVEN_USERNAME") ?:  project.findProperty("sonatype.username").toString(),
+		password = getenv("PKG_MAVEN_TOKEN") ?: project.findProperty("sonatype.password").toString(),
 	)
 }
