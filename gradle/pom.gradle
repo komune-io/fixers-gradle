@@ -1,3 +1,4 @@
+
 project.ext.pomConfig = {
     licenses {
         license {
@@ -25,6 +26,7 @@ project.ext.configurePomMetadata = { pom ->
     root.appendNode('url', 'https://github.com/komune-io/fixers-gradle')
     root.children().last() + pomConfig
 }
+
 project.ext.configureMavenCentralMetadata = { pom ->
     def root = asNode()
     root.appendNode('name', project.name)

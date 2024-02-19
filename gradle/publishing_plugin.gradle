@@ -61,10 +61,10 @@ afterEvaluate { Project project ->
         }
         repositories {
             maven {
-                url = repoUrl
+                url = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
                 credentials {
-                    username sonatypeUsername
-                    password sonatypePassword
+                    username System.getenv("GITHUB_PKG_MAVEN_USERNAME")
+                    password System.getenv("GITHUB_PKG_MAVEN_TOKEN")
                 }
             }
         }

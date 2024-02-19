@@ -1,6 +1,22 @@
 package io.komune.gradle.dependencies
 
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.dsl.RepositoryHandler
+import java.net.URI
+
+object FixersRepository {
+	fun defaultRepo(repositoryHandler: RepositoryHandler) {
+		repositoryHandler.mavenCentral()
+		repositoryHandler.maven {
+			url = URI("https://maven.pkg.github.com/komune-io/fixers")
+			credentials {
+				username = System.getenv("GITHUB_PKG_MAVEN_USERNAME")
+				password = System.getenv("GITHUB_PKG_MAVEN_TOKEN")
+			}
+		}
+	}
+
+}
 
 object FixersPluginVersions {
 	const val kotlin = "1.9.21"
