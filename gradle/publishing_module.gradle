@@ -3,15 +3,14 @@
  */
 
 // Configures publishing of Maven artifacts to Bintray
-
 apply plugin: 'java-library'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 apply from: project.rootProject.file('gradle/pom.gradle')
 
-def signingKey = System.getenv("signingKey") ?: ""
-def signingPassword = System.getenv("signingPassword") ?: ""
+def signingKey = System.getenv("GPG_SIGNING_KEY") ?: ""
+def signingPassword = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allJava

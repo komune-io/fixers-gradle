@@ -9,10 +9,12 @@ apply plugin: 'signing'
 
 apply from: project.rootProject.file('gradle/pom.gradle')
 
+def signingKey = System.getenv("GPG_SIGNING_KEY") ?: ""
+def signingPassword = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
+
 def sonatypeUsername = System.getenv("sonatypeUsername") ?: ""
 def sonatypePassword = System.getenv("sonatypePassword") ?: ""
-def signingKey = System.getenv("signingKey") ?: ""
-def signingPassword = System.getenv("signingPassword") ?: ""
+
 def releasesRepoUrl =  "https://oss.sonatype.org/service/local/staging/deploy/maven2"
 def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
 def repoUrl = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
