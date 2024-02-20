@@ -26,7 +26,6 @@ jobs:
         id: version
         run: |
           VERSION=$(cat VERSION)
-          echo "::set-output name=VERSION::$VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Publish
         env:
