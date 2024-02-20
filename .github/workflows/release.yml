@@ -20,13 +20,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
       - name: Version
+        id: version
         run: |
           VERSION=$(cat VERSION)
-          echo "${VERSION}"
+          echo "::set-output name=VERSION::$VERSION"
       - name: Publish
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
           PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
           PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
-        run: VERSION=${VERSION} make publish-libs
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          echo "Publishing version ${VERSION}"
+          VERSION=${VERSION} make publish-libs
