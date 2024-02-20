@@ -29,4 +29,4 @@ jobs:
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
           PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
           PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
-        run: VERSION=experimental-SNAPSHOT make publish-libs
+        run: VERSION=${VERSION} make publish-libs
