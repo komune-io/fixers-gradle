@@ -1,0 +1,43 @@
+[versions]
+detekt = "1.23.4"
+kotlin = "1.9.22"
+dokka = "1.9.10"
+java = "11"
+sonarQube = "3.3"
+npmPublish = "3.4.2"
+gradlePublish = "1.2.0"
+junit = "5.8.1"
+junit-jupiter = "5.10.2"
+assertj = "3.25.3"
+
+[libraries]
+detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+detekt-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+
+npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.publish.gradle.plugin", version.ref = "npmPublish" }
+detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+dokkaGradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+
+[bundles]
+kotlin-plugin = [
+    "kotlin-gradle-plugin",
+    "kotlin-compiler-embeddable",
+]
+test = [
+    "junit-jupiter",
+    "assertj-core",
+]
+
+
+[plugins]
+gradlePublish = { id = "com.gradle.plugin-publish", version.ref = "gradlePublish" }
+#dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+#nexus-publish = "io.github.gradle-nexus.publish-plugin:1.3.0"
+#plugin-publish = "com.gradle.plugin-publish:1.2.1"

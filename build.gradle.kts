@@ -1,13 +1,13 @@
 plugins {
-	kotlin("jvm") version PluginVersions.kotlinDsl apply false
-	id("com.gradle.plugin-publish") version PluginVersions.gradlePublish apply false
+	kotlin("jvm") version embeddedKotlinVersion apply false
+	alias(libs.plugins.gradlePublish) apply false
+	id("composite.detekt")
 }
-
 
 tasks.withType<JavaCompile> {
 	val toolchain = the<JavaPluginExtension>().toolchain
 	val javaToolchainService = the<JavaToolchainService>()
-	toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+	toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
 	tasks.withType<JavaExec>().configureEach {
 		javaLauncher.set(javaToolchainService.launcherFor(toolchain))
 	}
@@ -32,9 +32,9 @@ subprojects {
 			)
 		}
 	}
-	tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-		kotlinOptions {
-			languageVersion = "1.4"
-		}
-	}
+//	tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+//		kotlinOptions {
+//			languageVersion = "1.4"
+//		}
+//	}
 }

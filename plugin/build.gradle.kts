@@ -5,21 +5,19 @@ plugins {
 }
 
 dependencies {
-	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${PluginVersions.kotlin}")
-	implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${PluginVersions.kotlin}")
+	implementation(libs.bundles.kotlin.plugin)
 
-	implementation("dev.petuska.npm.publish:dev.petuska.npm.publish.gradle.plugin:${PluginVersions.npmPublish}")
-
-	implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${PluginVersions.detekt}")
-	implementation("org.jetbrains.dokka:dokka-gradle-plugin:${PluginVersions.dokka}")
-	implementation("org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:${PluginVersions.sonarQube}")
+	implementation(libs.npmPublishGradlePlugin)
+	implementation(libs.detektGradlePlugin)
+	implementation(libs.detektGradlePlugin)
+	implementation(libs.dokkaGradlePlugin)
+	implementation(libs.sonarqubeGradlePlugin)
 
 	api(project(":dependencies"))
 	api(project(":config"))
 
-	testImplementation("org.junit.jupiter:junit-jupiter:${Versions.junit}")
-	testImplementation("org.junit.jupiter:junit-jupiter-api:${Versions.junit}")
-	testImplementation("org.assertj:assertj-core:${Versions.assert4j}")
+
+	implementation(libs.bundles.test)
 }
 
 gradlePlugin {
