@@ -1,3 +1,4 @@
+.PHONY: version
 
 libs: package-libs
 docs:
@@ -11,3 +12,7 @@ test-libs:
 
 publish-libs: build-libs
 	./gradlew publishToMavenLocal publish
+
+version:
+	@VERSION=$$(cat VERSION); \
+	echo "$$VERSION"
