@@ -13,11 +13,18 @@ dependencies {
 }
 
 detekt {
-  config.from(rootDir.resolve("../detekt.yml"))
-  buildUponDefaultConfig = true
+  config.from(rootDir.resolve("detekt.yml"))
+//  buildUponDefaultConfig = true
 }
 
 tasks.withType<Detekt> {
+  println("//////////////////////////////")
+  println("//////////////////////////////")
+  println(project.name)
+  println(rootDir.resolve("detekt.yml"))
+  println("//////////////////////////////")
+  println("//////////////////////////////")
+//  debug = true
   reports {
     html.required.set(true) // observe findings in your browser with structure and code snippets
     xml.required.set(true) // checkstyle like format mainly for integrations like Jenkins

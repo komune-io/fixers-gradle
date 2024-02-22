@@ -1,4 +1,4 @@
-name: Release Package
+name: Dev
 
 on: [push]
 #on:
@@ -24,8 +24,8 @@ jobs:
           cp ./gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Build
         run: ./gradlew build --parallel --scan
-#      - name: Lint
-#        run: ./gradlew detekt
+      - name: Lint
+        run: ./gradlew detekt
       - name: Test
         working-directory: ./sandbox
         run: ./gradlew build test

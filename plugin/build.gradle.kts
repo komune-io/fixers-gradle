@@ -2,6 +2,7 @@ plugins {
 	`kotlin-dsl`
 	kotlin("jvm")
 	id("com.gradle.plugin-publish")
+	id("composite.detekt")
 }
 
 dependencies {
