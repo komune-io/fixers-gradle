@@ -45,7 +45,7 @@ fun ExtensionContainer.fixersIfExists(configure: Action<ConfigExtension>) {
 
 fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io.komune.fixers.gradle.${module}")
 
-
+@Suppress("UnnecessaryAbstractClass")
 abstract class ConfigExtension(
 	val project: Project
 ) {
