@@ -1,6 +1,16 @@
 package io.komune.gradle.config
 
-import io.komune.gradle.config.model.*
+
+import io.komune.gradle.config.model.Bundle
+import io.komune.gradle.config.model.Detekt
+import io.komune.gradle.config.model.Jdk
+import io.komune.gradle.config.model.Kt2Ts
+import io.komune.gradle.config.model.Npm
+import io.komune.gradle.config.model.Publication
+import io.komune.gradle.config.model.Repository
+import io.komune.gradle.config.model.Sonar
+import io.komune.gradle.config.model.sonarCloud
+import io.komune.gradle.config.model.sonatype
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
