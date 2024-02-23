@@ -9,6 +9,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -30,17 +31,16 @@ jobs:
         working-directory: ./sandbox
         run: ./gradlew build test
       - name: Version
-        id: version
         run: |
           VERSION=$(cat VERSION)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Publish
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
           PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
           PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
+          VERSION: ${{ env.VERSION }}
         run: |
           echo "Publishing version ${VERSION}"
           VERSION=${VERSION} make publish-libs
