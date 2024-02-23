@@ -1,10 +1,7 @@
-package io.komune.fixers.gradle.sonar
+package io.komune.fixers.gradle.check
 
 import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.fixers
-import io.gitlab.arturbosch.detekt.Detekt
-import io.gitlab.arturbosch.detekt.DetektPlugin
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
@@ -14,55 +11,20 @@ import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.sonarqube.gradle.SonarQubeExtension
 
-class SonarPlugin : Plugin<Project> {
+class CheckPlugin : Plugin<Project> {
 	override fun apply(target: Project) {
 		target.afterEvaluate {
 			val config = target.rootProject.extensions.fixers
 			configureSonarQube(target)
+			if(config?.detekt?.disable != true) {
+				configureDetekt()
+			}
 			target.subprojects {
 				configureJacoco()
-				if(config?.detekt?.disable != true) {
-					configureDetekt()
-				}
+
 			}
 		}
 
-	}
-
-	private fun Project.configureDetekt() {
-		pluginManager.withPlugin("io.gitlab.arturbosch.detekt") {
-			extensions.configure(DetektExtension::class.java) {
-				source.from(
-					files(
-						file("src")
-							.listFiles()
-							?.filter { it.isDirectory && it.name.endsWith("main", ignoreCase = true) }
-					)
-				)
-				config.from(
-					rootProject.files("detekt.yml")
-				)
-			}
-			tasks.withType(Detekt::class.java).configureEach {
-				reports {
-					// Enable/Disable XML report (default: true)
-					xml.required.set(true)
-					xml.outputLocation.set(file("build/reports/detekt.xml"))
-					// Enable/Disable HTML report (default: true)
-					html.required.set(true)
-					html.outputLocation.set(file("build/reports/detekt.html"))
-					// Enable/Disable TXT report (default: true)
-					txt.required.set(false)
-					txt.outputLocation.set(file("build/reports/detekt.txt"))
-					// Enable/Disable SARIF report (default: false)
-					sarif.required.set(false)
-					sarif.outputLocation.set(file("build/reports/detekt.sarif"))
-					// Enable/Disable MD report (default: false)
-					md.required.set(true)
-					md.outputLocation.set(file("build/reports/detekt.md"))
-				}
-			}
-		}
 	}
 
 	private fun configureSonarQube(target: Project) {

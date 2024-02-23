@@ -34,7 +34,7 @@ allprojects {
       sarif.required = true
       md.required = true
     }
-    basePath = rootDir.absolutePath
+//    basePath = rootDir.absolutePath
   }
 
   detektReportMergeSarif {

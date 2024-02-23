@@ -66,9 +66,9 @@ gradlePlugin {
 			description = "Ease the configuration of npm publication."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
-		create("io.komune.fixers.gradle.sonar") {
-			id = "io.komune.fixers.gradle.sonar"
-			implementationClass = "io.komune.fixers.gradle.sonar.SonarPlugin"
+		create("io.komune.fixers.gradle.check") {
+			id = "io.komune.fixers.gradle.check"
+			implementationClass = "io.komune.fixers.gradle.check.CheckPlugin"
 			displayName = "Fixers Gradle Sonar"
 			description = "Ease the configuration of static code analysis with sonarqube and detekt."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")

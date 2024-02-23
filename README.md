@@ -15,6 +15,6 @@ Ease the configuration of Kotlin Multiplatform Plugin.
 ## io.komune.fixers.gradle.publish
 Ease the configuration of maven publication.
 
-## io.komune.fixers.gradle.sonar
+## io.komune.fixers.gradle.check
 Ease the configuration of static code analysis with sonarqube and detekt.
 
