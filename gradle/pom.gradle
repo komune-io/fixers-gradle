@@ -1,3 +1,4 @@
+
 project.ext.pomConfig = {
     licenses {
         license {
@@ -8,27 +9,28 @@ project.ext.pomConfig = {
     }
     developers {
         developer {
-            id "SmartB"
-            name "SmartB Team"
-            organization "SmartB"
-            organizationUrl "https://www.smartb.city"
+            id "Komune"
+            name "Komune Team"
+            organization "Komune"
+            organizationUrl "https://komune.io"
         }
     }
 
     scm {
-        url "https://github.com/smartbcity/fixers-gradle.git"
+        url "https://github.com/komune-io/fixers-gradle"
     }
 }
 
 project.ext.configurePomMetadata = { pom ->
     def root = asNode()
-    root.appendNode('url', 'https://github.com/smartbcity/fixers-gradle')
+    root.appendNode('url', 'https://github.com/komune-io/fixers-gradle')
     root.children().last() + pomConfig
 }
+
 project.ext.configureMavenCentralMetadata = { pom ->
     def root = asNode()
     root.appendNode('name', project.name)
     root.appendNode('description', 'Gradle plugin to facilitate kotlin multiplateform configuration.')
-    root.appendNode('url', 'https://github.com/smartbcity/fixers-gradle')
+    root.appendNode('url', 'https://github.com/komune-io/fixers-gradle')
     root.children().last() + pomConfig
 }
