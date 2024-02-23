@@ -10,7 +10,7 @@ TOOL VERSIONS
 plugins {
   id("io.komune.fixers.gradle.config")
   id("io.komune.fixers.gradle.publish") apply false
-  id("io.komune.fixers.gradle.sonar")
+  id("io.komune.fixers.gradle.check")
 }
 
 allprojects {
