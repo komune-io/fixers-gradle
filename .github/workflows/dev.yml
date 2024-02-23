@@ -19,13 +19,13 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
+      - name: Lint
+        run: ./gradlew detekt
       - name: Setup Maven Github Pkg
         run: |
           cp ./gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Build
         run: ./gradlew build --parallel --scan
-      - name: Lint
-        run: ./gradlew detekt
       - name: Test
         working-directory: ./sandbox
         run: ./gradlew build test

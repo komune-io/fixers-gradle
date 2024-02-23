@@ -1,31 +1,43 @@
 import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.report.ReportMergeTask
 import org.gradle.accessors.dm.LibrariesForLibs
 
 plugins {
   id("io.gitlab.arturbosch.detekt")
 }
 
+val libs = the<LibrariesForLibs>()
 
-internal inline val Project.libs get() = the<LibrariesForLibs>()
-
-dependencies {
-  detektPlugins(libs.detekt.formatting)
+val detektReportMergeSarif by tasks.registering(ReportMergeTask::class) {
+  output = layout.buildDirectory.file("reports/detekt/merge.sarif")
 }
 
-detekt {
-  config.from(rootDir.resolve("detekt.yml"))
-//  buildUponDefaultConfig = true
-}
+allprojects {
 
-tasks.withType<Detekt> {
-  reports {
-    // observe findings in your browser with structure and code snippets
-    html.required.set(true)
-    // checkstyle like format mainly for integrations like Jenkins
-    xml.required.set(true)
-    // similar to the console output, contains issue signature to manually edit baseline files
-    txt.required.set(true)
-    // standardized SARIF format (https://sarifweb.azurewebsites.net/) to support integrations with Github Code Scanning
-    sarif.required.set(true)
+  apply(plugin = "io.gitlab.arturbosch.detekt")
+
+  detekt {
+//    buildUponDefaultConfig = true
+    config.from(rootDir.resolve("detekt.yml"))
+  }
+
+  dependencies {
+    detektPlugins(libs.detekt.formatting)
+    detektPlugins(libs.bundles.detekt.rules)
+  }
+
+  tasks.withType<Detekt>().configureEach {
+    reports {
+      xml.required = true
+      html.required = true
+      txt.required = false
+      sarif.required = true
+      md.required = true
+    }
+    basePath = rootDir.absolutePath
+  }
+
+  detektReportMergeSarif {
+    input.from(tasks.withType<Detekt>().map { it.reports.sarif.outputLocation })
   }
 }

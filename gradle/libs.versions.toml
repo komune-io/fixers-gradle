@@ -12,6 +12,8 @@ assertj = "3.25.3"
 
 [libraries]
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+detekt-rules-libraries = { module = "io.gitlab.arturbosch.detekt:detekt-rules-libraries", version.ref = "detekt" }
+detekt-rules-coroutines = { module = "io.gitlab.arturbosch.detekt:detekt-rules-coroutines", version.ref = "detekt" }
 detekt-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -33,6 +35,10 @@ kotlin-plugin = [
 test = [
     "junit-jupiter",
     "assertj-core",
+]
+detekt-rules = [
+    "detekt-rules-libraries",
+    "detekt-rules-coroutines",
 ]
 
 

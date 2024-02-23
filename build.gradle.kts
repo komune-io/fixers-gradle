@@ -1,7 +1,9 @@
+import org.gradle.accessors.dm.LibrariesForLibs
+
 plugins {
 	kotlin("jvm") version embeddedKotlinVersion apply false
 	alias(libs.plugins.gradlePublish) apply false
-//	id("composite.detekt")
+	id("composite.detekt")
 }
 
 tasks.withType<JavaCompile> {

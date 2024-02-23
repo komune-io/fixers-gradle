@@ -1,6 +1,5 @@
 package io.komune.gradle.config
 
-
 import io.komune.gradle.config.model.Bundle
 import io.komune.gradle.config.model.Detekt
 import io.komune.gradle.config.model.Jdk
@@ -13,6 +12,7 @@ import io.komune.gradle.config.model.sonarCloud
 import io.komune.gradle.config.model.sonatype
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
@@ -21,10 +21,11 @@ import org.gradle.plugin.use.PluginDependencySpec
 /**
  * Retrieves the [fixers][io.komune.fixers.gradle.fixers] extension.
  */
+@Suppress("SwallowedException")
 val ExtensionContainer.fixers: ConfigExtension?
 	get() = try {
 		getByName(ConfigExtension.NAME) as ConfigExtension?
-	} catch (e: org.gradle.api.UnknownDomainObjectException) {
+	} catch (e: UnknownDomainObjectException) {
 		null
 	}
 
