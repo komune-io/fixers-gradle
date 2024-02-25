@@ -36,12 +36,9 @@ jobs:
       - name: Setup Maven Github Pkg
         run: |
           cp ./gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
+          cat ~/.gradle/init.gradle.kts
       - name: Lint
         run: ./gradlew detekt
-      - name: Setup Maven Github Pkg
-        run: |
-          cat ./.github/gradle/repository.gradle.kts
-          cp ./.github/gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Build
         run: ./gradlew build --parallel --scan
       - name: Test
