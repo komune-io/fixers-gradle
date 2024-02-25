@@ -6,6 +6,7 @@ on:
       javaVersion:
         description: 'Java version'
         required: false
+        type: 'string'
         default: '17'
     secrets:
       GPG_SIGNING_KEY:
