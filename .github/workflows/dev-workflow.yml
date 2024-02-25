@@ -24,6 +24,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
+      PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Java 17
@@ -37,21 +40,12 @@ jobs:
         run: |
           cp ./.github/gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Lint
-        env:
-          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
         run: |
           cat ~/.gradle/init.gradle.kts
           ./gradlew detekt
       - name: Build
-        env:
-          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
         run: ./gradlew build --parallel --scan
       - name: Test
-        env:
-          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
         working-directory: ./sandbox
         run: ./gradlew build test
       - name: Version
@@ -62,8 +56,6 @@ jobs:
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
           VERSION: ${{ env.VERSION }}
         run: |
           echo "Publishing version ${VERSION}"
