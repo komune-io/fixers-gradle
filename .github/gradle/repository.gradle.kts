@@ -18,6 +18,9 @@ settingsEvaluated {
 
 allprojects {
     repositories {
+        println("//////////////////////////////")
+        println(System.getenv("PKG_MAVEN_USERNAME"))
+        println("//////////////////////////////")
         mavenLocal()
         mavenCentral()
         maven {
