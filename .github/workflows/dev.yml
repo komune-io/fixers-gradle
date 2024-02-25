@@ -8,8 +8,9 @@ on: [push]
 jobs:
   call-reusable-workflow:
     uses: komune-io/fixers-gradle/.github/workflows/dev-workflow.yml@feat/HardforkToKomune
-    with:
-      javaVersion: '17' # Optional, only if you need to override the default or pass specific inputs
+    permissions:
+      contents: read
+      packages: write
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
