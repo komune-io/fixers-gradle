@@ -7,7 +7,7 @@ on: [push]
 
 jobs:
   call-reusable-workflow:
-    uses: komune-io/fixers-gradle/.github/workflows/reusable-dev-workflow.yml@feat/HardforkToKomune
+    uses: komune-io/fixers-gradle/actions/dev-workflow.yml@feat/HardforkToKomune
     with:
       javaVersion: '17' # Optional, only if you need to override the default or pass specific inputs
     secrets:
