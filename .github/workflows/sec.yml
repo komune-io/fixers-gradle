@@ -7,3 +7,7 @@ jobs:
     uses: komune-io/fixers-gradle/.github/workflows/sec-workflow.yml@feat/HardforkToKomune
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    permissions:
+      contents: write
+      pull-requests: read
+      security-events: write
