@@ -43,10 +43,10 @@ jobs:
                   repositories {
                       gradlePluginPortal()
                       maven {
-                          url = uri('https://maven.pkg.github.com/komune-io/fixers')
+                          url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
                           credentials {
-                              username = System.getenv('PKG_MAVEN_USERNAME')
-                              password = System.getenv('PKG_MAVEN_TOKEN')
+                              username = System.getenv(\"PKG_MAVEN_USERNAME\")
+                              password = System.getenv(\"PKG_MAVEN_TOKEN\")
                           }
                       }
                   }
@@ -58,14 +58,15 @@ jobs:
                   mavenLocal()
                   mavenCentral()
                   maven {
-                      url = uri('https://maven.pkg.github.com/komune-io/fixers')
+                      url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
                       credentials {
-                          username = System.getenv('PKG_MAVEN_USERNAME')
-                          password = System.getenv('PKG_MAVEN_TOKEN')
+                          username = System.getenv(\"PKG_MAVEN_USERNAME\")
+                          password = System.getenv(\"PKG_MAVEN_TOKEN\")
                       }
                   }
               }
           }" > ~/.gradle/init.gradle.kts
+
       - name: Lint
         run: |
           cat ~/.gradle/init.gradle.kts
