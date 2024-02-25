@@ -1,7 +1,10 @@
 settingsEvaluated { 
    pluginManagement {
         repositories {
-	    gradlePluginPortal()
+            println("//////////////////////////////")
+            println(System.getenv("PKG_MAVEN_USERNAME"))
+            println("//////////////////////////////")
+            gradlePluginPortal()
             maven {
                 url = uri("https://maven.pkg.github.com/komune-io/fixers")
                 credentials {
