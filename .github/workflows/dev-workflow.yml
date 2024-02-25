@@ -33,11 +33,14 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
+      - name: Setup Maven Github Pkg
+        run: |
+          cp ./gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Lint
         run: ./gradlew detekt
       - name: Setup Maven Github Pkg
         run: |
-          cp ./gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
+          cp ./.github/gradle/repository.gradle.kts ~/.gradle/init.gradle.kts
       - name: Build
         run: ./gradlew build --parallel --scan
       - name: Test
