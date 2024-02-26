@@ -21,6 +21,7 @@ jobs:
           fetch-depth: 0
       - name: Gradle wrapper validation
         uses: gradle/wrapper-validation-action@v2
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/HardforkToKomune
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@v3
 
