@@ -1,4 +1,4 @@
-name: Invoke Reusable Security Workflow
+name: Sec
 
 on: [push]
 
