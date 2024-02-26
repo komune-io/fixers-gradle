@@ -39,6 +39,7 @@ jobs:
       - uses: ./.github/actions/setup-gradle-github-pkg
       - name: Lint
         run: |
+          cat ~/.gradle/init.gradle.kts
           make lint
       - name: Build
         run: make build
