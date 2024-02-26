@@ -33,5 +33,4 @@ runs:
                 }
             }
         }" > ~/.gradle/init.gradle.kts
-        cat ~/.gradle/init.gradle.kts
       shell: bash
