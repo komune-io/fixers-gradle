@@ -69,13 +69,11 @@ jobs:
 
       - name: Lint
         run: |
-          cat ~/.gradle/init.gradle.kts
-          ./gradlew detekt
+          make lint
       - name: Build
-        run: ./gradlew build --parallel --scan
+        run: make build
       - name: Test
-        working-directory: ./sandbox
-        run: ./gradlew build test
+        run: make test
       - name: Version
         run: |
           VERSION=$(cat VERSION)
@@ -88,4 +86,4 @@ jobs:
         run: |
           echo "Publishing version ${VERSION}"
           echo "PKG_MAVEN_USERNAME ${PKG_MAVEN_USERNAME}"
-          VERSION=${VERSION} make publish-libs
+          VERSION=${VERSION} make package

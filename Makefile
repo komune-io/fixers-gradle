@@ -1,16 +1,25 @@
 .PHONY: version
 
-libs: package-libs
+lint: lint-libs
+build: build-libs
+test: test-libs
+package: test-libs
+
 docs:
 	echo 'No Docs'
 
+lint-libs:
+	./gradlew detekt
+
 build-libs:
-	./gradlew build
+	./gradlew build --scan
 
 test-libs:
 	./gradlew test
+	cd sandbox
+	./gradlew test
 
-publish-libs: build-libs
+package-libs: build-libs
 	./gradlew publishToMavenLocal publish
 
 version:
