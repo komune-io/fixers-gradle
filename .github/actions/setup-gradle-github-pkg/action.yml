@@ -3,8 +3,6 @@ description: 'Sets up Gradle Github Pkg as repository'
 runs:
   using: "composite"
   steps:
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v3
     - run: |
         echo "settingsEvaluated {
             pluginManagement {
