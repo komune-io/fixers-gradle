@@ -8,13 +8,13 @@ TOOL VERSIONS
 )
 
 plugins {
-  id("city.smartb.fixers.gradle.config")
-  id("city.smartb.fixers.gradle.publish") apply false
-  id("city.smartb.fixers.gradle.sonar")
+  id("io.komune.fixers.gradle.config")
+  id("io.komune.fixers.gradle.publish") apply false
+  id("io.komune.fixers.gradle.check")
 }
 
 allprojects {
-  group = "city.smartb.gradle.sandbox"
+  group = "io.komune.gradle.sandbox"
   version = System.getenv("VERSION") ?: "latest"
   repositories {
     mavenLocal()
@@ -22,25 +22,12 @@ allprojects {
   }
 }
 
-//subprojects {
-//  plugins.withType(city.smartb.fixers.gradle.config.ConfigPlugin::class.java).whenPluginAdded {
-//    fixers {
-//      bundle {
-//        id = "gradle-sandbox"
-//        name = "gradle-sandbox"
-//        description = "Sanbox to test SmartB Kotlin Configuration"
-//        url = "https://gitlab.smartb.city/fixers/gradle/sandbox"
-//      }
-//    }
-//  }
-//}
-
 fixers {
   bundle {
     id = "gradle-sandbox"
     name = "gradle-sandbox"
-    description = "Sanbox to test SmartB Kotlin Configuration"
-    url = "https://gitlab.smartb.city/fixers/gradle/sandbox"
+    description = "Sanbox to test Kotlin Configuration"
+    url = "https://github.com/komune-io/fixers-gradle/tree/main/sandbox"
   }
   kt2Ts {
     outputDirectory = "storybook/d2/"

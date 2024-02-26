@@ -9,10 +9,12 @@ apply plugin: 'signing'
 
 apply from: project.rootProject.file('gradle/pom.gradle')
 
+def signingKey = System.getenv("GPG_SIGNING_KEY") ?: ""
+def signingPassword = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
+
 def sonatypeUsername = System.getenv("sonatypeUsername") ?: ""
 def sonatypePassword = System.getenv("sonatypePassword") ?: ""
-def signingKey = System.getenv("signingKey") ?: ""
-def signingPassword = System.getenv("signingPassword") ?: ""
+
 def releasesRepoUrl =  "https://oss.sonatype.org/service/local/staging/deploy/maven2"
 def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
 def repoUrl = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
@@ -37,34 +39,34 @@ afterEvaluate { Project project ->
             pluginMaven(MavenPublication) {
                 pom.withXml(configureMavenCentralMetadata)
             }
-            'city.smartb.fixers.gradle.configPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.configPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.dependenciesPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.dependenciesPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.kotlin.jvmPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.kotlin.mppPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.publishPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.publishPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.npmPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.npmPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'city.smartb.fixers.gradle.sonarPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.sonarPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
         }
         repositories {
             maven {
-                url = repoUrl
+                url = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
                 credentials {
-                    username sonatypeUsername
-                    password sonatypePassword
+                    username System.getenv("PKG_MAVEN_USERNAME")
+                    password System.getenv("PKG_MAVEN_TOKEN")
                 }
             }
         }
