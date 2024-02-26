@@ -3,7 +3,7 @@
 lint: lint-libs
 build: build-libs
 test: test-libs
-package: test-libs
+package: package-libs
 
 docs:
 	echo 'No Docs'

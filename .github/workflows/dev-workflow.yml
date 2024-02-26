@@ -36,37 +36,7 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
-      - name: Setup Maven Github Pkg
-        run: |
-          echo "settingsEvaluated {
-              pluginManagement {
-                  repositories {
-                      gradlePluginPortal()
-                      maven {
-                          url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
-                          credentials {
-                              username = System.getenv(\"PKG_MAVEN_USERNAME\")
-                              password = System.getenv(\"PKG_MAVEN_TOKEN\")
-                          }
-                      }
-                  }
-              }
-          }
-          
-          allprojects {
-              repositories {
-                  mavenLocal()
-                  mavenCentral()
-                  maven {
-                      url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
-                      credentials {
-                          username = System.getenv(\"PKG_MAVEN_USERNAME\")
-                          password = System.getenv(\"PKG_MAVEN_TOKEN\")
-                      }
-                  }
-              }
-          }" > ~/.gradle/init.gradle.kts
-
+      - uses: ./.github/actions/setup-gradle-github-pkg
       - name: Lint
         run: |
           make lint
