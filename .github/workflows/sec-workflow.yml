@@ -5,6 +5,10 @@ on:
     secrets:
       SONAR_TOKEN:
         required: true
+      PKG_MAVEN_USERNAME:
+        required: true
+      PKG_MAVEN_TOKEN:
+        required: true
 
 jobs:
   gradle:
