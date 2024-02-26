@@ -19,18 +19,19 @@ runs:
                     }
                 }
             }
-
-            allprojects {
-                repositories {
-                    mavenLocal()
-                    mavenCentral()
-                    maven {
-                        url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
-                        credentials {
-                            username = System.getenv(\"PKG_MAVEN_USERNAME\")
-                            password = System.getenv(\"PKG_MAVEN_TOKEN\")
-                        }
+        }
+        allprojects {
+            repositories {
+                mavenLocal()
+                mavenCentral()
+                maven {
+                    url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
+                    credentials {
+                        username = System.getenv(\"PKG_MAVEN_USERNAME\")
+                        password = System.getenv(\"PKG_MAVEN_TOKEN\")
                     }
                 }
-            }" > ~/.gradle/init.gradle.kts
+            }
+        }" > ~/.gradle/init.gradle.kts
+        cat ~/.gradle/init.gradle.kts
       shell: bash
