@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
+      PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
