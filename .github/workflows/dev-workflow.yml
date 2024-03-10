@@ -41,7 +41,7 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/HardforkToKomune
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Lint
         run: |
           cat ~/.gradle/init.gradle.kts

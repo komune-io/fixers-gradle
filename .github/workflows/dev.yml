@@ -7,7 +7,7 @@ on: [push]
 
 jobs:
   call-reusable-workflow:
-    uses: komune-io/fixers-gradle/.github/workflows/dev-workflow.yml@feat/HardforkToKomune
+    uses: komune-io/fixers-gradle/.github/workflows/dev-workflow.yml@main
     permissions:
       contents: read
       packages: write
