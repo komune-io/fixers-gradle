@@ -38,7 +38,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: inputs.javaVersion
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
       - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
@@ -46,8 +46,15 @@ jobs:
         run: |
           cat ~/.gradle/init.gradle.kts
           make lint
-      - name: Make Dev Up
-        if:  ${{ inputs.makeDev }}
+      - name: Log in to GHCR
+        if: ${{ inputs.makeDev }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io/komune-io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Make dev up
+        if: ${{ inputs.makeDev }}
         run: make dev up
       - name: Build
         run: make build
