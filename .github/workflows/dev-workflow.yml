@@ -8,6 +8,11 @@ on:
         required: false
         type: 'string'
         default: '17'
+      makeDev:
+        description: 'Make Command To Execute'
+        required: false
+        type: 'boolean'
+        default: false
     secrets:
       GPG_SIGNING_KEY:
         required: true
@@ -41,6 +46,9 @@ jobs:
         run: |
           cat ~/.gradle/init.gradle.kts
           make lint
+      - name: Make Dev Up
+        if:  ${{ inputs.makeDev }}
+        run: make dev up
       - name: Build
         run: make build
       - name: Test
