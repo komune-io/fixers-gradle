@@ -8,6 +8,11 @@ on:
         required: false
         type: 'string'
         default: '17'
+      makeDev:
+        description: 'Make Command To Execute'
+        required: false
+        type: 'boolean'
+        default: false
     secrets:
       GPG_SIGNING_KEY:
         required: true
@@ -36,11 +41,14 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/HardforkToKomune
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Lint
         run: |
           cat ~/.gradle/init.gradle.kts
           make lint
+      - name: Make Dev Up
+        if:  ${{ inputs.makeDev }}
+        run: make dev up
       - name: Build
         run: make build
       - name: Test
