@@ -99,7 +99,7 @@ jobs:
       - name: Init Java And Gradle
         uses: komune-io/fixers-gradle/.github/actions/jvm@feat/DocCi
         with:
-          node-version: ${{ inputs.node-version }}
+          java-version: ${{ inputs.java-version }}
       - name: Run Make Commands and Upload Artifact
         uses: komune-io/fixers-gradle/.github/actions/make-package@feat/DocCi
         with:
