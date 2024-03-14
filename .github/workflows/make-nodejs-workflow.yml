@@ -8,6 +8,7 @@ on:
         required: false
         type: "string"
         default: "21"
+
       make-file:
         description: "Node version"
         required: false
@@ -17,66 +18,66 @@ on:
       with-lint-task:
         description: "Make command for testing"
         required: false
-        type: 'boolean'
+        type: "boolean"
         default: true
       make-lint-task:
         description: "Make command for linting"
         required: false
-        type: 'string'
+        type: "string"
         default: "lint"
 
       with-build-task:
         description: "Make command for testing"
         required: false
-        type: 'boolean'
+        type: "boolean"
         default: true
       make-build-task:
         description: "Make command for building"
         required: false
-        type: 'string'
+        type: "string"
         default: "build"
 
       with-test-env-task:
         description: "Make command for testing"
         required: false
-        type: 'boolean'
+        type: "boolean"
         default: false
       make-test-env-task:
         description: "Make command for testing"
         required: false
-        type: 'string'
+        type: "string"
         default: "test"
 
       with-test-task:
         description: "Make command for testing"
         required: false
-        type: 'boolean'
+        type: "boolean"
         default: true
       make-test-task:
         description: "Make command for testing"
         required: false
-        type: 'string'
+        type: "string"
         default: "test"
 
       with-package-task:
         description: "Make command for testing"
         required: false
-        type: 'boolean'
+        type: "boolean"
         default: true
       make-package-task:
         description: "Make command for packaging"
         required: false
-        type: 'string'
+        type: "string"
         default: "package"
 
       artifact-name:
         description: "Name for the uploaded artifact, leave empty if no artifact is needed"
         required: false
-        type: 'string'
+        type: "string"
       artifact-path:
         description: "Path to the artifact to upload, leave empty if no artifact is needed"
         required: false
-        type: 'string'
+        type: "string"
 
 
 jobs:
