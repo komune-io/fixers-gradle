@@ -41,7 +41,7 @@ jobs:
           java-version: inputs.javaVersion
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/DocCi
       - name: Lint
         run: |
           make lint

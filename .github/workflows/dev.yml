@@ -7,10 +7,12 @@ on: [push]
 
 jobs:
   call-reusable-workflow:
-    uses: komune-io/fixers-gradle/.github/workflows/dev-workflow.yml@main
+    uses: komune-io/fixers-gradle/.github/workflows/make-jvm-workflow.yml@feat/DocCi
     permissions:
       contents: read
       packages: write
+    with:
+      make-file: "Makefile"
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}

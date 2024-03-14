@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
       - name: Gradle wrapper validation
         uses: gradle/wrapper-validation-action@v2
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/DocCi
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@v3
 
@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/DocCi
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
@@ -64,6 +64,6 @@ jobs:
           format: sarif
           gh-code-scanning-compat: true
           max-allowed-issues: 2147483647
-      - uses: github/codeql-action/upload-sarif@main
+      - uses: github/codeql-action/upload-sarif@feat/DocCi
         with:
           sarif_file: results.sarif
