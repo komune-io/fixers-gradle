@@ -18,8 +18,8 @@ on:
       with-lint-task:
         description: "Make command for testing"
         required: false
-        type: "boolean"
-        default: true
+        type: "string"
+        default: "true"
       make-lint-task:
         description: "Make command for linting"
         required: false
@@ -29,8 +29,8 @@ on:
       with-build-task:
         description: "Make command for testing"
         required: false
-        type: "boolean"
-        default: true
+        type: "string"
+        default: "true"
       make-build-task:
         description: "Make command for building"
         required: false
@@ -40,8 +40,8 @@ on:
       with-test-env-task:
         description: "Make command for testing"
         required: false
-        type: "boolean"
-        default: false
+        type: "string"
+        default: "false"
       make-test-env-task:
         description: "Make command for testing"
         required: false
@@ -51,8 +51,8 @@ on:
       with-test-task:
         description: "Make command for testing"
         required: false
-        type: "boolean"
-        default: true
+        type: "string"
+        default: "true"
       make-test-task:
         description: "Make command for testing"
         required: false
@@ -62,8 +62,8 @@ on:
       with-package-task:
         description: "Make command for testing"
         required: false
-        type: "boolean"
-        default: true
+        type: "string"
+        default: "true"
       make-package-task:
         description: "Make command for packaging"
         required: false
