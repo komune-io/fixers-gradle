@@ -3,7 +3,7 @@ name: Reusable Dev Workflow
 on:
   workflow_call:
     inputs:
-      java-Version:
+      java-version:
         description: "Java version"
         required: false
         type: "string"
