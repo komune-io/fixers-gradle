@@ -18,7 +18,7 @@ runs:
       uses: actions/setup-java@v4
       with:
         distribution: ${{ inputs.java-distribution }}
-        java-version: inputs.java-version
+        java-version: ${{ inputs.java-version }}
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v3
     - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/DocCi
