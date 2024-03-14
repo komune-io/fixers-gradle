@@ -16,7 +16,7 @@ on:
         default: true
       make-lint-task:
         description: "Make command for linting"
-        required: true
+        required: false
         type: 'string'
         default: "lint"
 
@@ -27,7 +27,7 @@ on:
         default: true
       make-build-task:
         description: "Make command for building"
-        required: true
+        required: false
         type: 'string'
         default: "build"
 
@@ -38,7 +38,7 @@ on:
         default: false
       make-test-env-task:
         description: "Make command for testing"
-        required: true
+        required: false
         type: 'string'
         default: "test"
 
@@ -49,7 +49,7 @@ on:
         default: true
       make-test-task:
         description: "Make command for testing"
-        required: true
+        required: false
         type: 'string'
         default: "test"
 
@@ -60,7 +60,7 @@ on:
         default: true
       make-package-task:
         description: "Make command for packaging"
-        required: true
+        required: false
         type: 'string'
         default: "package"
 

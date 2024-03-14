@@ -3,7 +3,7 @@ description: "Run lint, build, test, and package commands using make"
 inputs:
   make-file:
     description: "Makefile to use"
-    required: true
+    required: false
     default: "Makefile"
 
   with-lint-task:
@@ -12,7 +12,7 @@ inputs:
     default: "true"
   make-lint-task:
     description: "Make command for linting"
-    required: true
+    required: false
     default: "lint"
 
   with-build-task:
@@ -21,7 +21,7 @@ inputs:
     default: "true"
   make-build-task:
     description: "Make command for building"
-    required: true
+    required: false
     default: "build"
 
   with-test-env-task:
@@ -30,7 +30,7 @@ inputs:
     default: "false"
   make-test-env-task:
     description: "Make command for testing"
-    required: true
+    required: false
     default: "test"
 
   with-test-task:
@@ -39,7 +39,7 @@ inputs:
     default: "true"
   make-test-task:
     description: "Make command for testing"
-    required: true
+    required: false
     default: "test"
 
   with-package-task:
@@ -48,7 +48,7 @@ inputs:
     default: "true"
   make-package-task:
     description: "Make command for packaging"
-    required: true
+    required: false
     default: "package"
 
   artifact-name:
