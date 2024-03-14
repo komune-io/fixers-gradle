@@ -1,0 +1,117 @@
+name: Reusable Dev Workflow
+
+on:
+  workflow_call:
+    inputs: # Define any inputs here if needed, for example, java version or branch name
+      java-Version:
+        description: 'Java version'
+        required: false
+        type: 'string'
+        default: '17'
+
+      with-lint-task:
+        description: "Make command for testing"
+        required: false
+        type: 'boolean'
+        default: true
+      make-lint-task:
+        description: "Make command for linting"
+        required: true
+        type: 'string'
+        default: "lint"
+
+      with-build-task:
+        description: "Make command for testing"
+        required: false
+        type: 'boolean'
+        default: true
+      make-build-task:
+        description: "Make command for building"
+        required: true
+        type: 'string'
+        default: "build"
+
+      with-test-env-task:
+        description: "Make command for testing"
+        required: false
+        type: 'boolean'
+        default: false
+      make-test-env-task:
+        description: "Make command for testing"
+        required: true
+        type: 'string'
+        default: "test"
+
+      with-test-task:
+        description: "Make command for testing"
+        required: false
+        type: 'boolean'
+        default: true
+      make-test-task:
+        description: "Make command for testing"
+        required: true
+        type: 'string'
+        default: "test"
+
+      with-package-task:
+        description: "Make command for testing"
+        required: false
+        type: 'boolean'
+        default: true
+      make-package-task:
+        description: "Make command for packaging"
+        required: true
+        type: 'string'
+        default: "package"
+
+      artifact-name:
+        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+        required: false
+        type: 'string'
+      artifact-path:
+        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        required: false
+        type: 'string'
+
+    secrets:
+      GPG_SIGNING_KEY:
+        required: true
+      GPG_SIGNING_PASSWORD:
+        required: true
+      PKG_MAVEN_USERNAME:
+        required: true
+      PKG_MAVEN_TOKEN:
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Init Java And Gradle
+        uses: komune-io/fixers-gradle/.github/actions/jvm@feat/DocCi
+        with:
+          node-version: ${{ inputs.node-version }}
+      - name: Run Make Commands and Upload Artifact
+        uses: komune-io/fixers-gradle/.github/actions/make-package@feat/DocCi
+        with:
+          make-file: ${{ inputs.make-file }}
+          with-lint-task: ${{ inputs.with-lint-task }}
+          make-lint-task: ${{ inputs.make-lint-task }}
+          with-build-task: ${{ inputs.with-build-task }}
+          make-build-task: ${{ inputs.make-build-task }}
+          with-test-env-task: ${{ inputs.with-test-env-task }}
+          make-test-env-task: ${{ inputs.with-test-env-task }}
+          with-test-task: ${{ inputs.with-test-task }}
+          make-test-task: ${{ inputs.make-test-task }}
+          with-package-task: ${{ inputs.with-package-task }}
+          make-package-task: ${{ inputs.make-package-task }}
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
+        env:
+          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
+          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}

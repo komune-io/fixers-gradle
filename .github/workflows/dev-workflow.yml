@@ -3,7 +3,7 @@ name: Reusable Dev Workflow
 on:
   workflow_call:
     inputs: # Define any inputs here if needed, for example, java version or branch name
-      javaVersion:
+      java-Version:
         description: 'Java version'
         required: false
         type: 'string'
@@ -44,7 +44,6 @@ jobs:
       - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Lint
         run: |
-          cat ~/.gradle/init.gradle.kts
           make lint
       - name: Log in to GHCR
         if: ${{ inputs.makeDev }}

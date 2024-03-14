@@ -1,0 +1,20 @@
+name: "Init Java Actions"
+description: "Setup Java and Gradle"
+inputs:
+  java-Version:
+    description: 'Java version'
+    required: false
+    default: '17'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - name: Setup Java ${{ inputs.javaVersion }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: inputs.javaVersion
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v3
+    - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/DocCi

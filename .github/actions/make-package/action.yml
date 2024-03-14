@@ -1,0 +1,113 @@
+name: "Make Package"
+description: "Run lint, build, test, and package commands using make"
+inputs:
+  make-file:
+    description: "Makefile to use"
+    required: true
+    default: "Makefile"
+
+  with-lint-task:
+    description: "Make command for testing"
+    required: false
+    default: "true"
+  make-lint-task:
+    description: "Make command for linting"
+    required: true
+    default: "lint"
+
+  with-build-task:
+    description: "Make command for testing"
+    required: false
+    default: "true"
+  make-build-task:
+    description: "Make command for building"
+    required: true
+    default: "build"
+
+  with-test-env-task:
+    description: "Make command for testing"
+    required: false
+    default: "false"
+  make-test-env-task:
+    description: "Make command for testing"
+    required: true
+    default: "test"
+
+  with-test-task:
+    description: "Make command for testing"
+    required: false
+    default: "true"
+  make-test-task:
+    description: "Make command for testing"
+    required: true
+    default: "test"
+
+  with-package-task:
+    description: "Make command for testing"
+    required: false
+    default: "true"
+  make-package-task:
+    description: "Make command for packaging"
+    required: true
+    default: "package"
+
+  artifact-name:
+    description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+    required: false
+  artifact-path:
+    description: "Path to the artifact to upload, leave empty if no artifact is needed"
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Lint
+      if: ${{ inputs.with-lint-task }}`
+      run: |
+        echo '////////////////////////////////////'
+        echo '//////////      Lint      //////////'
+        echo '////////////////////////////////////'
+        make -f ${{ inputs.make-file }} ${{ inputs.make-lint-task }}
+      shell: bash
+    - name: Build
+      if: ${{ inputs.with-build-task }}`
+      run: |
+        echo '/////////////////////////////////////'
+        echo '//////////      Build      //////////'
+        echo '/////////////////////////////////////'
+        make -f ${{ inputs.make-file }} ${{ inputs.make-build-task }}
+      shell: bash
+    - name: Test Env
+      if: ${{ inputs.with-test-env-task }}`
+      run: |
+        echo '/////////////////////////////////////'
+        echo '//////////    Test Env    ///////////'
+        echo '/////////////////////////////////////'
+        make -f ${{ inputs.make-file }} ${{ inputs.make-test-env-task }}
+      shell: bash
+    - name: Test
+      if: ${{ inputs.with-test-task }}`
+      run: |
+        echo '////////////////////////////////////'
+        echo '//////////      Test      //////////'
+        echo '////////////////////////////////////'
+        make -f ${{ inputs.make-file }} ${{ inputs.make-test-task }}
+      shell: bash
+    - name: Version
+      run: |
+        VERSION=$(cat VERSION)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+      shell: bash
+    - name: Package
+      if: ${{ inputs.with-package-task }}`
+      run: |
+        echo '/////////////////////////////////////'
+        echo '//////////     Package     //////////'
+        echo '/////////////////////////////////////'
+        make -f ${{ inputs.make-file }} ${{ inputs.make-package-task }}
+      shell: bash
+    - name: Upload Artifact
+      if: inputs.artifact-name != '' && inputs.artifact-path != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
