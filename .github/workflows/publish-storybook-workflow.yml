@@ -21,7 +21,9 @@ on:
         description: "Path to the artifact to upload, leave empty if no artifact is needed"
         required: false
         type: "string"
-
+    secrets:
+      NPM_AUTH_TOKEN:
+        required: false
 
 jobs:
   package-storybook:
@@ -35,6 +37,8 @@ jobs:
       with-package-task: false
       artifact-name: storybook-static
       artifact-path: ./storybook-static
+    secrets:
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
 
   publish-chromatic:
