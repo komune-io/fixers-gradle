@@ -121,3 +121,13 @@ jobs:
           PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+
+  publish-chromatic:
+    runs-on: ubuntu-latest
+    name: Publish Chromatic
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi

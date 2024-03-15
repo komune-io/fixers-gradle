@@ -1,0 +1,28 @@
+name: Reusable Dev Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node version"
+        required: false
+        type: "string"
+
+
+jobs:
+  publish-chromatic:
+    runs-on: ubuntu-latest
+    name: Publish Chromatic
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init NodeJs
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        with:
+          node-version: ${{ inputs.node-version }}
+      - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}

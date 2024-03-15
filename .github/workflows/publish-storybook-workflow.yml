@@ -1,0 +1,64 @@
+name: Reusable Dev Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node version"
+        required: false
+        type: "string"
+
+      artifact-name:
+        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+      artifact-path:
+        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+
+
+jobs:
+  package-storybook:
+    uses: komune-io/fixers-g2/.github/workflows/make-nodejs-workflow.yml@main
+    permissions:
+      contents: read
+    with:
+      make-file: "docs.mk"
+      with-package-task: false
+      artifact-name: storybook-static
+      artifact-path: ./storybook-static
+
+
+  publish-chromatic:
+    runs-on: ubuntu-latest
+    name: Publish Chromatic
+    needs: [package-storybook]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init NodeJs
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        with:
+          node-version: ${{ inputs.node-version }}
+      - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
+
+  publish-github-page:
+    runs-on: ubuntu-latest
+    name: Publish Github Page
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init NodeJs
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        with:
+          node-version: ${{ inputs.node-version }}
+      - uses: komune-io/fixers-gradle/.github/actions/github-page@feat/DocCi
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}

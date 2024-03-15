@@ -1,0 +1,46 @@
+name: Reusable Dev Workflow
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+        default: storybook-static
+      artifact-path:
+        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+        default: storybook-static
+
+    secrets:
+      GPG_SIGNING_KEY:
+        required: true
+      GPG_SIGNING_PASSWORD:
+        required: true
+      PKG_MAVEN_USERNAME:
+        required: true
+      PKG_MAVEN_TOKEN:
+        required: true
+
+jobs:
+  publish-github-page:
+    runs-on: ubuntu-latest
+    name: Publish Github Page
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init NodeJs
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        with:
+          node-version: ${{ inputs.node-version }}
+      - uses: komune-io/fixers-gradle/.github/actions/github-page@feat/DocCi
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
+
+
+
+

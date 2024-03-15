@@ -1,0 +1,37 @@
+name: "Deploy On Chromatic"
+description: "Deploy your app to Chromatic for visual regression testing. This action uses Make for linting, building, testing, and packaging, then publishes Storybook to Chromatic."
+inputs:
+  artifact-name:
+    description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+    required: false
+    default: storybook-static
+  artifact-path:
+    description: "Path to the artifact to upload, leave empty if no artifact is needed"
+    required: false
+    default: storybook-static
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: storybook-static
+        path: ./storybook-static
+
+    - name: Package and upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: storybook-static
+
+    - name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
+      id: deployment
+
+    - name: Print footer
+      shell: bash
+      run: |
+        echo "## Deployed to Github Page" >> $GITHUB_STEP_SUMMARY
+        echo ""  >> $GITHUB_STEP_SUMMARY
+        echo "Page: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+        
