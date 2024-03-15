@@ -3,6 +3,11 @@ name: Reusable Dev Workflow
 on:
   workflow_call:
     inputs:
+      storybook-dir:
+        description: "Storybook base directory"
+        required: false
+        type: "string"
+
       node-version:
         description: "Node version"
         required: false
@@ -20,11 +25,13 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-g2/.github/workflows/make-nodejs-workflow.yml@main
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@feat/DocCi
     permissions:
       contents: read
+      packages: write
     with:
       make-file: "docs.mk"
+      base-dir: ${{ inputs.storybook-dir }}
       with-package-task: false
       artifact-name: storybook-static
       artifact-path: ./storybook-static
@@ -42,6 +49,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
         with:
           node-version: ${{ inputs.node-version }}
+          base-dir: ${{ inputs.storybook-dir }}
       - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
         with:
           artifact-name: ${{ inputs.artifact-name }}
@@ -50,6 +58,10 @@ jobs:
   publish-github-page:
     runs-on: ubuntu-latest
     name: Publish Github Page
+    needs: [package-storybook]
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,6 +70,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
         with:
           node-version: ${{ inputs.node-version }}
+          base-dir: ${{ inputs.storybook-dir }}
       - uses: komune-io/fixers-gradle/.github/actions/github-page@feat/DocCi
         with:
           artifact-name: ${{ inputs.artifact-name }}

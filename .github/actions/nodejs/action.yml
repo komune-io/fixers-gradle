@@ -1,6 +1,10 @@
 name: "Make Actions"
 description: "Run lint, build, test, and package commands using make"
 inputs:
+  base-dir:
+    description: "Base directory of node project"
+    required: false
+    default: ""
   node-version:
     description: "Node version"
     required: false
@@ -9,11 +13,18 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-    - name: Setup Node ${{inputs.node-version}}
+    - if: inputs.base-dir != ''
+      name: Setup Node ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: ${{inputs.node-version}}
+        node-version: ${{ inputs.node-version }}
+        cache: "yarn"
+        cache-dependency-path: ${{github.workspace}}/${{ inputs.base-dir }}/yarn.lock
+    - if: inputs.base-dir == ''
+      name: Setup Node ${{ inputs.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
         cache: "yarn"
     - uses: actions/cache@v4
       id: yarn-modules-cache # use this to check for `cache-hit` (`steps.yarn-modules-cache.outputs.cache-hit != 'true'`)   with:

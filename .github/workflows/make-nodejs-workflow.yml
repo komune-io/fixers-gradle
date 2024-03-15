@@ -13,7 +13,10 @@ on:
         required: false
         type: "string"
         default: "Makefile"
-
+      base-dir:
+        description: "Base directory of node project"
+        required: false
+        type: "string"
       with-lint-task:
         description: "Make command for testing"
         required: false
@@ -86,9 +89,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Init NodeJs
         uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
         with:
+          base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
       - name: Log in to the Container registry
         uses: docker/login-action@v3
