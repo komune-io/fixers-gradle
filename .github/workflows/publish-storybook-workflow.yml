@@ -24,6 +24,8 @@ on:
     secrets:
       NPM_AUTH_TOKEN:
         required: false
+      CHROMATIC_PROJECT_TOKEN:
+        required: false
 
 jobs:
   package-storybook:
@@ -58,6 +60,7 @@ jobs:
         with:
           artifact-name: ${{ inputs.artifact-name }}
           artifact-path: ${{ inputs.artifact-path }}
+          project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 
   publish-github-page:
     runs-on: ubuntu-latest

@@ -88,6 +88,8 @@ on:
         required: true
       PKG_MAVEN_TOKEN:
         required: true
+      CHROMATIC_PROJECT_TOKEN:
+        required: false
 
 jobs:
   release:
@@ -131,3 +133,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
+          project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

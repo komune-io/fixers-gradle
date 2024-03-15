@@ -7,6 +7,9 @@ inputs:
   artifact-path:
     description: "Path to the artifact to upload, leave empty if no artifact is needed"
     required: false
+  project-token:
+    description: "Path to the artifact to upload, leave empty if no artifact is needed"
+    required: false
 
 runs:
   using: "composite"
@@ -23,7 +26,7 @@ runs:
       id: chromatic
       uses: chromaui/action@latest
       with:
-        projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        projectToken: ${{  inputs.project-token  }}
         storybookBuildDir: ./storybook-static
 
     - name: Chromatic Footer

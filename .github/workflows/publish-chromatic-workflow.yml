@@ -26,3 +26,4 @@ jobs:
         with:
           artifact-name: ${{ inputs.artifact-name }}
           artifact-path: ${{ inputs.artifact-path }}
+          project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
