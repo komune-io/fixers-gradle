@@ -3,24 +3,27 @@ name: Reusable Dev Workflow
 on:
   workflow_call:
     inputs:
-      storybook-dir:
-        description: "Storybook base directory"
-        required: false
-        type: "string"
-
       node-version:
         description: "Node version"
         required: false
         type: "string"
+      with-chromatic:
+        description: "Node version"
+        required: false
+        type: "boolean"
+        default: false
 
-      artifact-name:
-        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+      storybook-dir:
+        description: "Storybook base directory"
         required: false
         type: "string"
-      artifact-path:
-        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        default: "storybook"
+      storybook-static-dir:
+        description: "Path to the storybook-static"
         required: false
         type: "string"
+        default: "storybook-static"
+
     secrets:
       NPM_AUTH_TOKEN:
         required: false
@@ -37,13 +40,13 @@ jobs:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}
       with-package-task: false
-      artifact-name: storybook-static
-      artifact-path: ./storybook-static
+      artifact-name: ${{ inputs.storybook-static-dir }}
+      artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
     secrets:
       NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
-
   publish-chromatic:
+    if: inputs.with-chromatic
     runs-on: ubuntu-latest
     name: Publish Chromatic
     needs: [package-storybook]
@@ -58,11 +61,12 @@ jobs:
           base-dir: ${{ inputs.storybook-dir }}
       - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
         with:
-          artifact-name: ${{ inputs.artifact-name }}
-          artifact-path: ${{ inputs.artifact-path }}
+          storybook-dir: ${{ inputs.storybook-dir }}
+          storybook-static-dir: ${{ inputs.storybook-static-dir }}
           project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 
   publish-github-page:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     name: Publish Github Page
     needs: [package-storybook]
@@ -80,5 +84,5 @@ jobs:
           base-dir: ${{ inputs.storybook-dir }}
       - uses: komune-io/fixers-gradle/.github/actions/github-page@feat/DocCi
         with:
-          artifact-name: ${{ inputs.artifact-name }}
-          artifact-path: ${{ inputs.artifact-path }}
+          artifact-name: ${{ inputs.storybook-dir }}
+          artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}

@@ -88,8 +88,6 @@ on:
         required: true
       PKG_MAVEN_TOKEN:
         required: true
-      CHROMATIC_PROJECT_TOKEN:
-        required: false
 
 jobs:
   release:
@@ -98,6 +96,7 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v4
       - name: Init Java And Gradle
         uses: komune-io/fixers-gradle/.github/actions/jvm@feat/DocCi
         with:
@@ -123,17 +122,3 @@ jobs:
           PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-
-  publish-chromatic:
-    runs-on: ubuntu-latest
-    name: Publish Chromatic
-    needs: [release]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
-        with:
-          artifact-name: ${{ inputs.artifact-name }}
-          artifact-path: ${{ inputs.artifact-path }}
-          project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
