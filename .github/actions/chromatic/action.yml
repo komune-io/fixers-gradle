@@ -1,0 +1,42 @@
+name: "Deploy On Chromatic"
+description: "Deploy your app to Chromatic for visual regression testing. This action uses Make for linting, building, testing, and packaging, then publishes Storybook to Chromatic."
+inputs:
+  storybook-dir:
+    description: "Storybook base directory"
+    required: false
+
+  storybook-static-dir:
+    description: "Path to the storybook-static"
+    required: true
+
+  project-token:
+    description: "Path to the artifact to upload, leave empty if no artifact is needed"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: storybook-static
+        path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
+    - name: Publish to Chromatic
+      id: chromatic
+      uses: chromaui/action@latest
+      with:
+        projectToken: ${{ inputs.project-token }}
+        workingDir: ${{ inputs.storybook-dir }}
+        storybookBuildDir: ${{ inputs.storybook-static-dir }}
+
+    - name: Chromatic Footer
+      shell: bash
+      run: |
+        echo "## Deployed to Chromatic" >> $GITHUB_STEP_SUMMARY
+        echo ""  >> $GITHUB_STEP_SUMMARY
+        echo "Report: ${{ steps.chromatic.outputs.buildUrl }}" >> $GITHUB_STEP_SUMMARY
+        echo ""  >> $GITHUB_STEP_SUMMARY
+        echo "Preview: ${{ steps.chromatic.outputs.storybookUrl }}" >> $GITHUB_STEP_SUMMARY

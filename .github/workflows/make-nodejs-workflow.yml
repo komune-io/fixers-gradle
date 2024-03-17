@@ -1,0 +1,125 @@
+name: Reusable Dev Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node version"
+        required: false
+        type: "string"
+
+      make-file:
+        description: "Node version"
+        required: false
+        type: "string"
+        default: "Makefile"
+      base-dir:
+        description: "Base directory of node project"
+        required: false
+        type: "string"
+      with-lint-task:
+        description: "Make command for testing"
+        required: false
+        type: "boolean"
+        default: true
+      make-lint-task:
+        description: "Make command for linting"
+        required: false
+        type: "string"
+        default: "lint"
+
+      with-build-task:
+        description: "Make command for testing"
+        required: false
+        type: "boolean"
+        default: true
+      make-build-task:
+        description: "Make command for building"
+        required: false
+        type: "string"
+        default: "build"
+
+      with-test-env-task:
+        description: "Make command for testing"
+        required: false
+        type: "boolean"
+        default: false
+      make-test-env-task:
+        description: "Make command for testing"
+        required: false
+        type: "string"
+        default: "test"
+
+      with-test-task:
+        description: "Make command for testing"
+        required: false
+        type: "boolean"
+        default: true
+      make-test-task:
+        description: "Make command for testing"
+        required: false
+        type: "string"
+        default: "test"
+
+      with-package-task:
+        description: "Make command for testing"
+        required: false
+        type: "boolean"
+        default: true
+      make-package-task:
+        description: "Make command for packaging"
+        required: false
+        type: "string"
+        default: "package"
+
+      artifact-name:
+        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+      artifact-path:
+        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        required: false
+        type: "string"
+    secrets:
+      NPM_AUTH_TOKEN:
+        required: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Init NodeJs
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
+        with:
+          base-dir: ${{ inputs.base-dir }}
+          node-version: ${{ inputs.node-version }}
+        env:
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Make Commands and Upload Artifact
+        uses: komune-io/fixers-gradle/.github/actions/make-package@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          with-lint-task: ${{ inputs.with-lint-task }}
+          make-lint-task: ${{ inputs.make-lint-task }}
+          with-build-task: ${{ inputs.with-build-task }}
+          make-build-task: ${{ inputs.make-build-task }}
+          with-test-env-task: ${{ inputs.with-test-env-task }}
+          make-test-env-task: ${{ inputs.with-test-env-task }}
+          with-test-task: ${{ inputs.with-test-task }}
+          make-test-task: ${{ inputs.make-test-task }}
+          with-package-task: ${{ inputs.with-package-task }}
+          make-package-task: ${{ inputs.make-package-task }}
+          artifact-name: ${{ inputs.artifact-name }}
+          artifact-path: ${{ inputs.artifact-path }}
