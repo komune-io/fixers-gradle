@@ -32,7 +32,7 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@feat/DocCi
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@main
     permissions:
       contents: read
       packages: write
@@ -55,11 +55,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Init NodeJs
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
-      - uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/DocCi
+      - uses: komune-io/fixers-gradle/.github/actions/chromatic@main
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
@@ -78,11 +78,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Init NodeJs
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/DocCi
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
-      - uses: komune-io/fixers-gradle/.github/actions/github-page@feat/DocCi
+      - uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
           artifact-name: ${{ inputs.storybook-dir }}
           artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}

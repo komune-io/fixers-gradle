@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   call-reusable-workflow:
-    uses: komune-io/fixers-gradle/.github/workflows/make-jvm-workflow.yml@feat/DocCi
+    uses: ./.github/workflows/make-jvm-workflow.yml
     permissions:
       contents: read
       packages: write

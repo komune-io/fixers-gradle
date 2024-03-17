@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   call-security-workflow:
-    uses: komune-io/fixers-gradle/.github/workflows/sec-workflow.yml@feat/DocCi
+    uses: ./.github/workflows/sec-workflow.yml
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}

@@ -98,11 +98,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Init Java And Gradle
-        uses: komune-io/fixers-gradle/.github/actions/jvm@feat/DocCi
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           java-version: ${{ inputs.java-version }}
       - name: Run Make Commands and Upload Artifact
-        uses: komune-io/fixers-gradle/.github/actions/make-package@feat/DocCi
+        uses: komune-io/fixers-gradle/.github/actions/make-package@main
         with:
           make-file: ${{ inputs.make-file }}
           with-lint-task: ${{ inputs.with-lint-task }}
