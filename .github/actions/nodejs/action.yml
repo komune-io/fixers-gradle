@@ -1,12 +1,12 @@
-name: "Make Actions"
-description: "Run lint, build, test, and package commands using make"
+name: "Node.js Environment Setup and Dependency Caching"
+description: "This workflow sets up a Node.js environment, caches dependencies, and configures authentication for private NPM packages."
 inputs:
   base-dir:
-    description: "Base directory of node project"
+    description: "Base directory of the Node.js project, if applicable."
     required: false
     default: ""
   node-version:
-    description: "Node version"
+    description: "The version of Node.js to be installed."
     required: false
     default: "20"
 
@@ -14,32 +14,36 @@ runs:
   using: "composite"
   steps:
     - if: inputs.base-dir != ''
-      name: Setup Node ${{ inputs.node-version }}
+      name: Setup Node with base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: "yarn"
-        cache-dependency-path: ${{github.workspace}}/${{ inputs.base-dir }}/yarn.lock
+        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/yarn.lock
+
     - if: inputs.base-dir == ''
-      name: Setup Node ${{ inputs.node-version }}
+      name: Setup Node without base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: "yarn"
+
     - uses: actions/cache@v4
-      id: yarn-modules-cache # use this to check for `cache-hit` (`steps.yarn-modules-cache.outputs.cache-hit != 'true'`)   with:
+      id: yarn-modules-cache
       with:
         path: "**/node_modules"
         key: ${{ runner.os }}-yarn-modules-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-modules-
+
     - uses: actions/cache@v4
-      id: yarn-dist-cache # use this to check for `cache-hit` (`steps.yarn-dist-cache.outputs.cache-hit != 'true'`)   with:
+      id: yarn-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-dist-
+
     - name: Authenticate with private NPM package
       run: printf "@komune-io:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${{ env.NPM_AUTH_TOKEN }}\n "> .npmrc
       shell: bash

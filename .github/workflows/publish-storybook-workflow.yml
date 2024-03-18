@@ -1,25 +1,26 @@
-name: Reusable Dev Workflow
+name: Reusable Storybook Workflow
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: "Node version"
+        description: "The Node.js version to use for the workflow."
         required: false
         type: "string"
       with-chromatic:
-        description: "Node version"
+        description: "Determines whether to publish the Storybook to Chromatic."
         required: false
         type: "boolean"
         default: false
 
       storybook-dir:
-        description: "Storybook base directory"
+        description: "The base directory where the Storybook configuration resides."
         required: false
         type: "string"
         default: "storybook"
+
       storybook-static-dir:
-        description: "Path to the storybook-static"
+        description: "The directory path where the static Storybook build will be placed."
         required: false
         type: "string"
         default: "storybook-static"
@@ -39,7 +40,6 @@ jobs:
     with:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}
-      with-package-task: false
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
     secrets:
@@ -48,18 +48,19 @@ jobs:
   publish-chromatic:
     if: inputs.with-chromatic
     runs-on: ubuntu-latest
-    name: Publish Chromatic
+    name: Publish to Chromatic
     needs: [package-storybook]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Init NodeJs
+      - name: Initialize Node.js
         uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
-      - uses: komune-io/fixers-gradle/.github/actions/chromatic@main
+      - name: Publish Storybook to Chromatic
+        uses: komune-io/fixers-gradle/.github/actions/chromatic@main
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
@@ -68,7 +69,7 @@ jobs:
   publish-github-page:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    name: Publish Github Page
+    name: Deploy to GitHub Pages
     needs: [package-storybook]
     permissions:
       pages: write
@@ -77,12 +78,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Init NodeJs
+      - name: Initialize Node.js for GitHub Pages
         uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
-      - uses: komune-io/fixers-gradle/.github/actions/github-page@main
+      - name: Deploy Storybook to GitHub Pages
+        uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
           artifact-name: ${{ inputs.storybook-dir }}
           artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}

@@ -1,9 +1,9 @@
-name: Dev
+name: Development Workflow Execution
 
 on: [push]
 
 jobs:
-  call-reusable-workflow:
+  dev:
     uses: ./.github/workflows/make-jvm-workflow.yml
     permissions:
       contents: read

@@ -1,4 +1,4 @@
-name: Reusable Security Workflow
+ame: Reusable Security Analysis Workflow
 
 on:
   workflow_call:
@@ -11,7 +11,7 @@ on:
         required: true
 
 jobs:
-  gradle:
+  gradle-dependency-analysis:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,13 +22,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Gradle wrapper validation
+      - name: Validate Gradle Wrapper
         uses: gradle/wrapper-validation-action@v2
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
-      - name: Generate and submit dependency graph
+      - name: Setup Gradle with GitHub Package Registry
+        uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - name: Submit Dependency Graph to Gradle Enterprise
         uses: gradle/actions/dependency-submission@v3
 
-  sonarcloud:
+  sonarcloud-analysis:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,33 +38,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup Gradle
+      - name: Setup Gradle for SonarCloud Analysis
         uses: gradle/gradle-build-action@v3
-      - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
-      - name: SonarCloud Scan
+      - name: Setup Gradle with GitHub Package Registry for SonarCloud
+        uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - name: Run SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: SonarQube Quality Gate check
+      - name: Check SonarQube Quality Gate
         uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  codacy:
+  codacy-analysis:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: codacy/codacy-analysis-cli-action@master
+      - name: Run Codacy Analysis
+        uses: codacy/codacy-analysis-cli-action@master
         with:
           output: results.sarif
           format: sarif
           gh-code-scanning-compat: true
           max-allowed-issues: 2147483647
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Upload SARIF File to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
