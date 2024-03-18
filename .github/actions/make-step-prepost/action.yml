@@ -1,0 +1,31 @@
+name: "Make Step PrePost"
+description: "Run commands using make, including optional pre and post steps"
+inputs:
+  make-file:
+    description: "Makefile to use"
+    required: false
+    default: "Makefile"
+  make-step:
+    description: "The base make step to execute along with its optional pre and post steps"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run ${{ inputs.make-step }}-pre optionally
+      uses: ./.github/actions/make-step-prepost
+      with:
+        make-file: ${{ inputs.make-file }}
+        make-step: ${{ inputs.make-step }}-pre
+
+    - name: Run ${{ inputs.make-step }} optionally
+      uses: ./.github/actions/make-step-prepost
+      with:
+        make-file: ${{ inputs.make-file }}
+        make-step: ${{ inputs.make-step }}
+
+    - name: Run ${{ inputs.make-step }}-post optionally
+      uses: ./.github/actions/make-step-prepost
+      with:
+        make-file: ${{ inputs.make-file }}
+        make-step: ${{ inputs.make-step }}-post

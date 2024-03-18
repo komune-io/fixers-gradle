@@ -1,91 +1,101 @@
-name: Reusable Dev Workflow
+name: Reusable Node.js Development Workflow
 
 on:
   workflow_call:
     inputs:
       node-version:
-        description: "Node version"
+        description: "The version of Node.js to use."
         required: false
         type: "string"
+        default: "14"  # Assuming 14 is a sensible default
 
       make-file:
-        description: "Node version"
+        description: "The Makefile to execute."
         required: false
         type: "string"
         default: "Makefile"
+
       base-dir:
-        description: "Base directory of node project"
+        description: "The base directory of the Node.js project."
         required: false
         type: "string"
+
       with-lint-task:
-        description: "Make command for testing"
+        description: "Flag to indicate whether to execute the linting task."
         required: false
         type: "boolean"
         default: true
+
       make-lint-task:
-        description: "Make command for linting"
+        description: "The Make command to execute for linting."
         required: false
         type: "string"
         default: "lint"
 
       with-build-task:
-        description: "Make command for testing"
+        description: "Flag to indicate whether to execute the build task."
         required: false
         type: "boolean"
         default: true
+
       make-build-task:
-        description: "Make command for building"
+        description: "The Make command to execute for building."
         required: false
         type: "string"
         default: "build"
 
       with-test-env-task:
-        description: "Make command for testing"
+        description: "Flag to indicate whether to set up a test environment."
         required: false
         type: "boolean"
         default: false
+
       make-test-env-task:
-        description: "Make command for testing"
+        description: "The Make command to execute for setting up the test environment."
         required: false
         type: "string"
         default: "test"
 
       with-test-task:
-        description: "Make command for testing"
+        description: "Flag to indicate whether to execute the test task."
         required: false
         type: "boolean"
         default: true
+
       make-test-task:
-        description: "Make command for testing"
+        description: "The Make command to execute for testing."
         required: false
         type: "string"
         default: "test"
 
       with-package-task:
-        description: "Make command for testing"
+        description: "Flag to indicate whether to execute the packaging task."
         required: false
         type: "boolean"
         default: true
+
       make-package-task:
-        description: "Make command for packaging"
+        description: "The Make command to execute for packaging."
         required: false
         type: "string"
         default: "package"
 
       artifact-name:
-        description: "Name for the uploaded artifact, leave empty if no artifact is needed"
+        description: "The name for the uploaded artifact (if needed)."
         required: false
         type: "string"
+
       artifact-path:
-        description: "Path to the artifact to upload, leave empty if no artifact is needed"
+        description: "The path for the artifact to upload (if needed)."
         required: false
         type: "string"
+
     secrets:
       NPM_AUTH_TOKEN:
         required: false
 
 jobs:
-  release:
+  run-dev-tasks:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -94,32 +104,44 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Init NodeJs
+      - name: Initialize Node.js Environment
         uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
         env:
           NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-      - name: Log in to the Container registry
+      - name: Docker Registry Login
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run Make Commands and Upload Artifact
-        uses: komune-io/fixers-gradle/.github/actions/make-package@main
+      - name: Execute Make Lint Task
+        uses: ./.github/actions/make-step-prepost
         with:
           make-file: ${{ inputs.make-file }}
-          with-lint-task: ${{ inputs.with-lint-task }}
-          make-lint-task: ${{ inputs.make-lint-task }}
-          with-build-task: ${{ inputs.with-build-task }}
-          make-build-task: ${{ inputs.make-build-task }}
-          with-test-env-task: ${{ inputs.with-test-env-task }}
-          make-test-env-task: ${{ inputs.with-test-env-task }}
-          with-test-task: ${{ inputs.with-test-task }}
-          make-test-task: ${{ inputs.make-test-task }}
-          with-package-task: ${{ inputs.with-package-task }}
-          make-package-task: ${{ inputs.make-package-task }}
-          artifact-name: ${{ inputs.artifact-name }}
-          artifact-path: ${{ inputs.artifact-path }}
+          make-step: ${{ inputs.make-lint-task }}
+      - name: Execute Make Build Task
+        uses: ./.github/actions/make-step-prepost
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-build-task }}
+      - name: Setup Test Environment and Execute Tests
+        uses: ./.github/actions/make-step-prepost
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-test-env-task }}
+      - name: Execute Make Test Task
+        uses: ./.github/actions/make-step-prepost
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-test-task }}
+      - name: Execute Make Package Task
+        uses: ./.github/actions/make-step-prepost
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-package-task }}
+      - name: Upload Artifact If Specified
+        if: inputs.artifact-name != '' && inputs.artifact-path != ''
+        uses: actions/upload-artifact@v4

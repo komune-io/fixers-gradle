@@ -1,9 +1,9 @@
-name: Sec
+name: Security Analysis Workflow
 
 on: [push]
 
 jobs:
-  call-security-workflow:
+  sec:
     uses: ./.github/workflows/sec-workflow.yml
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -1,0 +1,33 @@
+# This is a reusable GitHub Action defined in make-step-optional/action.yaml
+
+name: 'Make Step Optional'
+description: 'Run a Makefile step if it exists'
+inputs:
+  make-file:
+    description: 'The Makefile to use'
+    required: true
+  make-step:
+    description: 'The make step to conditionally execute'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check ${{ inputs.make-step }} existence
+      id: check_step
+      run: |
+        if grep -q "^${{ inputs.make-step }}:" ${{ inputs.make-file }}; then
+          echo "::set-output name=exists::true"
+        else
+          echo "::set-output name=exists::false"
+        fi
+      shell: bash
+
+    - name: Run ${{ inputs.make-step }}
+      if: steps.check_step.outputs.exists == 'true'
+      run: |
+        echo "/////////////////////////////////////"
+        echo "//// ${{ inputs.make-step }}"
+        echo "/////////////////////////////////////"
+        make -f ${{ inputs.make-file }} ${{ inputs.make-step }}
+      shell: bash
