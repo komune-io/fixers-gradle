@@ -17,17 +17,17 @@ runs:
       id: check_step
       run: |
         if grep -q "^${{ inputs.make-step }}:" ${{ inputs.make-file }}; then
-          echo "::set-output name=exists::true"
+          echo "exists=true" >> $GITHUB_OUTPUT
         else
-          echo "::set-output name=exists::false"
+          echo "exists=false" >> $GITHUB_OUTPUT
         fi
       shell: bash
 
     - name: Run ${{ inputs.make-step }}
-      if: steps.check_step.outputs.exists == 'true'
+      if: ${{ steps.check_step.outputs.exists == 'true' }}
       run: |
         echo "/////////////////////////////////////"
-        echo "//// ${{ inputs.make-step }}"
+        echo "//// Running ${{ inputs.make-step }}"
         echo "/////////////////////////////////////"
         make -f ${{ inputs.make-file }} ${{ inputs.make-step }}
       shell: bash

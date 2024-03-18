@@ -1,0 +1,29 @@
+name: "Get Version"
+description: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Version
+      id: version
+      run: |
+        if [ -f VERSION ]; then
+          VERSION=$(cat VERSION)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        else
+          echo "Error: VERSION file not found." >&2
+          exit 1
+        fi
+      shell: bash
+
+    - name: Version Footer
+      shell: bash
+      run: |
+        echo "## Project Version Information" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -z "${{ steps.version.outputs.VERSION }}" ]; then
+          echo "The VERSION file could not be found, or it's empty. Unable to retrieve the version information." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "The project is being built with the following version:" >> $GITHUB_STEP_SUMMARY
+          echo "* **Version:** ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+        fi

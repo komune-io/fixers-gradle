@@ -54,7 +54,6 @@ on:
         description: "The path to the artifact to upload, if needed."
         required: false
         type: "string"
-
     secrets:
       GPG_SIGNING_KEY:
         required: true
@@ -71,45 +70,54 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
+      PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Initialize Java and Gradle Environment
         uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           java-version: ${{ inputs.java-version }}
+
+      - name: Get Version from File
+        uses: komune-io/fixers-gradle/.github/actions/version@main
+
       - name: Execute Make Lint Task
-        uses: ./.github/actions/make-step-prepost
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
+
       - name: Execute Make Build Task
-        uses: ./.github/actions/make-step-prepost
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
+
       - name: Setup Test Environment and Execute Tests
-        uses: ./.github/actions/make-step-prepost
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-env-task }}
+
       - name: Execute Make Test Task
-        uses: ./.github/actions/make-step-prepost
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
+
       - name: Execute Make Package Task
-        uses: ./.github/actions/make-step-prepost
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-package-task }}
+
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.artifact-path }}
-        env:
-          PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-          PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}

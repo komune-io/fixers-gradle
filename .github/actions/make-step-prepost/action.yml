@@ -13,19 +13,19 @@ runs:
   using: "composite"
   steps:
     - name: Run ${{ inputs.make-step }}-pre optionally
-      uses: ./.github/actions/make-step-prepost
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-pre
 
     - name: Run ${{ inputs.make-step }} optionally
-      uses: ./.github/actions/make-step-prepost
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}
 
     - name: Run ${{ inputs.make-step }}-post optionally
-      uses: ./.github/actions/make-step-prepost
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-post

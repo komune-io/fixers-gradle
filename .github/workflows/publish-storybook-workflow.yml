@@ -40,7 +40,6 @@ jobs:
     with:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}
-      with-package-task: false
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
     secrets:
