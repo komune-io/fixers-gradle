@@ -22,10 +22,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
       - name: Setup Gradle with GitHub Package Registry
         uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
       - name: Submit Dependency Graph to Gradle Enterprise
         uses: gradle/actions/dependency-submission@v3
 
