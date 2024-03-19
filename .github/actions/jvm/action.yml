@@ -1,14 +1,28 @@
-name: "Init Java Actions"
-description: "Setup Java and Gradle"
+name: "Initialize Java and Gradle Environment"
+description: "Sets up Java and optionally initializes Gradle"
+
 inputs:
   java-distribution:
-    description: 'Java distribution'
+    description: 'Java distribution (e.g., OpenJDK or Temurin)'
     required: false
     default: 'temurin'
   java-version:
-    description: 'Java version'
+    description: 'Java version (e.g., 11, 17)'
     required: false
     default: '17'
+  with-gradle:
+    description: 'Flag to initialize Gradle'
+    required: false
+    default: 'true'
+  with-setup-gradle-github-pkg:
+    description: 'Flag to set up Gradle with GitHub Packages'
+    required: false
+    default: 'true'
+
+outputs:
+  setup_gradle_github_pkg:
+    description: "The path to the generated init.gradle.kts file"
+    value: ${{ steps.set_output.outputs.setup_gradle_github_pkg }}
 
 runs:
   using: "composite"
@@ -18,6 +32,13 @@ runs:
       with:
         distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
-    - name: Setup Gradle
+    - if: inputs.with-gradle == 'true'
+      name: Setup Gradle
       uses: gradle/gradle-build-action@v3
-    - uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+    - if: inputs.with-gradle == 'true' || inputs.with-setup-gradle-github-pkg == 'true'
+      name: Setup Gradle with GitHub Packages
+      id: setup_gradle_github_pkg
+      uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+    - id: set_output
+      run: echo "setup_gradle_github_pkg=${{steps.setup_gradle_github_pkg.outputs.setup_gradle_github_pkg}}" >> $GITHUB_OUTPUT
+      shell: bash
