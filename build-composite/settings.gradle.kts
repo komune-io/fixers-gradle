@@ -1,3 +1,4 @@
+rootProject.name = "fixers-gradle-build-composite"
 
 dependencyResolutionManagement {
   versionCatalogs {
