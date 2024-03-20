@@ -9,6 +9,12 @@ on:
         type: "string"
         default: "17"
 
+      with-gradle-build-scan-publish:
+        description: "Flag to enable gradle build scan publish"
+        required: false
+        default: true
+        type: "boolean"
+
       make-file:
         description: "The Makefile to execute."
         required: false
@@ -80,6 +86,7 @@ jobs:
       - name: Initialize Java and Gradle Environment
         uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
+          with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
