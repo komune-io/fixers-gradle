@@ -12,7 +12,7 @@ lint-libs:
 	./gradlew detekt
 
 build-libs:
-	./gradlew build --scan
+	./gradlew build
 
 test-libs:
 	./gradlew test

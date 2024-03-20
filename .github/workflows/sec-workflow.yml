@@ -7,12 +7,18 @@ on:
         description: "Java distribution."
         required: false
         type: "string"
-        default: 'temurin'
+        default: "temurin"
       java-version:
-        description: 'Java version'
+        description: "Java version"
         required: false
         type: "string"
-        default: '17'
+        default: "17"
+
+      with-gradle-build-scan-publish:
+        description: "Flag to enable gradle build scan publish"
+        required: false
+        default: true
+        type: "boolean"
 
     secrets:
       SONAR_TOKEN:
@@ -40,6 +46,7 @@ jobs:
         with:
           with-gradle: false
           with-setup-gradle-github-pkg: true
+          with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
@@ -48,6 +55,9 @@ jobs:
         uses: gradle/actions/dependency-submission@v3
         with:
           additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
+          build-scan-publish: true
+          build-scan-terms-of-service-url: "https://gradle.com/terms-of-service"
+          build-scan-terms-of-service-agree: "yes"
 
   sonarcloud-analysis:
     runs-on: ubuntu-latest
@@ -63,12 +73,12 @@ jobs:
       - name: Setup Gradle with GitHub Package Registry for SonarCloud
         uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Run SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
+        uses: sonarsource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check SonarQube Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
