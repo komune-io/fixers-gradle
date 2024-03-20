@@ -66,9 +66,6 @@ on:
 jobs:
   run-dev-tasks:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     env:
       NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
     steps:

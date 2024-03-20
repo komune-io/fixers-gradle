@@ -73,9 +73,6 @@ on:
 jobs:
   run-dev-tasks:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     env:
       PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
       PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
