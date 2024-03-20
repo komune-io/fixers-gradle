@@ -34,9 +34,6 @@ on:
 jobs:
   package-storybook:
     uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@main
-    permissions:
-      contents: read
-      packages: write
     with:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}

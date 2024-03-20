@@ -31,8 +31,6 @@ on:
 jobs:
   gradle-dependency-analysis:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
       PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
       PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
