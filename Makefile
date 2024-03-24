@@ -12,7 +12,7 @@ lint-libs:
 	./gradlew detekt
 
 build-libs:
-	./gradlew build
+	./gradlew build publishToMavenLocal -x test
 
 test-libs:
 	./gradlew test
@@ -20,7 +20,7 @@ test-libs:
 	./gradlew test
 
 package-libs: build-libs
-	./gradlew publishToMavenLocal publish
+	./gradlew publish
 
 version:
 	@VERSION=$$(cat VERSION); \
