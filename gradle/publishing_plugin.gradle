@@ -8,26 +8,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 apply from: project.rootProject.file('gradle/pom.gradle')
-
-def signingKey = System.getenv("GPG_SIGNING_KEY") ?: ""
-def signingPassword = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
-
-def sonatypeUsername = System.getenv("sonatypeUsername") ?: ""
-def sonatypePassword = System.getenv("sonatypePassword") ?: ""
-
-def releasesRepoUrl =  "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
-def repoUrl = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
-}
-
-task javadocJar(type: Jar, dependsOn: 'javadoc') {
-    from javadoc.destinationDir
-    archiveClassifier = 'javadoc'
-}
+apply from: project.rootProject.file('gradle/publishing_common.gradle')
 
 afterEvaluate { Project project ->
     publishing {
@@ -57,24 +38,21 @@ afterEvaluate { Project project ->
             'io.komune.fixers.gradle.npmPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
-            'io.komune.fixers.gradle.sonarPluginMarkerMaven'(MavenPublication) {
+            'io.komune.fixers.gradle.checkPluginMarkerMaven'(MavenPublication) {
                 pom.withXml(configurePomMetadata)
             }
         }
         repositories {
             maven {
-                url = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
+                url = project.ext.repoUrl
                 credentials {
-                    username System.getenv("PKG_MAVEN_USERNAME")
-                    password System.getenv("PKG_MAVEN_TOKEN")
+                    username project.ext.repoUsername
+                    password project.ext.repoPassword
                 }
             }
         }
     }
     signing {
-        def key = signingKey
-        def password = signingPassword
-        useInMemoryPgpKeys(key, password)
+        useInMemoryPgpKeys(project.ext.signingKey, project.ext.signingPassword)
     }
-
 }
