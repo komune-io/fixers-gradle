@@ -17,10 +17,10 @@ test-libs:
 	cd sandbox
 	./gradlew test
 
-publish-libs: build-libs
-	PKG_MAVEN_REPO=github ./gradlew publish
+publish-libs:
+	PKG_MAVEN_REPO=github ./gradlew publish --info
 
-promote-libs: build-libs
+promote-libs:
 	PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
 
 .PHONY: version
