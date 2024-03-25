@@ -1,4 +1,4 @@
-.PHONY: version
+VERSION = $(shell cat VERSION)
 
 lint: lint-libs
 build: build-libs
@@ -23,6 +23,6 @@ publish-libs: build-libs
 promote-libs: build-libs
 	PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
 
+.PHONY: version
 version:
-	@VERSION=$$(cat VERSION); \
 	echo "$$VERSION"
