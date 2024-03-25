@@ -6,43 +6,41 @@ inputs:
     required: false
     default: "true"
 outputs:
-  setup_gradle_github_pkg:
+  VERSION:
     description: "The path to the generated init.gradle.kts file"
     value: ${{ steps.version.outputs.VERSION }}
 
 runs:
   using: "composite"
   steps:
+    - name: Replace SNAPSHOT for specific branches
+      if: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/') }}
+      run: |
+        VERSION=$(cat VERSION)
+        VERSION=${VERSION/-SNAPSHOT/-dev-SNAPSHOT}
+        echo "$VERSION" > VERSION
+      shell: bash
+    - name: Replace -SNAPSHOT with +SHA
+      if: inputs.use-snapshot == 'false'
+      shell: bash
+      run: |
+        VERSION=$(cat VERSION)
+        SHORT_SHA=${GITHUB_SHA:0:7}
+        VERSION=${VERSION/-SNAPSHOT/+$SHORT_SHA}
+        echo "$VERSION" > VERSION
     - name: Version
       id: version
       run: |
         if [ -f VERSION ]; then
           VERSION=$(cat VERSION)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION"
         else
           echo "Error: VERSION file not found." >&2
           exit 1
         fi
       shell: bash
-    - name: Replace SNAPSHOT for specific branches
-      run: |
-        BRANCH_NAME=${GITHUB_REF#refs/heads/}
-        if [[ "$BRANCH_NAME" != "main" && "$BRANCH_NAME" != release/* ]]; then
-          VERSION=${VERSION/-SNAPSHOT/-dev-SNAPSHOT}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=VERSION::$VERSION"
-        fi
-
-      shell: bash
-    - name: Replace -SNAPSHOT with +SHA
-      if: inputs.use-snapshot == 'false'
-      shell: bash
-      run: |
-        SHORT_SHA=${GITHUB_SHA:0:7}
-        VERSION=${VERSION/-SNAPSHOT/+$SHORT_SHA}
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "::set-output name=VERSION::$VERSION"
-
     - name: Version Footer
       shell: bash
       run: |
