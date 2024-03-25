@@ -10,19 +10,19 @@ lint-libs:
 	./gradlew detekt
 
 build-libs:
-	./gradlew clean build publishToMavenLocal -x test
+	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
 
 test-libs:
 	./gradlew test
 	cd sandbox
 	./gradlew test
 
-publish-libs: build-libs
-	PKG_MAVEN_REPO=github ./gradlew publish
+publish-libs:
+	VERSION=$(VERSION) PKG_MAVEN_REPO=github ./gradlew publish --info
 
-promote-libs: build-libs
-	PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
+promote-libs:
+	VERSION=$(VERSION) PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
 
 .PHONY: version
 version:
-	echo "$$VERSION"
+	@echo "$(VERSION)"

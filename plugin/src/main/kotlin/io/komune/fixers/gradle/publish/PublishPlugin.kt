@@ -2,6 +2,8 @@ package io.komune.fixers.gradle.publish
 
 import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.fixers
+import io.komune.gradle.config.model.Repository
+import io.komune.gradle.config.model.github
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -28,12 +30,9 @@ class PublishPlugin : Plugin<Project> {
 	private fun Project.setupPublishing(fixersConfig: ConfigExtension) {
 		val publishing = project.extensions.getByType(PublishingExtension::class.java)
 		val publication = fixersConfig.publication
-		val repositoryName = getenv("PKG_MAVEN_REPO") ?: findProperty("PKG_MAVEN_REPO")?.toString()
+		val repositoryName = getenv("PKG_MAVEN_REPO") ?: findProperty("PKG_MAVEN_REPO")?.toString() ?: ""
 
-		val repository = fixersConfig.repositories[repositoryName] ?:
-			throw IllegalArgumentException(
-				"$repositoryName must be configured in repositories[${repositories.joinToString { it.name }}]"
-			)
+		val repository = fixersConfig.repositories[repositoryName] ?: Repository.github(project)
 
 		publishing.repositories {
 			maven {
