@@ -7,7 +7,11 @@ on:
         description: "The version of Node.js to use."
         required: false
         type: "string"
-
+      version-with-snapshot-sha:
+        description: "Base directory of the Node.js project, if applicable."
+        required: false
+        type: "string"
+        default: ".${GITHUB_SHA:0:7}"
       make-file:
         description: "The Makefile to execute."
         required: false
@@ -43,11 +47,17 @@ on:
         type: "string"
         default: "test"
 
-      make-package-task:
-        description: "The Make command to execute for packaging."
+      make-publish-task:
+        description: "The Make command to execute for publishing."
         required: false
         type: "string"
-        default: "package"
+        default: "publish"
+
+      make-promoting-task:
+        description: "The Make command to execute for promoting."
+        required: false
+        type: "string"
+        default: "promote"
 
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
@@ -74,7 +84,7 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize Node.js Environment
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/release
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
@@ -87,37 +97,48 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
+        with:
+          use-snapshot: false
+          with-snapshot-sha: ${{ inputs.version-with-snapshot-sha }}
 
       - name: Execute Make Lint Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Setup Test Environment and Execute Tests
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-env-task }}
 
       - name: Execute Make Test Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
-      - name: Execute Make Package Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Make Publish Task
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-package-task }}
+          make-step: ${{ inputs.make-publish-task }}
+
+      - name: Execute Make Promote Task
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-promote-task }}
+
 
       - name: Upload Artifact If Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''

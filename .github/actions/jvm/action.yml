@@ -46,7 +46,7 @@ runs:
     - if: inputs.with-gradle == 'true' || inputs.with-setup-gradle-github-pkg == 'true'
       name: Setup Gradle with GitHub Packages
       id: setup_gradle_github_pkg
-      uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
+      uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/release
     - id: set_output
       run: echo "setup_gradle_github_pkg=${{steps.setup_gradle_github_pkg.outputs.setup_gradle_github_pkg}}" >> $GITHUB_OUTPUT
       shell: bash

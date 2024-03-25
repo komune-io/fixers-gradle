@@ -87,41 +87,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Initialize Java and Gradle Environment
-        uses: komune-io/fixers-gradle/.github/actions/jvm@main
+        uses: komune-io/fixers-gradle/.github/actions/jvm@feat/release
         with:
           with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
 
       - name: Execute Make Lint Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
       - name: Execute Make Publish Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
 
       - name: Execute Make Promote Task
-        if: github.ref == 'refs/heads/main'
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
