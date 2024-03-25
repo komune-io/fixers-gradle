@@ -8,12 +8,15 @@ import io.komune.gradle.config.model.Npm
 import io.komune.gradle.config.model.Publication
 import io.komune.gradle.config.model.Repository
 import io.komune.gradle.config.model.Sonar
+import io.komune.gradle.config.model.github
 import io.komune.gradle.config.model.sonarCloud
-import io.komune.gradle.config.model.sonatype
+import io.komune.gradle.config.model.sonatypeOss
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.UnknownDomainObjectException
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionContainer
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -66,7 +69,9 @@ abstract class ConfigExtension(
 
 	var buildTime: Long = System.currentTimeMillis()
 
-	var repository: Repository = Repository.sonatype(project)
+	var repositories: Map<String, Repository> = setOf(
+		Repository.sonatypeOss(project), Repository.github(project)
+	).associateBy { it.name }
 
 	var publication: Publication? = null
 
@@ -107,8 +112,8 @@ abstract class ConfigExtension(
 		configure.execute(detekt)
 	}
 
-	fun repository(configure: Action<Repository>) {
-		configure.execute(repository)
+	fun repositories(configure: Action<Map<String, Repository>>) {
+		configure.execute(repositories)
 	}
 }
 

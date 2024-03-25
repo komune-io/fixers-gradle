@@ -28,11 +28,17 @@ class PublishPlugin : Plugin<Project> {
 	private fun Project.setupPublishing(fixersConfig: ConfigExtension) {
 		val publishing = project.extensions.getByType(PublishingExtension::class.java)
 		val publication = fixersConfig.publication
-		val repository = fixersConfig.repository
+		val repositoryName = getenv("PKG_MAVEN_REPO") ?: findProperty("PKG_MAVEN_REPO")?.toString()
+
+		val repository = fixersConfig.repositories[repositoryName] ?:
+			throw IllegalArgumentException(
+				"$repositoryName must be configured in repositories[${repositories.joinToString { it.name }}]"
+			)
+
 		publishing.repositories {
 			maven {
 				name = repository.name
-				url = repository.getUrl(project)
+				url = repository.getUrl()
 				credentials {
 					username = repository.username
 					password = repository.password

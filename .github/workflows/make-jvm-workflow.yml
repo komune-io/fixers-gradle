@@ -45,11 +45,17 @@ on:
         type: "string"
         default: "test"
 
-      make-package-task:
-        description: "The Make command to execute for packaging."
+      make-publish-task:
+        description: "The Make command to execute for publishing."
         required: false
         type: "string"
-        default: "package"
+        default: "publish"
+
+      make-promote-task:
+        description: "The Make command to execute for promote."
+        required: false
+        type: "string"
+        default: "promote"
 
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
@@ -65,19 +71,25 @@ on:
         required: true
       GPG_SIGNING_PASSWORD:
         required: true
-      PKG_MAVEN_USERNAME:
+      PKG_GITHUB_USERNAME:
         required: true
-      PKG_MAVEN_TOKEN:
+      PKG_GITHUB_TOKEN:
+        required: true
+      PKG_SONATYPE_OSS_USERNAME:
+        required: true
+      PKG_SONATYPE_OSS_TOKEN:
         required: true
 
 jobs:
   run-dev-tasks:
     runs-on: ubuntu-latest
     env:
-      PKG_MAVEN_USERNAME: ${{ secrets.PKG_MAVEN_USERNAME }}
-      PKG_MAVEN_TOKEN: ${{ secrets.PKG_MAVEN_TOKEN }}
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
+      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
+      PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Initialize Java and Gradle Environment
@@ -113,11 +125,18 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
-      - name: Execute Make Package Task
+      - name: Execute Make Publish Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-package-task }}
+          make-step: ${{ inputs.make-publish-task }}
+
+      - name: Execute Make Promote Task
+        if: github.ref == 'refs/heads/main'
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-promote-task }}
 
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''

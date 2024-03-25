@@ -30,7 +30,7 @@ class ConfigPlugin : Plugin<Project> {
 				target.logger.info("bundle.name: ${config.bundle.name}")
 				target.logger.info("bundle.description: ${config.bundle.description}")
 				target.logger.info("bundle.version: ${config.bundle.version}")
-				target.logger.info("repository.name: ${config.repository.name}")
+				target.logger.info("repositories: ${config.repositories.values.joinToString { it.name } }")
 				target.logger.info("kt2Ts?.outputDirectory: ${config.kt2Ts.outputDirectory}")
 				target.logger.info("kt2Ts?.inputDirectory: ${config.kt2Ts.inputDirectory}")
 				target.logger.info("######################################################")
