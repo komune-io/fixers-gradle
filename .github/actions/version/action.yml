@@ -1,37 +1,67 @@
-name: "Get Version"
-description: ""
+name: "Manage Version Tags"
+description: "Manage version tags for different branches and snapshots."
+
 inputs:
   use-snapshot:
-    description: "Base directory of the Node.js project, if applicable."
+    description: "Enable/disable using snapshot tags."
     required: false
     default: "true"
-  with-snapshot-sha:
-    description: "Base directory of the Node.js project, if applicable."
+  with-snapshot-tag:
+    description: "Snapshot tag to use for non-release branches."
     required: false
     default: ".${GITHUB_SHA:0:7}"
+  with-main-pre-release-tag:
+    description: "Pre-release tag for main branch."
+    required: false
+    default: "-SNAPSHOT"
+  with-release-pre-release-tag:
+    description: "Pre-release tag for release branches."
+    required: false
+    default: "-SNAPSHOT"
+  with-feat-pre-release-tag:
+    description: "Pre-release tag for feature branches."
+    required: false
+    default: "-dev-SNAPSHOT"
+  with-fix-pre-release-tag:
+    description: "Pre-release tag for fix branches."
+    required: false
+    default: "-dev-SNAPSHOT"
+  with-refact-pre-release-tag:
+    description: "Pre-release tag for refactoring branches."
+    required: false
+    default: "-dev"
+
 outputs:
   VERSION:
-    description: "The path to the generated init.gradle.kts file"
+    description: "Generated version with appropriate tag."
     value: ${{ steps.version.outputs.VERSION }}
 
 runs:
   using: "composite"
   steps:
-    - name: Replace SNAPSHOT for specific branches
-      if: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release/') }}
+    - name: "Set Version Tag for Branch"
       run: |
         VERSION=$(cat VERSION)
-        VERSION=${VERSION/-SNAPSHOT/-dev-SNAPSHOT}
-        echo "$VERSION" > VERSION
+        BRANCH_PREFIXES=("main" "release/" "feat/" "fix/" "refact/")
+        TAGS=("${{ inputs.with-main-pre-release-tag }}" "${{ inputs.with-release-pre-release-tag }}" "${{ inputs.with-feat-pre-release-tag }}" "${{ inputs.with-fix-pre-release-tag }}" "${{ inputs.with-refact-pre-release-tag }}")
+
+        for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do
+          if [[ ${{ github.ref }} == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
+            VERSION=${VERSION/-SNAPSHOT/${TAGS[i]}}
+            echo "$VERSION" > VERSION
+            break
+          fi
+        done
       shell: bash
-    - name: Replace -SNAPSHOT with ${{ inputs.with-snapshot-sha }}
+
+    - name: "Set Snapshot Tag"
       if: inputs.use-snapshot == 'false'
-      shell: bash
       run: |
         VERSION=$(cat VERSION)
-        VERSION=${VERSION/-SNAPSHOT/${{ inputs.with-snapshot-sha }}}
+        VERSION=${VERSION/-SNAPSHOT/${{ inputs.with-snapshot-tag }}}
         echo "$VERSION" > VERSION
-    - name: Version
+      shell: bash
+    - name: "Retrieve Version"
       id: version
       run: |
         if [ -f VERSION ]; then
@@ -44,7 +74,8 @@ runs:
           exit 1
         fi
       shell: bash
-    - name: Version Footer
+
+    - name: "Output Version Information"
       shell: bash
       run: |
         echo "## Project Version Information" >> $GITHUB_STEP_SUMMARY
