@@ -126,6 +126,7 @@ jobs:
         with:
           use-snapshot: false
           with-snapshot-sha: ${{ inputs.version-with-snapshot-sha }}
+          with-main-pre-release-tag: '-alpha-SNAPSHOT'
 
       - name: Execute Make Lint Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
