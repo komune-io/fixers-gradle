@@ -33,14 +33,15 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@feat/release
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@main
     with:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
+      with-setup-npm-github-pkg: false
     secrets:
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
   publish-chromatic:
     if: inputs.with-chromatic
@@ -52,12 +53,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
       - name: Publish Storybook to Chromatic
-        uses: komune-io/fixers-gradle/.github/actions/chromatic@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/chromatic@main
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
@@ -76,12 +77,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js for GitHub Pages
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
       - name: Deploy Storybook to GitHub Pages
-        uses: komune-io/fixers-gradle/.github/actions/github-page@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
           artifact-name: ${{ inputs.storybook-dir }}
           artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}

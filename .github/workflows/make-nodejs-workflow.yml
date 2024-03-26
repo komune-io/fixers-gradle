@@ -7,6 +7,19 @@ on:
         description: "The version of Node.js to use."
         required: false
         type: "string"
+
+      with-setup-npm-github-pkg:
+        description: 'Flag to enable Npm setup with GitHub Packages.'
+        required: false
+        default: 'true'
+        type: "string"
+
+      with-docker-registry-login:
+        description: 'Flag to enable Docker login to the Docker registry.'
+        required: false
+        default: 'true'
+        type: "string"
+
       version-with-snapshot-sha:
         description: "Base directory of the Node.js project, if applicable."
         required: false
@@ -70,25 +83,37 @@ on:
         type: "string"
 
     secrets:
-      NPM_AUTH_TOKEN:
+      NPM_PKG_GITHUB_TOKEN:
         required: false
 
 jobs:
   run-dev-tasks:
     runs-on: ubuntu-latest
     env:
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Initialize Node.js Environment
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
-
+      - if: inputs.with-setup-npm-github-pkg == 'true'
+        name: Setup Npm with GitHub Packages
+        id: setup_npm_github_pkg
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        with:
+          npm-auth-token: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
+      - if: inputs.with-docker-registry-login == 'true'
+        name: Docker Registry Login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Registry Login
         uses: docker/login-action@v3
         with:
@@ -97,44 +122,44 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/version@main
         with:
           use-snapshot: false
           with-snapshot-sha: ${{ inputs.version-with-snapshot-sha }}
 
       - name: Execute Make Lint Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Setup Test Environment and Execute Tests
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-env-task }}
 
       - name: Execute Make Test Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
       - name: Execute Make Publish Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
