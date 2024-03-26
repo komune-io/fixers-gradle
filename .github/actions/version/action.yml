@@ -5,6 +5,10 @@ inputs:
     description: "Base directory of the Node.js project, if applicable."
     required: false
     default: "true"
+  with-snapshot-sha:
+    description: "Base directory of the Node.js project, if applicable."
+    required: false
+    default: ".${GITHUB_SHA:0:7}"
 outputs:
   VERSION:
     description: "The path to the generated init.gradle.kts file"
@@ -20,13 +24,12 @@ runs:
         VERSION=${VERSION/-SNAPSHOT/-dev-SNAPSHOT}
         echo "$VERSION" > VERSION
       shell: bash
-    - name: Replace -SNAPSHOT with +SHA
+    - name: Replace -SNAPSHOT with ${{ inputs.with-snapshot-sha }}
       if: inputs.use-snapshot == 'false'
       shell: bash
       run: |
         VERSION=$(cat VERSION)
-        SHORT_SHA=${GITHUB_SHA:0:7}
-        VERSION=${VERSION/-SNAPSHOT/+$SHORT_SHA}
+        VERSION=${VERSION/-SNAPSHOT/${{ inputs.with-snapshot-sha }}}
         echo "$VERSION" > VERSION
     - name: Version
       id: version
