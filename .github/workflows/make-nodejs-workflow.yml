@@ -20,7 +20,7 @@ on:
         default: 'true'
         type: "string"
 
-      version-with-snapshot-sha:
+      version-with-snapshot-tag:
         description: "Base directory of the Node.js project, if applicable."
         required: false
         type: "string"
@@ -125,8 +125,9 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/version@main
         with:
           use-snapshot: false
-          with-snapshot-sha: ${{ inputs.version-with-snapshot-sha }}
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
+          with-release-pre-release-tag: '-alpha-SNAPSHOT'
+          with-snapshot-tag: ${{ inputs.version-with-snapshot-tag }}
 
       - name: Execute Make Lint Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
