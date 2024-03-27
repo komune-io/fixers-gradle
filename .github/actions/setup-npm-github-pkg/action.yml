@@ -5,6 +5,10 @@ inputs:
     description: "Npm Auth Token"
     required: false
     default: "Makefile"
+  npm-registry:
+    description: "Npm registry"
+    required: false
+    default: "npm.pkg.github.com"
 outputs:
   setup_npm_github_pkg:
     description: "The path to the generated .npmrc file"
@@ -15,8 +19,8 @@ runs:
     - id: setup_npm
       run: |
         echo "
-          @komune-io:registry=https://npm.pkg.github.com
-          //npm.pkg.github.com/:_authToken=${{ inputs.npm-auth-token }}
+          @komune-io:registry=https://${{ inputs.npm-registry }}
+          //${{ inputs.npm-registry }}/:_authToken=${{ inputs.npm-auth-token }}
         " > .npmrc
         cat .npmrc
       shell: bash

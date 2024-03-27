@@ -19,6 +19,12 @@ on:
         type: "string"
         default: "storybook"
 
+      storybook-static-dir-separator:
+        description: "The directory path where the static Storybook build will be placed."
+        required: false
+        type: "string"
+        default: "/"
+
       storybook-static-dir:
         description: "The directory path where the static Storybook build will be placed."
         required: false
@@ -38,7 +44,7 @@ jobs:
       make-file: "docs.mk"
       base-dir: ${{ inputs.storybook-dir }}
       artifact-name: ${{ inputs.storybook-static-dir }}
-      artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
+      artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
       with-setup-npm-github-pkg: false
     secrets:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

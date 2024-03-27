@@ -66,7 +66,7 @@ on:
         type: "string"
         default: "publish"
 
-      make-promoting-task:
+      make-promote-task:
         description: "The Make command to execute for promoting."
         required: false
         type: "string"
@@ -84,6 +84,8 @@ on:
 
     secrets:
       NPM_PKG_GITHUB_TOKEN:
+        required: false
+      NPM_PKG_NPMJS_TOKEN:
         required: false
 
 jobs:
@@ -152,7 +154,12 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
-
+      - name: Setup Npm with NpmJs Repository
+        id: setup_npm_npmjs_pkg
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        with:
+          npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
+          npm-registry: registry.npmjs.org
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
