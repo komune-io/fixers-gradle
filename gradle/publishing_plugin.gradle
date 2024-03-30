@@ -13,10 +13,6 @@ apply from: project.rootProject.file('gradle/publishing_common.gradle')
 afterEvaluate { Project project ->
     publishing {
         publications {
-            mavenJava(MavenPublication) {
-                from components.java
-                pom.withXml(configureMavenCentralMetadata)
-            }
             pluginMaven(MavenPublication) {
                 pom.withXml(configureMavenCentralMetadata)
             }

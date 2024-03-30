@@ -19,9 +19,6 @@ afterEvaluate { Project project ->
                 artifact javadocJar
                 pom.withXml(configureMavenCentralMetadata)
             }
-            pluginMaven(MavenPublication) {
-                pom.withXml(configureMavenCentralMetadata)
-            }
         }
         repositories {
             maven {
