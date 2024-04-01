@@ -49,8 +49,8 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	private fun Project.setupSign() {
-		val inMemoryKey = getenv("signingKey") ?: findProperty("signingKey")?.toString()
-		val password = getenv("signingPassword") ?: findProperty("signingPassword")?.toString()
+		val inMemoryKey = getenv("GPG_SIGNING_KEY") ?: findProperty("GPG_SIGNING_KEY")?.toString()
+		val password = getenv("GPG_SIGNING_PASSWORD") ?: findProperty("GPG_SIGNING_PASSWORD")?.toString()
 		if (inMemoryKey == null) {
 			logger.warn("No signing config provided, skip signing")
 			return
