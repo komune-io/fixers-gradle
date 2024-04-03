@@ -13,6 +13,12 @@ on:
         type: "boolean"
         default: false
 
+      with-setup-npm-github-pkg:
+        description: 'Flag to enable Npm setup with GitHub Packages.'
+        required: false
+        default: 'false'
+        type: "string"
+
       storybook-dir:
         description: "The base directory where the Storybook configuration resides."
         required: false
@@ -45,7 +51,7 @@ jobs:
       base-dir: ${{ inputs.storybook-dir }}
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
-      with-setup-npm-github-pkg: false
+      with-setup-npm-github-pkg: ${{ inputs.with-setup-npm-github-pkg }}
     secrets:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
 
