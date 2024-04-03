@@ -22,7 +22,6 @@ runs:
           @komune-io:registry=https://${{ inputs.npm-registry }}
           //${{ inputs.npm-registry }}/:_authToken=${{ inputs.npm-auth-token }}
         " > .npmrc
-        cat .npmrc
       shell: bash
     - id: set_output
       run: echo "setup-npm-github-pkg=.npmrc" >> $GITHUB_OUTPUT
