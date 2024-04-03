@@ -48,12 +48,6 @@ on:
         type: "string"
         default: "build"
 
-      make-test-env-task:
-        description: "The Make command to execute for setting up the test environment."
-        required: false
-        type: "string"
-        default: "test"
-
       make-test-task:
         description: "The Make command to execute for testing."
         required: false
@@ -136,12 +130,6 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
-
-      - name: Setup Test Environment and Execute Tests
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
-        with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-test-env-task }}
 
       - name: Execute Make Test Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
