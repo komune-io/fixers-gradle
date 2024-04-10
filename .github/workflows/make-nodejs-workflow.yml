@@ -156,6 +156,7 @@ jobs:
           npm-registry: registry.npmjs.org
       - name: Execute Make Promote Task
         if: inputs.make-promote-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
