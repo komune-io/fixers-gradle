@@ -64,7 +64,7 @@ on:
         description: "The Make command to execute for promoting."
         required: false
         type: "boolean"
-        default: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        default: true
 
       make-promote-task:
         description: "The Make command to execute for promoting."
@@ -155,7 +155,8 @@ jobs:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
       - name: Execute Make Promote Task
-        if: inputs.make-promote-task-condition
+        if: inputs.make-promote-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
