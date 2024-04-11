@@ -93,7 +93,7 @@ jobs:
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/version@main
 
       - name: Execute Make Lint Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main

@@ -124,7 +124,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/version@main
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
