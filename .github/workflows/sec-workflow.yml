@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
       - name: Initialize Java and Gradle Environment
         id: jvm
-        uses: komune-io/fixers-gradle/.github/actions/jvm@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           with-gradle: false
           with-setup-gradle-github-pkg: true
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Gradle for SonarCloud Analysis
         uses: gradle/gradle-build-action@v3
       - name: Setup Gradle with GitHub Package Registry for SonarCloud
-        uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@feat/release
+        uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Run SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
