@@ -113,6 +113,14 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
+      - name: Debug
+        run: |
+          echo ${{github}}
+          echo ${{github.event_name}}
+          echo ${{github.event}}
+          echo ${{github.event.action}}
+          echo ${{github.event.label}}
+          echo ${{github.event.label.name}}
       - name: Execute Make Publish Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'publish')
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
