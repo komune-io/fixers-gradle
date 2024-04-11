@@ -151,12 +151,14 @@ jobs:
 
       - name: Execute Make Publish Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
-        if: inputs.make-publish-task-condition
+        if: inputs.make-publish-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'publish')
+
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
       - name: Setup Npm with NpmJs Repository
         id: setup_npm_npmjs_pkg
+        if: inputs.make-promote-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
         uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
