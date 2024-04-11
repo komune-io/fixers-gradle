@@ -2,7 +2,6 @@ name: Dev
 
 on:
   pull_request:
-    types: [opened, synchronize, labeled]
 
 jobs:
   dev:
