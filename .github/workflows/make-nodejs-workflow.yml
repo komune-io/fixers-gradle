@@ -105,14 +105,14 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize Node.js Environment
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@feat/release
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
       - if: inputs.with-setup-npm-github-pkg == 'true'
         name: Setup Npm with GitHub Packages
         id: setup_npm_github_pkg
-        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@feat/release
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
       - if: inputs.with-docker-registry-login == 'true'
@@ -124,7 +124,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
@@ -132,25 +132,25 @@ jobs:
           with-snapshot-tag: ${{ inputs.version-with-snapshot-tag }}
 
       - name: Execute Make Lint Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
       - name: Execute Make Publish Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         if: inputs.make-publish-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'publish')
 
         with:
@@ -159,13 +159,13 @@ jobs:
       - name: Setup Npm with NpmJs Repository
         id: setup_npm_npmjs_pkg
         if: inputs.make-promote-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
-        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@feat/release
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
       - name: Execute Make Promote Task
         if: inputs.make-promote-task-condition || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@feat/release
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
