@@ -3,10 +3,6 @@ name: Dev
 on:
   pull_request:
     types: [opened, synchronize, labeled]
-  push:
-    branches:
-      - main
-      - 'release/*'
 
 jobs:
   dev:
