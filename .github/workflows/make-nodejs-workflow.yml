@@ -54,6 +54,12 @@ on:
         type: "string"
         default: "test"
 
+      make-publish-task-condition:
+        description: "The Make command to execute for promoting."
+        required: false
+        type: "boolean"
+        default: true
+
       make-publish-task:
         description: "The Make command to execute for publishing."
         required: false
@@ -118,7 +124,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@feat/release
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
@@ -145,6 +151,7 @@ jobs:
 
       - name: Execute Make Publish Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        if: inputs.make-publish-task-condition
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}

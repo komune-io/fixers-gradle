@@ -6,6 +6,10 @@ inputs:
     description: "Enable/disable using snapshot tags."
     required: false
     default: "true"
+  branch-prefixes:
+    description: "Snapshot tag to use for non-release branches."
+    required: false
+    default: "main release/ feat/ fix/ refact/ versioning/"
   with-snapshot-tag:
     description: "Snapshot tag to use for non-release branches."
     required: false
@@ -42,16 +46,32 @@ runs:
     - name: "Set Version Tag for Branch"
       run: |
         VERSION=$(cat VERSION)
-        BRANCH_PREFIXES=("main" "release/" "feat/" "fix/" "refact/")
+        echo "Original VERSION: $VERSION"
+
+        # Split branch-prefixes input into an array
+        IFS=' ' read -r -a BRANCH_PREFIXES <<< "${{ inputs.branch-prefixes }}"
+        echo "Parsed BRANCH_PREFIXES: ${BRANCH_PREFIXES[@]}"
+
         TAGS=("${{ inputs.with-main-pre-release-tag }}" "${{ inputs.with-release-pre-release-tag }}" "${{ inputs.with-feat-pre-release-tag }}" "${{ inputs.with-fix-pre-release-tag }}" "${{ inputs.with-refact-pre-release-tag }}")
+        echo "TAGS array: ${TAGS[@]}"
 
         for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do
-          if [[ ${{ github.ref }} == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
+          echo "Checking branch prefix: ${BRANCH_PREFIXES[i]}"
+          if [[ "${{ github.ref }}" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
+            echo "Match found: ${BRANCH_PREFIXES[i]}"
             VERSION=${VERSION/-SNAPSHOT/${TAGS[i]}}
+            echo "Updated VERSION: $VERSION"
             echo "$VERSION" > VERSION
             break
           fi
         done
+
+        if [ -f VERSION ]; then
+          echo "Final VERSION: $(cat VERSION)"
+        else
+          echo "VERSION file not found after processing."
+          exit 1
+        fi
       shell: bash
 
     - name: "Set Snapshot Tag"
