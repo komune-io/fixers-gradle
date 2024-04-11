@@ -56,6 +56,14 @@ runs:
         VERSION=$(cat VERSION)
         echo "Original VERSION: $VERSION"
 
+          # Initialize BRANCH_NAME_REF based on the event type
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME_REF="refs/heads/${{ github.head_ref }}"
+          else
+            BRANCH_NAME_REF="${{ github.ref }}"
+          fi
+          echo "Branch Name: $BRANCH_NAME_REF"
+
         # Split branch-prefixes input into an array
         IFS=' ' read -r -a BRANCH_PREFIXES <<< "${{ inputs.branch-prefixes }}"
         echo "Parsed BRANCH_PREFIXES: ${BRANCH_PREFIXES[@]}"
@@ -65,7 +73,7 @@ runs:
 
         for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do
           echo "Checking branch prefix: ${{github.ref}} == ${BRANCH_PREFIXES[i]}"
-          if [[ "${{ github.ref }}" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
+          if [[ "$BRANCH_NAME" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
             echo "Match found: ${BRANCH_PREFIXES[i]}"
             # Use the specific tag if available; otherwise, use the default tag from inputs
             TAG_TO_USE="${TAGS[i]:-${{ inputs.with-default-tag }}}"
