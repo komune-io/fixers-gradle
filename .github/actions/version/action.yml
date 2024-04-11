@@ -72,8 +72,8 @@ runs:
         echo "TAGS array: ${TAGS[@]}"
 
         for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do
-          echo "Checking branch prefix: $BRANCH_NAME == refs/heads/${BRANCH_PREFIXES[i]}"
-          if [[ "$BRANCH_NAME" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
+          echo "Checking branch prefix: $BRANCH_NAME_REF == refs/heads/${BRANCH_PREFIXES[i]}"
+          if [[ "$BRANCH_NAME_REF" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
             echo "Match found: ${BRANCH_PREFIXES[i]}"
             # Use the specific tag if available; otherwise, use the default tag from inputs
             TAG_TO_USE="${TAGS[i]:-${{ inputs.with-default-tag }}}"
