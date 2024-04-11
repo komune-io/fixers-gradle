@@ -1,8 +1,14 @@
-name: Debug
-on: [push]
+name: Example Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: hmarr/debug-action@v3
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Run a script
+        run: echo "The workflow ran on a pull request event."
