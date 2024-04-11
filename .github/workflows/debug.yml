@@ -1,6 +1,6 @@
 name: Example Workflow
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
         run: echo "The workflow ran on a pull request event."
       - name: Debug
         run: |
-          echo ${{toJSON(github)}}
+          echo ${{ toJSON(github) }}
           echo ${{github.event_name}}
           echo ${{github.event}}
           echo ${{github.event.action}}
