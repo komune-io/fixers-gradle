@@ -48,7 +48,7 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/actions/wrapper-validation@v3
       - name: Submit Dependency Graph to Gradle Enterprise
         uses: gradle/actions/dependency-submission@v3
         with:
