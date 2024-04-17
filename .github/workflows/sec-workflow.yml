@@ -48,14 +48,14 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/actions/wrapper-validation@v3
       - name: Submit Dependency Graph to Gradle Enterprise
         uses: gradle/actions/dependency-submission@v3
         with:
           additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
           build-scan-publish: true
-          build-scan-terms-of-service-url: "https://gradle.com/terms-of-service"
-          build-scan-terms-of-service-agree: "yes"
+          build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
+          build-scan-terms-of-use-agree: "yes"
 
   sonarcloud-analysis:
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup Gradle for SonarCloud Analysis
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
       - name: Setup Gradle with GitHub Package Registry for SonarCloud
         uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
       - name: Run SonarCloud Scan
