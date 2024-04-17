@@ -113,8 +113,6 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
-      - uses: hmarr/debug-action@v3
-
       - name: Execute Make Publish Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
