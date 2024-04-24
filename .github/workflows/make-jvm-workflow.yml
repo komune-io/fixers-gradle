@@ -143,7 +143,7 @@ jobs:
         name: Docker Registry Login
         uses: docker/login-action@v3
         with:
-          registry: ${{ docker-publish-repository }}
+          registry: ${{ inputs.docker-publish-repository }}
           username: ${{ secret.DOCKER_PUBLISH_USERNAME }}
           password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
@@ -158,7 +158,7 @@ jobs:
         name: Docker Registry Login
         uses: docker/login-action@v3
         with:
-          registry: ${{ docker-promote-repository }}
+          registry: ${{ inputs.docker-promote-repository }}
           username: ${{ secret.DOCKER_PROMOTE_USERNAME }}
           password: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
