@@ -144,7 +144,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-publish-repository }}
-          username: ${{ secret.DOCKER_PUBLISH_USERNAME }}
+          username: ${{ secrets.DOCKER_PUBLISH_USERNAME }}
           password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
       - name: Execute Make Publish Task
@@ -159,7 +159,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-promote-repository }}
-          username: ${{ secret.DOCKER_PROMOTE_USERNAME }}
+          username: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
           password: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
       - name: Execute Make Promote Task
