@@ -57,6 +57,18 @@ on:
         type: "string"
         default: "promote"
 
+      docker-publish-repository:
+        description: ""
+        required: false
+        type: "string"
+        default: "ghcr.io"
+
+      docker-promote-repository:
+        description: ""
+        required: false
+        type: "string"
+        default: "docker.io"
+
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
         required: false
@@ -72,9 +84,17 @@ on:
       GPG_SIGNING_PASSWORD:
         required: true
       PKG_GITHUB_USERNAME:
-        required: true
+        required: false
       PKG_GITHUB_TOKEN:
-        required: true
+        required: false
+      DOCKER_PUBLISH_USERNAME:
+        required: false
+      DOCKER_PUBLISH_PASSWORD:
+        required: false
+      DOCKER_PROMOTE_USERNAME:
+        required: false
+      DOCKER_PROMOTE_PASSWORD:
+        required: false
       PKG_SONATYPE_OSS_USERNAME:
         required: true
       PKG_SONATYPE_OSS_TOKEN:
@@ -123,9 +143,9 @@ jobs:
         name: Docker Registry Login
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ docker-publish-repository }}
+          username: ${{ secret.DOCKER_PUBLISH_USERNAME }}
+          password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
       - name: Execute Make Publish Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
@@ -133,6 +153,14 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
+
+      - if: inputs.with-docker-registry-login == 'true'
+        name: Docker Registry Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ docker-promote-repository }}
+          username: ${{ secret.DOCKER_PROMOTE_USERNAME }}
+          password: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
