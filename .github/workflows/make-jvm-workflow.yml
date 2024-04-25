@@ -134,6 +134,7 @@ jobs:
           make-step: ${{ inputs.make-lint-task }}
 
       - if: inputs.docker-buildx-platform != ''
+        name: Setup Docker Buildx for Specified Platforms
         uses: docker/setup-buildx-action@v3
         with:
           platforms: ${{ inputs.docker-buildx-platform }}
