@@ -57,14 +57,19 @@ on:
         type: "string"
         default: "promote"
 
+      docker-buildx-platform:
+        description: "Specify the target platforms for Docker buildx, such as 'linux/amd64,linux/arm64'. Leave empty to use the default platform."
+        required: false
+        type: "string"
+
       docker-publish-repository:
-        description: ""
+        description: "The Docker registry to which images should be published. Defaults to GitHub Container Registry (ghcr.io)."
         required: false
         type: "string"
         default: "ghcr.io"
 
       docker-promote-repository:
-        description: ""
+        description: "The Docker registry to which images should be promoted. Defaults to Docker Hub (docker.io)."
         required: false
         type: "string"
         default: "docker.io"
@@ -78,6 +83,7 @@ on:
         description: "The path to the artifact to upload, if needed."
         required: false
         type: "string"
+
     secrets:
       GPG_SIGNING_KEY:
         required: true
@@ -126,6 +132,12 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
+
+      - if: inputs.docker-buildx-platform != ''
+        name: Setup Docker Buildx for Specified Platforms
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ inputs.docker-buildx-platform }}
 
       - name: Execute Make Build Task
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
