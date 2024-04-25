@@ -1,5 +1,3 @@
-import org.gradle.accessors.dm.LibrariesForLibs
-
 plugins {
 	kotlin("jvm") version embeddedKotlinVersion apply false
 	alias(libs.plugins.gradlePublish) apply false
@@ -34,9 +32,4 @@ subprojects {
 			)
 		}
 	}
-//	tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-//		kotlinOptions {
-//			languageVersion = "1.4"
-//		}
-//	}
 }
