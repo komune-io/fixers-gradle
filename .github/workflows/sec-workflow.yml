@@ -23,17 +23,13 @@ on:
     secrets:
       SONAR_TOKEN:
         required: true
-      PKG_GITHUB_USERNAME:
-        required: true
-      PKG_GITHUB_TOKEN:
-        required: true
 
 jobs:
   gradle-dependency-analysis:
     runs-on: ubuntu-latest
     env:
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      PKG_GITHUB_USERNAME: ${{ github.actor }}
+      PKG_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:

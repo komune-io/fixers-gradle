@@ -13,9 +13,8 @@ jobs:
     uses: ./.github/workflows/sec-workflow.yml
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
     permissions:
       contents: write
       pull-requests: read
       security-events: write
+      packages: read
