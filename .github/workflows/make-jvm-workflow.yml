@@ -86,9 +86,9 @@ on:
 
     secrets:
       GPG_SIGNING_KEY:
-        required: true
+        required: false
       GPG_SIGNING_PASSWORD:
-        required: true
+        required: false
       PKG_GITHUB_USERNAME:
         required: false
       PKG_GITHUB_TOKEN:
@@ -102,9 +102,9 @@ on:
       DOCKER_PROMOTE_PASSWORD:
         required: false
       PKG_SONATYPE_OSS_USERNAME:
-        required: true
+        required: false
       PKG_SONATYPE_OSS_TOKEN:
-        required: true
+        required: false
 
 jobs:
   run-dev-tasks:
