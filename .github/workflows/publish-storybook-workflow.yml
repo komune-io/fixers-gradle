@@ -16,7 +16,7 @@ on:
       with-setup-npm-github-pkg:
         description: 'Flag to enable Npm setup with GitHub Packages.'
         required: false
-        default: 'false'
+        default: 'true'
         type: "string"
 
       storybook-dir:
