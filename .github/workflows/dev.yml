@@ -10,7 +10,7 @@ on:
 
 jobs:
   dev:
-    uses: komune-io/fixers-gradle/.github/workflows/make-jvm-workflow.yml@main
+    uses: ./.github/workflows/make-jvm-workflow.yml
     permissions:
       contents: read
       packages: write
@@ -23,7 +23,7 @@ jobs:
       PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
 
   docs:
-    uses: komune-io/fixers-gradle/.github/workflows/publish-storybook-workflow.yml@main
+    uses: ./.github/workflows/publish-storybook-workflow.yml
     permissions:
       contents: read
       packages: write

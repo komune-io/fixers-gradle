@@ -8,8 +8,8 @@
   "types": "src/index.ts",
   "devDependencies": {
     "@babel/core": "^7.16.0",
-    "@komune-io/g2": "0.5.0-alpha.1",
-    "@komune-io/g2-storybook-documentation": "^0.5.0-alpha.1",
+    "@komune-io/g2": "0.6.0-alpha.7734e99",
+    "@komune-io/g2-storybook-documentation": "0.6.0-alpha.7734e99",
     "storybook": "7.6.17",
     "@storybook/addon-actions": "^7.6.17",
     "@storybook/addon-docs": "^7.6.17",
