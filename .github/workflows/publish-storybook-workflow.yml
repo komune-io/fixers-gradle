@@ -16,7 +16,7 @@ on:
       with-setup-npm-github-pkg:
         description: 'Flag to enable Npm setup with GitHub Packages.'
         required: false
-        default: 'false'
+        default: 'true'
         type: "string"
 
       storybook-dir:
@@ -24,6 +24,18 @@ on:
         required: false
         type: "string"
         default: "storybook"
+
+      docker-publish-repository:
+        description: "The Docker registry to which images should be published. Defaults to GitHub Container Registry (ghcr.io)."
+        required: false
+        type: "string"
+        default: "ghcr.io"
+
+      docker-promote-repository:
+        description: "The Docker registry to which images should be promoted. Defaults to Docker Hub (docker.io)."
+        required: false
+        type: "string"
+        default: "docker.io"
 
       storybook-static-dir-separator:
         description: "The directory path where the static Storybook build will be placed."
@@ -42,6 +54,14 @@ on:
         required: false
       CHROMATIC_PROJECT_TOKEN:
         required: false
+      DOCKER_PUBLISH_USERNAME:
+        required: false
+      DOCKER_PUBLISH_PASSWORD:
+        required: false
+      DOCKER_PROMOTE_USERNAME:
+        required: false
+      DOCKER_PROMOTE_PASSWORD:
+        required: false
 
 jobs:
   package-storybook:
@@ -52,8 +72,14 @@ jobs:
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
       with-setup-npm-github-pkg: ${{ inputs.with-setup-npm-github-pkg }}
+      docker-publish-repository: ${{ inputs.docker-publish-repository }}
+      docker-promote-repository: ${{ inputs.docker-promote-repository }}
     secrets:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      DOCKER_PUBLISH_USERNAME: ${{ secrets.DOCKER_PUBLISH_USERNAME }}
+      DOCKER_PUBLISH_PASSWORD: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
+      DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
+      DOCKER_PROMOTE_PASSWORD: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
   publish-chromatic:
     if: inputs.with-chromatic
