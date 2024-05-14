@@ -55,6 +55,12 @@ on:
         type: "string"
         default: 'false'
 
+      make-file:
+        description: "The Makefile to execute."
+        required: false
+        type: "string"
+        default: "docs.mk"
+
     secrets:
       NPM_AUTH_TOKEN:
         required: false
@@ -73,7 +79,7 @@ jobs:
   package-storybook:
     uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@main
     with:
-      make-file: "docs.mk"
+      make-file: ${{ inputs.make-file }}
       base-dir: ${{ inputs.storybook-dir }}
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
