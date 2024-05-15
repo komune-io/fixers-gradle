@@ -67,6 +67,12 @@ on:
         type: "string"
         default: ".${GITHUB_SHA:0:7}"
 
+      on-tag:
+        description: "The path to the artifact to upload, if needed."
+        required: false
+        type: "string"
+        default: 'false'
+
     secrets:
       PKG_GITHUB_USERNAME:
         required: false
@@ -128,7 +134,7 @@ jobs:
           make-step: ${{ inputs.make-test-task }}
 
       - name: Execute Make Publish Task
-        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -137,7 +143,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_PKG_PUBLISH_TOKEN }}
 
       - name: Execute Make Promote Task
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}

@@ -93,6 +93,12 @@ on:
         required: false
         type: "string"
 
+      on-tag:
+        description: "The path to the artifact to upload, if needed."
+        required: false
+        type: "string"
+        default: 'false'
+
     secrets:
       DOCKER_PUBLISH_USERNAME:
         required: false
@@ -170,7 +176,7 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
-      - if: (inputs.with-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))))
+      - if: (inputs.with-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))))
         name: Docker Registry Login to Publish
         uses: docker/login-action@v3
         with:
@@ -179,13 +185,13 @@ jobs:
           password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
       - name: Execute Make Publish Task
-        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
 
-      - if: (inputs.with-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')))
+      - if: (inputs.with-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ))
         name: Docker Registry Login To Promote
         uses: docker/login-action@v3
         with:
@@ -195,14 +201,14 @@ jobs:
 
       - name: Setup Npm with NpmJs Repository
         id: setup_npm_npmjs_pkg
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
 
       - name: Execute Make Promote Task
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
