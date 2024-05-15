@@ -14,6 +14,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    with:
+      on-tag: 'promote'
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
@@ -30,6 +32,7 @@ jobs:
       pages: write
       id-token: write
     with:
+      on-tag: 'publish_promote'
       with-chromatic: false
       storybook-dir: storybook
       storybook-static-dir: storybook-static
