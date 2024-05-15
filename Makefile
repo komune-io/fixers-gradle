@@ -1,28 +1,27 @@
 VERSION = $(shell cat VERSION)
 
-lint: lint-libs
-build: build-libs
-test: test-libs
-publish: publish-libs
-promote: promote-libs
+.PHONY: lint build test publish promote
 
-lint-libs:
-	./gradlew detekt
+## New
+lint:
+	@make -f libs.mk lint
+	@make -f docs.mk lint
 
-build-libs:
-	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
+build:
+	@make -f libs.mk build
+	@make -f docs.mk build
 
-test-libs:
-	./gradlew test
-	cd sandbox
-	./gradlew test
+test-pre:
+	@make -f libs.mk test-pre
 
-publish-libs:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=github ./gradlew publish --info
+test:
+	@make -f libs.mk test
+	@make -f docs.mk test
 
-promote-libs:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
+publish:
+	@make -f libs.mk publish
+	@make -f docs.mk publish
 
-.PHONY: version
-version:
-	@echo "$(VERSION)"
+promote:
+	@make -f libs.mk promote
+	@make -f docs.mk promote
