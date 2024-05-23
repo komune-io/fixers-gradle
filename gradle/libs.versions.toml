@@ -1,11 +1,11 @@
 [versions]
 detekt = "1.23.6"
-kotlin = "1.9.22"
-dokka = "1.9.10"
+kotlin = "1.9.24"
+dokka = "1.9.20"
 java = "11"
 sonarQube = "3.3"
 npmPublish = "3.4.2"
-gradlePublish = "1.2.0"
+gradlePublish = "1.2.1"
 junit-jupiter = "5.10.2"
 assertj = "3.25.3"
 
