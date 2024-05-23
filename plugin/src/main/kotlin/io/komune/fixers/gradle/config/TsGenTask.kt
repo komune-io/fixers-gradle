@@ -81,7 +81,8 @@ fun Kt2Ts.buildCleaningRegex(): MutableMap<String, List<Pair<Regex, String>>> {
             Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]", // in case of List<List<T>>
             Regex("""kotlin.Long""") to "number",
             Regex("""static get Companion(.*\n)*?(\s)*}( &.*)?;""") to "",
-            Regex("""abstract class (\w+)(?: implements [\w.]*?)? \{[\s\S]*?(?:\1);[\s]*get name\(\): ((?:\"\w+\" \| )*\"(\w+)\")[\s\S]*?\}""") to "type $1 = $2;",
+            Regex("""abstract class (\w+)(?: implements [\w.]*?)? \{[\s\S]*?(?:\1)"""
+                    + """;[\s]*get name\(\): ((?:\"\w+\" \| )*\"(\w+)\")[\s\S]*?\}""") to "type $1 = $2;",
         ) + additionalCleaning[".d.ts"].orEmpty(),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
