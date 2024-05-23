@@ -2,12 +2,12 @@ package io.komune.fixers.gradle.config
 
 import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.model.Kt2Ts
-import java.io.File
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
+import java.io.File
 
 
 fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
@@ -80,7 +80,9 @@ fun Kt2Ts.buildCleaningRegex(): MutableMap<String, List<Pair<Regex, String>>> {
             Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]",
             Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]", // in case of List<List<T>>
             Regex("""kotlin.Long""") to "number",
-            Regex("""static get Companion(.*\n)*?(\s)*}( &.*)?;""") to ""
+            Regex("""static get Companion(.*\n)*?(\s)*}( &.*)?;""") to "",
+            Regex("""abstract class (\w+)(?: implements [\w.]*?)? \{[\s\S]*?(?:\1)"""
+                    + """;[\s]*get name\(\): ((?:\"\w+\" \| )*\"(\w+)\")[\s\S]*?\}""") to "type $1 = $2;",
         ) + additionalCleaning[".d.ts"].orEmpty(),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
