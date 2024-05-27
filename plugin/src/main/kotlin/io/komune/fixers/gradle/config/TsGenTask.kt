@@ -72,7 +72,7 @@ fun Kt2Ts.buildCleaningRegex(): MutableMap<String, List<Pair<Regex, String>>> {
             Regex("""kotlin.js.""") to "",
             Regex("""org.w3c.dom.url.""") to "",
             Regex("""org.w3c.dom.""") to "",
-            Regex(""" any/\* ([^*/]*) \*/""") to " $1",
+            Regex(""" (?:any|Nullable<any>)/\* ([^*/]*) \*/""") to " $1",
             Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
             Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w\.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
             Regex("""kotlin.collections.Map""") to "Record",
