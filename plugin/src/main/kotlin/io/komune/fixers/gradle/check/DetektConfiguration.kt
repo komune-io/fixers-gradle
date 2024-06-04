@@ -13,6 +13,7 @@ fun Project.configureDetekt() {
     val detektReportMergeSarif: TaskProvider<ReportMergeTask> = tasks.register<ReportMergeTask>(taskName) {
         output = layout.buildDirectory.file("reports/detekt/merge.sarif")
     }
+
     allprojects {
         plugins.apply("io.gitlab.arturbosch.detekt")
         pluginManager.withPlugin("io.gitlab.arturbosch.detekt") {
@@ -44,6 +45,15 @@ fun Project.configureDetekt() {
             }
             detektReportMergeSarif.configure {
                 input.from(tasks.withType(Detekt::class.java).map { it.reports.sarif.outputLocation })
+            }
+        }
+        afterEvaluate {
+            configurations.matching { it.name == "detekt" }.all {
+                resolutionStrategy.eachDependency {
+                    if (requested.group == "org.jetbrains.kotlin") {
+                        useVersion("1.9.24")
+                    }
+                }
             }
         }
     }
