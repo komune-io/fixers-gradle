@@ -47,10 +47,17 @@ fun Project.configureDetekt() {
                 input.from(tasks.withType(Detekt::class.java).map { it.reports.sarif.outputLocation })
             }
         }
+
         afterEvaluate {
+            logger.info("//////////////////////////////")
+            logger.info("Detekt")
             configurations.matching { it.name == "detekt" }.all {
+
+                logger.info("In matching")
                 resolutionStrategy.eachDependency {
+                    logger.info("In matching")
                     if (requested.group == "org.jetbrains.kotlin") {
+                        logger.info("Rgit equested.group")
                         useVersion("1.9.24")
                     }
                 }
