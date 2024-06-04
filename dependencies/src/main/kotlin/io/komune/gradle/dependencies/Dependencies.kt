@@ -19,13 +19,13 @@ object FixersRepository {
 }
 
 object FixersPluginVersions {
-	const val kotlin = "1.9.24"
+	const val kotlin = "1.9.23"
 	const val springBoot = "3.2.5"
 	const val npmPublish = "3.4.2"
 	/**
 	 * com.google.devtools.ksp
 	 */
-	const val ksp = "1.9.24-1.0.20"
+	const val ksp = "1.9.23-1.0.20"
 	/**
 	 * org.graalvm.buildtools.native.gradle.plugin
 	 */
@@ -61,7 +61,7 @@ object FixersVersions {
 	}
 
 	object Kotlin {
-		const val coroutines = "1.8.1"
+		const val coroutines = "1.8.0"
 		const val serialization = "1.6.3"
 		const val ktor = "2.3.11"
 	}
