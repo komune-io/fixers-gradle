@@ -68,6 +68,12 @@ on:
         type: "string"
         default: "ghcr.io"
 
+      force-publish:
+        description: "Flag to force execute publish task."
+        required: false
+        type: "string"
+        default: "false"
+
       docker-promote-repository:
         description: "The Docker registry to which images should be promoted. Defaults to Docker Hub (docker.io)."
         required: false
@@ -168,7 +174,7 @@ jobs:
           password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
       - name: Execute Make Publish Task
-        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'publish') || startsWith(github.ref, 'refs/heads/versioning/')))
+        if: (force-publish == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'publish') || startsWith(github.ref, 'refs/heads/versioning/'))))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
