@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.gitlab.arturbosch.detekt.getSupportedKotlinVersion
 import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.fixers
 import org.gradle.api.Plugin
@@ -24,7 +25,28 @@ class CheckPlugin : Plugin<Project> {
 
 			}
 		}
+		forceKotlinVersion(target)
 
+	}
+
+	/**
+	 *  https://detekt.dev/docs/gettingstarted/gradle#dependencies
+	 */
+	private fun forceKotlinVersion(target: Project) {
+		target.afterEvaluate {
+			if (target.plugins.hasPlugin("io.spring.dependency-management")) {
+				target.configurations.all {
+					resolutionStrategy.eachDependency {
+						if (requested.group == "org.jetbrains.kotlin") {
+							useVersion(getSupportedKotlinVersion())
+						}
+					}
+				}
+			}
+		}
+		target.subprojects.forEach { subproject ->
+			forceKotlinVersion(subproject)
+		}
 	}
 
 	private fun configureSonarQube(target: Project) {
