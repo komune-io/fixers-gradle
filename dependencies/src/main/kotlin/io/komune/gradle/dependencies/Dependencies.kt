@@ -63,6 +63,7 @@ object FixersVersions {
 	object Kotlin {
 		const val coroutines = "1.8.1"
 		const val serialization = "1.6.3"
+		const val datetime = "0.6.0"
 		const val ktor = "2.3.12"
 	}
 }
