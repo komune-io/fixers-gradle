@@ -45,6 +45,7 @@ object FixersVersions {
 		const val framework = "6.1.11"
 		const val security = "6.3.1"
 		const val jakartaPersistence = "3.1.0"
+		const val reactor = "3.6.8"
 	}
 
 	object Json {
