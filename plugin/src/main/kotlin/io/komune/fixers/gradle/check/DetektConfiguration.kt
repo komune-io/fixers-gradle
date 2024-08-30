@@ -4,8 +4,14 @@ import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import io.gitlab.arturbosch.detekt.report.ReportMergeTask
 import org.gradle.api.Project
+import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
+
+fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
+    return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
+}
 
 fun Project.configureDetekt() {
     val detektReportMergeSarif = tasks.register<ReportMergeTask>("detektReportMergeSarif") {
@@ -13,7 +19,7 @@ fun Project.configureDetekt() {
     }
 
     val detektReportMergeXml = rootProject.tasks.register<ReportMergeTask>("reportMerge") {
-        output.set(rootProject.layout.buildDirectory.file("reports/detekt/merge.xml"))
+        output.set(getDetektReportMergeXmlFile())
     }
 
     allprojects {

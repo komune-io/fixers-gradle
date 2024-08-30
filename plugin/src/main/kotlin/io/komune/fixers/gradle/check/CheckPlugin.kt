@@ -10,7 +10,7 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.withType
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.sonarqube.gradle.SonarQubeExtension
+import org.sonarqube.gradle.SonarExtension
 
 class CheckPlugin : Plugin<Project> {
 	override fun apply(target: Project) {
@@ -52,18 +52,35 @@ class CheckPlugin : Plugin<Project> {
 	private fun configureSonarQube(target: Project) {
 		target.plugins.apply("org.sonarqube")
 		target.afterEvaluate {
-			target.extensions.configure(SonarQubeExtension::class.java) {
+			target.extensions.configure(SonarExtension::class.java) {
 				val fixers = target.extensions.findByType(ConfigExtension::class.java)
 				properties {
-					property("sonar.projectKey", fixers?.bundle?.id as Any)
-					property("sonar.projectName", fixers.bundle.name)
-					property("sonar.host.url", fixers.sonar.url)
-					property("sonar.login", fixers.sonar.login)
-					property ("detekt.sonar.kotlin.config.path", "${rootDir}/detekt.yml")
+					fixers?.bundle?.let { property("sonar.projectName", it.name) }
+
+					fixers?.sonar?.let { sonar ->
+
+						property("sonar.sources", "**/src/*Main/kotlin")
+						property("sonar.projectKey", sonar.projectKey)
+						property("sonar.organization", sonar.organization)
+						property("sonar.host.url", sonar.url)
+						property("sonar.language", sonar.language)
+						property("sonar.exclusions", sonar.exclusions)
+
+						sonar.detekt?.let { detekt ->
+							property("sonar.kotlin.detekt.reportPaths", detekt)
+						}
+						sonar.githubSummaryComment?.let { githubSummaryComment ->
+							property("sonar.pullrequest.github.summary_comment", githubSummaryComment)
+						}
+						sonar.jacoco?.let { jacoco ->
+							property("sonar.coverage.jacoco.xmlReportPaths", jacoco)
+						}
+					}
+
+					property("detekt.sonar.kotlin.config.path", "${rootDir}/detekt.yml")
 
 					property("sonar.verbose", true)
-					property("sonar.coverage.jacoco.xmlReportPaths",
-						"${target.rootDir}/**/build/reports/jacoco/test/jacocoTestReport.xml")
+
 				}
 			}
 		}

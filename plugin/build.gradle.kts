@@ -8,9 +8,8 @@ dependencies {
 
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.detektGradlePlugin)
-	implementation(libs.detektGradlePlugin)
 	implementation(libs.dokkaGradlePlugin)
-	implementation(libs.sonarqubeGradlePlugin)
+	api(libs.sonarqubeGradlePlugin)
 
 	api(project(":dependencies"))
 	api(project(":config"))
