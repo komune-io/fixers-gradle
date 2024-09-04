@@ -3,7 +3,7 @@ detekt = "1.23.6"
 kotlin = "1.9.23"
 dokka = "1.9.20"
 java = "11"
-sonarQube = "3.3"
+sonarQube = "5.1.0.4882"
 npmPublish = "3.4.2"
 gradlePublish = "1.2.1"
 junit-jupiter = "5.10.2"
@@ -13,8 +13,6 @@ assertj = "3.25.3"
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-rules-libraries = { module = "io.gitlab.arturbosch.detekt:detekt-rules-libraries", version.ref = "detekt" }
 detekt-rules-coroutines = { module = "io.gitlab.arturbosch.detekt:detekt-rules-coroutines", version.ref = "detekt" }
-detekt-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
-
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
 

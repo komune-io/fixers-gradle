@@ -51,6 +51,12 @@ on:
         type: "string"
         default: "publish"
 
+      make-check-task:
+        description: "The Make command to execute for checking."
+        required: false
+        type: "string"
+        default: "check"
+
       make-promote-task:
         description: "The Make command to execute for promote."
         required: false
@@ -117,9 +123,12 @@ on:
         required: false
       PKG_SONATYPE_OSS_TOKEN:
         required: false
+      SONAR_TOKEN:
+        required: false
 
 jobs:
   run-dev-tasks:
+    if: (!startsWith(github.event.pull_request.head.ref, 'versionning/') || github.event_name != 'pull_request')
     runs-on: ubuntu-latest
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
@@ -142,6 +151,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/version@main
 
       - name: Execute Make Lint Task
+        if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -160,6 +170,7 @@ jobs:
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
+        if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -179,6 +190,13 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
+
+      - name: Execute Make Check Task
+        if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-check-task }}
 
       - name: Docker Registry Login To Promote
         if: (inputs.with-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))

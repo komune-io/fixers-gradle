@@ -153,6 +153,7 @@ jobs:
           with-snapshot-tag: ${{ inputs.version-with-snapshot-tag }}
 
       - name: Execute Make Lint Task
+        if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -171,6 +172,7 @@ jobs:
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
+        if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -206,6 +208,13 @@ jobs:
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
+
+      - name: Execute Make Check Task
+        if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-check-task }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
