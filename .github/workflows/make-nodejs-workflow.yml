@@ -153,6 +153,7 @@ jobs:
           with-snapshot-tag: ${{ inputs.version-with-snapshot-tag }}
 
       - name: Execute Make Lint Task
+        if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
@@ -171,6 +172,7 @@ jobs:
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
+        if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
