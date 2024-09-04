@@ -137,6 +137,7 @@ jobs:
       PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
       PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
       PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
