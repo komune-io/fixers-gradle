@@ -21,6 +21,12 @@ on:
         default: 'false'
         type: "string"
 
+      excluded-versioning-branch:
+        description: "A single branch name prefix where the job should be excluded from running. For example, use 'versioning/' to skip running the job on any branch that starts with 'versioning/'."
+        required: false
+        type: "string"
+        default: "versioning/"
+
       make-file:
         description: "The Makefile to execute."
         required: false
@@ -128,7 +134,7 @@ on:
 
 jobs:
   run-dev-tasks:
-    if: (!startsWith(github.event.pull_request.head.ref, 'versionning/') || github.event_name != 'pull_request')
+    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)
     runs-on: ubuntu-latest
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
