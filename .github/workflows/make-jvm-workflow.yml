@@ -134,7 +134,7 @@ on:
 
 jobs:
   run-dev-tasks:
-    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)
+    if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
