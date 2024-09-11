@@ -21,11 +21,11 @@ on:
         default: 'false'
         type: "string"
 
-      excluded-branches:
+      excluded-branch:
         description: "A JSON-formatted list of branch name prefixes or event names on which the job should be excluded from running. For example, use ['versioning/', 'test/'] to skip running the job on any branch that starts with 'versioning/' or 'test/'."
         required: false
         type: "string"
-        default: "['versioning/', 'test/']"
+        default: "versioning/"
 
       make-file:
         description: "The Makefile to execute."
@@ -134,7 +134,7 @@ on:
 
 jobs:
   run-dev-tasks:
-    if: ${{ github.event_name == 'push' && !(startsWith(github.ref, 'refs/heads/versioning/') || startsWith(github.ref, 'refs/heads/test/')) }}
+    if: ${{ github.event_name == 'push' && !startsWith(github.ref, format('refs/heads/{0}', inputs.excluded-branch)) }}
     runs-on: ubuntu-latest
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
