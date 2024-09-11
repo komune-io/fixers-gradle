@@ -134,7 +134,7 @@ on:
 
 jobs:
   run-dev-tasks:
-    if: ${{ github.event_name == 'push' && !contains(fromJson(inputs.excluded-branches), github.ref) }}
+    if: ${{ github.event_name == 'push' && !(startsWith(github.ref, 'refs/heads/versioning/') || startsWith(github.ref, 'refs/heads/test/')) }}
     runs-on: ubuntu-latest
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
