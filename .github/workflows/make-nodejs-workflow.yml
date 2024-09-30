@@ -20,11 +20,18 @@ on:
         default: 'true'
         type: "string"
 
+      excluded-versioning-branch:
+        description: "A single branch name prefix where the job should be excluded from running. For example, use 'versioning/' to skip running the job on any branch that starts with 'versioning/'."
+        required: false
+        type: "string"
+        default: "versioning/"
+
       version-with-snapshot-tag:
         description: "Base directory of the Node.js project, if applicable."
         required: false
         type: "string"
         default: ".${GITHUB_SHA:0:7}"
+
       make-file:
         description: "The Makefile to execute."
         required: false
@@ -115,6 +122,7 @@ on:
 
 jobs:
   run-dev-tasks:
+    if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
