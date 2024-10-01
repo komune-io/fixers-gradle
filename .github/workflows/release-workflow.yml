@@ -1,0 +1,80 @@
+name: Release New Version
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+      next_version:
+        description: 'Next development version (e.g., 1.0.1-dev)'
+        required: true
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_BRANCH: versioning/${{ github.event.inputs.version }}
+      RELEASE_TAG: refs/tags/${{ github.event.inputs.version }}
+      SOURCE_BRANCH: ${{ github.ref_name }}
+    steps:
+      - name: Print Env
+        run: |
+          echo "RELEASE_BRANCH: ${{ env.RELEASE_BRANCH }}"
+          echo "RELEASE_TAG: ${{ env.RELEASE_TAG }}"
+          echo "SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}"
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions@users.noreply.github.com'
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_BRANCH }}
+          submodules: true
+          token: ${{ secrets.PKG_GITHUB_TOKEN }}
+
+      - name: Create new release branch
+        run: |
+          git checkout -b ${{ env.RELEASE_BRANCH }}
+
+      - name: Update VERSION file with new version
+        run: echo "${{ github.event.inputs.version }}" > VERSION
+
+      - name: Commit updated VERSION file
+        run: |
+          git add VERSION
+          git commit -m "Bump version to ${{ github.event.inputs.version }}"
+          git push origin ${{ env.RELEASE_BRANCH }}
+
+      - name: Create a new Git tag
+        run: |
+          git tag -a ${{ github.event.inputs.version }} -m "Release version ${{ github.event.inputs.version }}"
+          git push origin ${{ env.RELEASE_TAG }}
+
+      - name: Update VERSION file to next development version
+        run: echo "${{ github.event.inputs.next_version }}" > VERSION
+
+      - name: Commit next development version
+        run: |
+          git add VERSION
+          git commit -m "Set next development version to ${{ github.event.inputs.next_version }}"
+          git push origin ${{ env.RELEASE_BRANCH }}
+
+      - name: Create Pull Request via GitHub API
+        env:
+          PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+        run: |
+          curl -X POST \
+            -H "Authorization: token $PKG_GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls \
+            -d @- <<EOF
+          {
+            "title": "Release ${{ github.event.inputs.version }}",
+            "body": "This PR releases version ${{ github.event.inputs.version }} and sets the version to ${{ github.event.inputs.next_version }} for ongoing development. Please review and merge.",
+            "head": "${{ env.RELEASE_BRANCH }}",
+            "base": "${{ env.SOURCE_BRANCH }}"
+          }
+          EOF
