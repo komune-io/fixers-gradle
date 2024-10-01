@@ -7,17 +7,23 @@ on:
         type: string
         description: 'Version to release (e.g., 1.0.0)'
         required: true
+        type: string
       next_version:
         type: string
         description: 'Next development version (e.g., 1.0.1-dev)'
+        required: true
+        type: string
+    secrets:
+      PKG_GITHUB_TOKEN:
+        description: 'Token for package operations'
         required: true
 
 jobs:
   create-release-branch:
     runs-on: ubuntu-latest
     env:
-      RELEASE_BRANCH: versioning/${{ github.event.inputs.version }}
-      RELEASE_TAG: refs/tags/${{ github.event.inputs.version }}
+      RELEASE_BRANCH: versioning/${{ inputs.version }}
+      RELEASE_TAG: refs/tags/${{ inputs.version }}
       SOURCE_BRANCH: ${{ github.ref_name }}
     steps:
       - name: Print Env
@@ -28,7 +34,7 @@ jobs:
       - name: Set up Git
         run: |
           git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions@users.noreply.github.com'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,26 +48,26 @@ jobs:
           git checkout -b ${{ env.RELEASE_BRANCH }}
 
       - name: Update VERSION file with new version
-        run: echo "${{ github.event.inputs.version }}" > VERSION
+        run: echo "${{ inputs.version }}" > VERSION
 
       - name: Commit updated VERSION file
         run: |
           git add VERSION
-          git commit -m "Bump version to ${{ github.event.inputs.version }}"
+          git commit -m "Bump version to ${{ inputs.version }}"
           git push origin ${{ env.RELEASE_BRANCH }}
 
       - name: Create a new Git tag
         run: |
-          git tag -a ${{ github.event.inputs.version }} -m "Release version ${{ github.event.inputs.version }}"
+          git tag -a ${{ inputs.version }} -m "Release version ${{ inputs.version }}"
           git push origin ${{ env.RELEASE_TAG }}
 
       - name: Update VERSION file to next development version
-        run: echo "${{ github.event.inputs.next_version }}" > VERSION
+        run: echo "${{ inputs.next_version }}" > VERSION
 
       - name: Commit next development version
         run: |
           git add VERSION
-          git commit -m "Set next development version to ${{ github.event.inputs.next_version }}"
+          git commit -m "Set next development version to ${{ inputs.next_version }}"
           git push origin ${{ env.RELEASE_BRANCH }}
 
       - name: Create Pull Request via GitHub API
@@ -74,8 +80,8 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/pulls \
             -d @- <<EOF
           {
-            "title": "Release ${{ github.event.inputs.version }}",
-            "body": "This PR releases version ${{ github.event.inputs.version }} and sets the version to ${{ github.event.inputs.next_version }} for ongoing development. Please review and merge.",
+            "title": "Release ${{ inputs.version }}",
+            "body": "This PR releases version ${{ inputs.version }} and sets the version to ${{ inputs.next_version }} for ongoing development. Please review and merge.",
             "head": "${{ env.RELEASE_BRANCH }}",
             "base": "${{ env.SOURCE_BRANCH }}"
           }
