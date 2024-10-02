@@ -52,15 +52,18 @@ runs:
   using: "composite"
   steps:
     - name: "Set Version Tag for Branch"
+      env:
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        GITHUB_REF: ${{ github.ref }}
       run: |
         VERSION=$(cat VERSION)
         echo "Original VERSION: $VERSION"
 
           # Initialize BRANCH_NAME_REF based on the event type
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BRANCH_NAME_REF="refs/heads/${{ github.head_ref }}"
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            BRANCH_NAME_REF="refs/heads/$GITHUB_HEAD_REF"
           else
-            BRANCH_NAME_REF="${{ github.ref }}"
+            BRANCH_NAME_REF="$GITHUB_REF"
           fi
           echo "Branch Name: $BRANCH_NAME_REF"
 
