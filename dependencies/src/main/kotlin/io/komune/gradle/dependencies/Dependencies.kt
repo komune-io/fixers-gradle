@@ -29,14 +29,14 @@ object FixersPluginVersions {
 	/**
 	 * org.graalvm.buildtools.native.gradle.plugin
 	 */
-	const val graalvm = "0.10.2"
+	const val graalvm = "0.10.3"
 
 	val fixers = FixersPluginVersions::class.java.`package`.implementationVersion!!
 }
 
 object FixersVersions {
 	object Logging {
-		const val slf4j = "2.0.13"
+		const val slf4j = "2.0.16"
 	}
 
 	object Spring {
@@ -44,27 +44,27 @@ object FixersVersions {
 		const val data = "3.3.4"
 		const val framework = "6.1.13"
 		const val security = "6.3.3"
-		const val jakartaPersistence = "3.1.0"
-		const val reactor = "3.6.8"
+		const val jakartaPersistence = "3.2.0"
+		const val reactor = "3.6.10"
 	}
 
 	object Json {
-		const val jackson = "2.17.2"
-		const val jacksonKotlin = "2.17.2"
+		const val jackson = "2.18.0"
+		const val jacksonKotlin = jackson
 	}
 
 	object Test {
-		const val cucumber = "7.18.1"
-		const val junit = "5.10.3"
-		const val junitPlatform = "1.10.3"
+		const val cucumber = "7.19.0"
+		const val junit = "5.11.1"
+		const val junitPlatform = "1.11.1"
 		const val assertj = "3.26.3"
-		const val testcontainers = "1.20.0"
+		const val testcontainers = "1.20.2"
 	}
 
 	object Kotlin {
 		const val coroutines = "1.8.1"
 		const val serialization = "1.6.3"
-		const val datetime = "0.6.0"
+		const val datetime = "0.6.1"
 		const val ktor = "2.3.12"
 	}
 }
