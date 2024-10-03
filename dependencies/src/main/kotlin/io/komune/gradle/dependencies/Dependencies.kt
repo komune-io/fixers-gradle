@@ -49,7 +49,7 @@ object FixersVersions {
 	}
 
 	object Json {
-		const val jackson = "2.18.0"
+		const val jackson = "2.17.2"
 		const val jacksonKotlin = jackson
 	}
 
