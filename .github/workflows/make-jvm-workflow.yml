@@ -148,6 +148,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Add Firefox to Run Kotlin test
+        uses: browser-actions/setup-firefox@v1
+
       - name: Initialize Java and Gradle Environment
         uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
