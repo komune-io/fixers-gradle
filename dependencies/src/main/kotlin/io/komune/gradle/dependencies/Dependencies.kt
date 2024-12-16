@@ -20,7 +20,7 @@ object FixersRepository {
 
 object FixersPluginVersions {
 	const val kotlin = "1.9.25"
-	const val springBoot = "3.3.4"
+	const val springBoot = "3.3.6"
 	const val npmPublish = "3.4.2"
 	/**
 	 * com.google.devtools.ksp
