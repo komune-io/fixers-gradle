@@ -59,7 +59,7 @@ on:
         description: "The Makefile to execute."
         required: false
         type: "string"
-        default: "docs.mk"
+        default: "make_docs.mk"
 
     secrets:
       NPM_AUTH_TOKEN:
