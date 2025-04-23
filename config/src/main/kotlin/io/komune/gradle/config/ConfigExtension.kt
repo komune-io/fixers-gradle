@@ -13,10 +13,7 @@ import io.komune.gradle.config.model.sonarCloud
 import io.komune.gradle.config.model.sonatypeOss
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.UnknownDomainObjectException
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec

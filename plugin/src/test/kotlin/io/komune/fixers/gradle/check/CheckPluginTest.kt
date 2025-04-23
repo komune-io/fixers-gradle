@@ -5,12 +5,9 @@ import io.komune.gradle.config.model.Detekt
 import io.komune.gradle.config.model.Sonar
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
-import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.io.File
 
 // Concrete implementation of ConfigExtension for testing
 class TestConfigExtension(project: Project) : ConfigExtension(project)

@@ -1,13 +1,11 @@
 package io.komune.fixers.gradle.integration
 
+import java.io.File
+import java.nio.file.Path
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.io.TempDir
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 // Kotlin versions compatible with different Gradle versions
 private val KOTLIN_VERSION_MAP = mapOf(

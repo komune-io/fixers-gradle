@@ -4,9 +4,6 @@ import io.komune.fixers.gradle.integration.BaseIntegrationTest
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
-import java.io.File
 
 /**
  * Integration tests for the ConfigPlugin.
