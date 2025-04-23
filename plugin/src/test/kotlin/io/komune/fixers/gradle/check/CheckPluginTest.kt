@@ -5,6 +5,7 @@ import io.komune.gradle.config.model.Detekt
 import io.komune.gradle.config.model.Sonar
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
+import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -49,10 +50,17 @@ class CheckPluginTest {
         project = ProjectBuilder.builder().withParent(rootProject).build()
         project.plugins.apply(CheckPlugin::class.java)
 
-        // Verify that Detekt plugin is applied
+        // Register afterEvaluate action before evaluating the project
+        var detektPluginApplied = false
         project.afterEvaluate {
-            assertThat(project.plugins.hasPlugin("io.gitlab.arturbosch.detekt")).isTrue()
+            detektPluginApplied = project.plugins.hasPlugin("io.gitlab.arturbosch.detekt")
         }
+
+        // Evaluate the project to trigger afterEvaluate actions
+        (project as ProjectInternal).evaluate()
+
+        // Verify that Detekt plugin is applied
+        assertThat(detektPluginApplied).isTrue()
     }
 
     @Test
@@ -69,10 +77,17 @@ class CheckPluginTest {
         project = ProjectBuilder.builder().withParent(rootProject).build()
         project.plugins.apply(CheckPlugin::class.java)
 
-        // Verify that Detekt plugin is not applied
+        // Register afterEvaluate action before evaluating the project
+        var detektPluginApplied = false
         project.afterEvaluate {
-            assertThat(project.plugins.hasPlugin("io.gitlab.arturbosch.detekt")).isFalse()
+            detektPluginApplied = project.plugins.hasPlugin("io.gitlab.arturbosch.detekt")
         }
+
+        // Evaluate the project to trigger afterEvaluate actions
+        (project as ProjectInternal).evaluate()
+
+        // Verify that Detekt plugin is not applied
+        assertThat(detektPluginApplied).isFalse()
     }
 
     @Test
@@ -98,9 +113,16 @@ class CheckPluginTest {
         project = ProjectBuilder.builder().withParent(rootProject).build()
         project.plugins.apply(CheckPlugin::class.java)
 
-        // Verify that SonarQube plugin is applied
+        // Register afterEvaluate action before evaluating the project
+        var sonarQubePluginApplied = false
         project.afterEvaluate {
-            assertThat(project.plugins.hasPlugin("org.sonarqube")).isTrue()
+            sonarQubePluginApplied = project.plugins.hasPlugin("org.sonarqube")
         }
+
+        // Evaluate the project to trigger afterEvaluate actions
+        (project as ProjectInternal).evaluate()
+
+        // Verify that SonarQube plugin is applied
+        assertThat(sonarQubePluginApplied).isTrue()
     }
 }
