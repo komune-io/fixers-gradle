@@ -13,10 +13,7 @@ import io.komune.gradle.config.model.sonarCloud
 import io.komune.gradle.config.model.sonatypeOss
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.UnknownDomainObjectException
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -24,13 +21,8 @@ import org.gradle.plugin.use.PluginDependencySpec
 /**
  * Retrieves the [fixers][io.komune.fixers.gradle.fixers] extension.
  */
-@Suppress("SwallowedException")
 val ExtensionContainer.fixers: ConfigExtension?
-	get() = try {
-		getByName(ConfigExtension.NAME) as ConfigExtension?
-	} catch (e: UnknownDomainObjectException) {
-		null
-	}
+	get() = findByName(ConfigExtension.NAME) as ConfigExtension?
 
 /**
  * Configures the [fixers][io.komune.fixers.gradle.fixers] extension.
@@ -49,6 +41,13 @@ fun ExtensionContainer.fixersIfExists(configure: Action<ConfigExtension>) {
 
 fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io.komune.fixers.gradle.${module}")
 
+/**
+ * Main configuration extension for the Fixers Gradle plugins.
+ * 
+ * This class is marked as abstract to allow Gradle to create a dynamic subclass at runtime
+ * for property convention mapping and extension instantiation. This is a common pattern
+ * in Gradle plugin development, even when the class doesn't have explicit abstract members.
+ */
 @Suppress("UnnecessaryAbstractClass")
 abstract class ConfigExtension(
 	val project: Project

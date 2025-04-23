@@ -1,8 +1,8 @@
 package io.komune.gradle.config.model
 
-import org.gradle.api.Project
 import java.lang.System.getenv
 import java.net.URI
+import org.gradle.api.Project
 
 data class Repository(
 	val name: String,

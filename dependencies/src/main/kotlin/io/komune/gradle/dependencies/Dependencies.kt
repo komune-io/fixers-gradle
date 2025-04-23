@@ -1,8 +1,8 @@
 package io.komune.gradle.dependencies
 
+import java.net.URI
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.dsl.RepositoryHandler
-import java.net.URI
 
 object FixersRepository {
 	fun defaultRepo(repositoryHandler: RepositoryHandler) {

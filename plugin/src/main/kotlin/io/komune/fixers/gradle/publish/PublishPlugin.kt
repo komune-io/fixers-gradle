@@ -4,12 +4,12 @@ import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.fixers
 import io.komune.gradle.config.model.Repository
 import io.komune.gradle.config.model.github
+import java.lang.System.getenv
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.plugins.signing.SigningExtension
-import java.lang.System.getenv
 import org.gradle.plugins.signing.SigningPlugin
 
 class PublishPlugin : Plugin<Project> {
