@@ -22,6 +22,13 @@ private val KOTLIN_VERSION_MAP = mapOf(
  */
 abstract class BaseIntegrationTest {
 
+    companion object {
+        /**
+         * Command-line argument for detailed stack traces in Gradle builds.
+         */
+        private const val STACKTRACE_ARG = "--stacktrace"
+    }
+
     /**
      * Temporary directory for the test project.
      */
@@ -120,7 +127,7 @@ abstract class BaseIntegrationTest {
     protected fun runGradle(vararg arguments: String): BuildResult {
         val runner = GradleRunner.create()
             .withProjectDir(testProjectDir.toFile())
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, STACKTRACE_ARG)
             .withPluginClasspath()
             .forwardOutput()
 
@@ -137,7 +144,7 @@ abstract class BaseIntegrationTest {
     protected fun runGradleWithVersion(gradleVersion: String, vararg arguments: String): BuildResult {
         val runner = GradleRunner.create()
             .withProjectDir(testProjectDir.toFile())
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, STACKTRACE_ARG)
             .withPluginClasspath()
             .withGradleVersion(gradleVersion)
             .forwardOutput()
@@ -154,7 +161,7 @@ abstract class BaseIntegrationTest {
     protected fun runGradleAndFail(vararg arguments: String): BuildResult {
         val runner = GradleRunner.create()
             .withProjectDir(testProjectDir.toFile())
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, STACKTRACE_ARG)
             .withPluginClasspath()
             .forwardOutput()
 
@@ -171,7 +178,7 @@ abstract class BaseIntegrationTest {
     protected fun runGradleAndFailWithVersion(gradleVersion: String, vararg arguments: String): BuildResult {
         val runner = GradleRunner.create()
             .withProjectDir(testProjectDir.toFile())
-            .withArguments(*arguments, "--stacktrace")
+            .withArguments(*arguments, STACKTRACE_ARG)
             .withPluginClasspath()
             .withGradleVersion(gradleVersion)
             .forwardOutput()

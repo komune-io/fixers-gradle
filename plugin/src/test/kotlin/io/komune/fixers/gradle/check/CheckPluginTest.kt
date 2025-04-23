@@ -9,7 +9,14 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-// Concrete implementation of ConfigExtension for testing
+/**
+ * Concrete implementation of ConfigExtension for testing purposes.
+ * 
+ * This class is needed because ConfigExtension is an abstract class designed to be
+ * subclassed by Gradle at runtime for property convention mapping and extension instantiation.
+ * In tests, we need a concrete implementation that we can instantiate directly to configure
+ * test-specific values without relying on Gradle's runtime extension mechanism.
+ */
 class TestConfigExtension(project: Project) : ConfigExtension(project)
 
 class CheckPluginTest {
