@@ -90,7 +90,7 @@ class CheckPlugin : Plugin<Project> {
 		plugins.withType(JavaPlugin::class.java).whenPluginAdded {
 			plugins.apply("jacoco")
 			extensions.configure(JacocoPluginExtension::class.java) {
-				toolVersion = "0.8.7"
+				toolVersion = "0.8.12"
 			}
 			tasks.withType<JacocoReport> {
 				isEnabled = true
