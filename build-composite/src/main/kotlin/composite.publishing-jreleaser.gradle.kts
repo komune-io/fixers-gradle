@@ -5,7 +5,6 @@ plugins {
     id("maven-publish")
     id("signing")
     id("composite.pom")
-    id("composite.publishing-common")
     id("org.jreleaser")
 }
 
@@ -27,7 +26,7 @@ jreleaser {
         version = versionFromFile ?: project.version.toString()
     }
     signing {
-        active.set(org.jreleaser.model.Active.NEVER)
+        active.set(org.jreleaser.model.Active.ALWAYS)
         armored.set(true)
         mode.set(Signing.Mode.COSIGN)
     }
