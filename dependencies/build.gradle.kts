@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    id("composite.publishing-jreleaser")
 }
 
 apply(from = rootProject.file("gradle/publishing_module.gradle"))

@@ -40,11 +40,7 @@ afterEvaluate { Project project ->
         }
         repositories {
             maven {
-                url = project.ext.repoUrl
-                credentials {
-                    username project.ext.repoUsername
-                    password project.ext.repoPassword
-                }
+                url = layout.buildDirectory.dir('staging-deploy')
             }
         }
     }

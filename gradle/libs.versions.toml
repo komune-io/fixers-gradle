@@ -6,6 +6,7 @@ java = "11"
 sonarQube = "5.1.0.4882"
 npmPublish = "3.4.2"
 gradlePublish = "1.2.1"
+jreleaser = "1.18.0"
 junit-jupiter = "5.10.2"
 assertj = "3.25.3"
 
@@ -20,6 +21,7 @@ npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.pub
 detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 dokkaGradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
+jreleaserGradlePlugin = { module = "org.jreleaser:jreleaser-gradle-plugin", version.ref = "jreleaser" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
@@ -41,3 +43,4 @@ detekt-rules = [
 
 [plugins]
 gradlePublish = { id = "com.gradle.plugin-publish", version.ref = "gradlePublish" }
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }

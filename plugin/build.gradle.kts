@@ -1,7 +1,11 @@
 plugins {
 	`kotlin-dsl`
 	id("com.gradle.plugin-publish")
+	id("composite.publishing-jreleaser")
 }
+
+apply(from = rootProject.file("gradle/publishing_plugin.gradle"))
+
 
 dependencies {
 	implementation(libs.bundles.kotlin.plugin)
@@ -73,8 +77,6 @@ gradlePlugin {
 		}
 	}
 }
-
-apply(from = rootProject.file("gradle/publishing_plugin.gradle"))
 
 tasks.withType<Test> {
 	useJUnitPlatform()

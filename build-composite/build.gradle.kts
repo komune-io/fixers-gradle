@@ -4,6 +4,7 @@ plugins {
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
@@ -11,4 +12,5 @@ dependencies {
 
     implementation(kotlin("gradle-plugin", embeddedKotlinVersion))
     implementation(libs.detektGradlePlugin)
+    implementation(libs.jreleaserGradlePlugin)
 }
