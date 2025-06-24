@@ -242,4 +242,122 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         // Verify that MPP publishing is configured
         verifyMppPublishingConfig(result)
     }
+
+    /**
+     * Creates a build file for a Gradle plugin project with publishing.
+     */
+    private fun createGradlePluginPublishBuildFile() {
+        writeBuildFile(getGradlePluginBuildFileContent())
+        createTestPluginImplementation()
+    }
+
+    /**
+     * Generates the content for the Gradle plugin build file.
+     */
+    private fun getGradlePluginBuildFileContent(): String {
+        return """
+            plugins {
+                id("io.komune.fixers.gradle.config")
+                id("io.komune.fixers.gradle.kotlin.jvm")
+                id("io.komune.fixers.gradle.publish")
+                id("com.gradle.plugin-publish") version "1.2.1"
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            group = "com.example"
+            version = "1.0.0"
+
+            fixers {
+                bundle {
+                    id = "test-bundle"
+                    name = "Test Bundle"
+                    description = "A test bundle for integration testing"
+                    url = "https://github.com/komune-io/fixers-gradle"
+                }
+            }
+
+            gradlePlugin {
+                plugins {
+                    create("testPlugin") {
+                        id = "com.example.test-plugin"
+                        implementationClass = "com.example.TestPlugin"
+                        displayName = "Test Plugin"
+                        description = "A test plugin for integration testing"
+                        tags.set(listOf("test", "example"))
+                    }
+                }
+            }
+
+            // Configure the publishing extension
+            fixers {
+                publish {
+                    markerPublications.set(listOf("testPluginPluginMarkerMaven"))
+                }
+            }
+
+            // Task to verify the configuration
+            tasks.register("verifyGradlePluginPublishing") {
+                doLast {
+                    println("Has maven-publish plugin: ${'$'}{plugins.hasPlugin("maven-publish")}")
+                    println("Has gradle-plugin-publish plugin: ${'$'}{plugins.hasPlugin("com.gradle.plugin-publish")}")
+                    println("Has publications: ${'$'}{publishing.publications.names}")
+                    println("Has pluginMaven publication: ${'$'}{publishing.publications.findByName("pluginMaven") != null}")
+                    println("Has testPluginPluginMarkerMaven publication: ${'$'}{publishing.publications.findByName("testPluginPluginMarkerMaven") != null}")
+                }
+            }
+        """.trimIndent()
+    }
+
+    /**
+     * Creates the TestPlugin implementation class file.
+     */
+    private fun createTestPluginImplementation() {
+        val sourceDir = testProjectDir.resolve("src/main/kotlin/com/example").toFile()
+        sourceDir.mkdirs()
+        File(sourceDir, "TestPlugin.kt").writeText("""
+            package com.example
+
+            import org.gradle.api.Plugin
+            import org.gradle.api.Project
+
+            class TestPlugin : Plugin<Project> {
+                override fun apply(project: Project) {
+                    project.tasks.register("testPluginTask") {
+                        doLast {
+                            println("Test plugin task executed")
+                        }
+                    }
+                }
+            }
+        """.trimIndent())
+    }
+
+    /**
+     * Verifies that Gradle plugin publishing is correctly configured.
+     */
+    private fun verifyGradlePluginPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
+        assertThat(result.task(":verifyGradlePluginPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("Has maven-publish plugin: true")
+        assertThat(result.output).contains("Has gradle-plugin-publish plugin: true")
+        assertThat(result.output).contains("Has pluginMaven publication: true")
+        assertThat(result.output).contains("Has testPluginPluginMarkerMaven publication: true")
+    }
+
+    /**
+     * Test that the PublishPlugin correctly configures publishing for a Gradle plugin project.
+     */
+    @Test
+    fun `should configure publishing for Gradle plugin project`() {
+        // Set up the test project
+        createGradlePluginPublishBuildFile()
+
+        // Run the verification task
+        val result = runGradle("verifyGradlePluginPublishing")
+
+        // Verify that Gradle plugin publishing is configured
+        verifyGradlePluginPublishingConfig(result)
+    }
 }

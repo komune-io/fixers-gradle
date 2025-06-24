@@ -1,8 +1,9 @@
 package io.komune.fixers.gradle.check
 
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.model.Detekt
-import io.komune.gradle.config.model.Sonar
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.model.Detekt
+import io.komune.fixers.gradle.config.model.Sonar
+import io.komune.fixers.gradle.plugin.check.CheckPlugin
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.api.internal.project.ProjectInternal
@@ -38,9 +39,9 @@ class CheckPluginTest {
 
     @Test
     fun `should configure Detekt when not disabled`() {
-        // Create a mock ConfigExtension with Detekt not disabled
+        // Create a mock ConfigExtension with Detekt enabled
         val configExtension = TestConfigExtension(project)
-        configExtension.detekt = Detekt(disable = false)
+        configExtension.detekt = Detekt(project).apply { enabled.set(true) }
 
         // Add the extension to the root project
         val rootProject = ProjectBuilder.builder().build()
@@ -67,7 +68,7 @@ class CheckPluginTest {
     fun `should not configure Detekt when disabled`() {
         // Create a mock ConfigExtension with Detekt disabled
         val configExtension = TestConfigExtension(project)
-        configExtension.detekt = Detekt(disable = true)
+        configExtension.detekt = Detekt(project).apply { enabled.set(false) }
 
         // Add the extension to the root project
         val rootProject = ProjectBuilder.builder().build()
@@ -94,16 +95,13 @@ class CheckPluginTest {
     fun `should configure SonarQube`() {
         // Create a mock ConfigExtension with Sonar configuration
         val configExtension = TestConfigExtension(project)
-        configExtension.sonar = Sonar(
-            projectKey = "test-project-key",
-            organization = "test-organization",
-            url = "https://sonarcloud.io",
-            language = "kotlin",
-            exclusions = "**/*Test.kt",
-            jacoco = null,
-            detekt = null,
-            githubSummaryComment = null
-        )
+        configExtension.sonar = Sonar(project).apply {
+            projectKey.set("test-project-key")
+            organization.set("test-organization")
+            url.set("https://sonarcloud.io")
+            language.set("kotlin")
+            exclusions.set("**/*Test.kt")
+        }
 
         // Add the extension to the root project
         val rootProject = ProjectBuilder.builder().build()
