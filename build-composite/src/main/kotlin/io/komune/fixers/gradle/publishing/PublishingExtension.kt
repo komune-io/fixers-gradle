@@ -1,6 +1,9 @@
 package io.komune.fixers.gradle.publishing
 
 import org.gradle.api.Project
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.XmlProvider
@@ -24,8 +27,12 @@ open class PublishingExtension(private val project: Project) {
      * By default, it's read from the GPG_SIGNING_KEY environment variable.
      * For security reasons, it's recommended to provide this through environment
      * variables rather than hardcoding it in build scripts.
+     * 
+     * This property uses Gradle's Property API for lazy evaluation and better configuration.
      */
-    var signingKey: String = System.getenv("GPG_SIGNING_KEY") ?: ""
+    val signingKey: Property<String> = project.objects.property(String::class.java).apply {
+        set(System.getenv("GPG_SIGNING_KEY") ?: "")
+    }
 
     /**
      * The password for the GPG signing key.
@@ -34,8 +41,12 @@ open class PublishingExtension(private val project: Project) {
      * By default, it's read from the GPG_SIGNING_PASSWORD environment variable.
      * For security reasons, it's recommended to provide this through environment
      * variables rather than hardcoding it in build scripts.
+     * 
+     * This property uses Gradle's Property API for lazy evaluation and better configuration.
      */
-    var signingPassword: String = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
+    val signingPassword: Property<String> = project.objects.property(String::class.java).apply {
+        set(System.getenv("GPG_SIGNING_PASSWORD") ?: "")
+    }
 
 
     /**
@@ -64,17 +75,23 @@ open class PublishingExtension(private val project: Project) {
      * created by the Gradle Plugin Publishing plugin and are used to publish plugin markers
      * to the Gradle Plugin Portal.
      * 
+     * This property uses Gradle's ListProperty API for lazy evaluation and better configuration.
+     * By default, it's an empty list, but it should be configured by the client if plugin
+     * marker publications need to be customized.
+     * 
      * Example:
      * ```kotlin
      * publishingConfig {
-     *     markerPublications = listOf(
+     *     markerPublications.set(listOf(
      *         "io.komune.fixers.gradle.configPluginMarkerMaven",
      *         "io.komune.fixers.gradle.dependenciesPluginMarkerMaven"
-     *     )
+     *     ))
      * }
      * ```
      */
-    lateinit var markerPublications: List<String>
+    val markerPublications: ListProperty<String> = project.objects.listProperty(String::class.java).apply {
+        convention(emptyList())
+    }
 
     /**
      * Function to add standard POM configuration elements.
@@ -131,8 +148,11 @@ open class PublishingExtension(private val project: Project) {
      * 
      * This method is typically called by the PublishingPlugin during plugin application,
      * but can also be called manually if needed.
+     * 
+     * The method also validates that the required properties are set correctly.
      */
     fun configurePomFunctions() {
+        // Define the default implementation for addPomConfiguration
         addPomConfiguration = { root: Node ->
             val licenses = root.appendNode("licenses")
             licenses.appendNode("license").apply {
@@ -153,17 +173,31 @@ open class PublishingExtension(private val project: Project) {
             scm.appendNode("url", "https://github.com/komune-io/fixers-gradle")
         }
 
+        // Define the default implementation for configurePomMetadata
         configurePomMetadata = { xmlProvider: XmlProvider ->
             val root = xmlProvider.asNode()
             root.appendNode("url", "https://github.com/komune-io/fixers-gradle")
+
+            // Validate that addPomConfiguration is initialized
+            if (!::addPomConfiguration.isInitialized) {
+                throw IllegalStateException("addPomConfiguration must be initialized before calling configurePomMetadata")
+            }
+
             addPomConfiguration(root)
         }
 
+        // Define the default implementation for configureMavenCentralMetadata
         configureMavenCentralMetadata = { xmlProvider: XmlProvider ->
             val root = xmlProvider.asNode()
             root.appendNode("name", project.name)
             root.appendNode("description", "Gradle plugin to facilitate kotlin multiplateform configuration.")
             root.appendNode("url", "https://github.com/komune-io/fixers-gradle")
+
+            // Validate that addPomConfiguration is initialized
+            if (!::addPomConfiguration.isInitialized) {
+                throw IllegalStateException("addPomConfiguration must be initialized before calling configureMavenCentralMetadata")
+            }
+
             addPomConfiguration(root)
         }
     }
@@ -176,10 +210,17 @@ open class PublishingExtension(private val project: Project) {
      * These tasks are required for publishing to Maven Central, which mandates that
      * artifacts include source code and documentation.
      * 
+     * The method validates that the task providers are not null.
+     * 
      * @param sourcesJarTask The task provider for the sources JAR task
      * @param javadocJarTask The task provider for the Javadoc JAR task
+     * @throws IllegalArgumentException if any of the task providers is null
      */
     fun initializeJarTasks(sourcesJarTask: TaskProvider<Jar>, javadocJarTask: TaskProvider<Jar>) {
+        // Validate that the task providers are not null
+        requireNotNull(sourcesJarTask) { "sourcesJarTask must not be null" }
+        requireNotNull(javadocJarTask) { "javadocJarTask must not be null" }
+
         sourcesJar = sourcesJarTask
         javadocJar = javadocJarTask
     }
@@ -194,9 +235,9 @@ open class PublishingExtension(private val project: Project) {
  * Example usage in a build script:
  * ```kotlin
  * publishing {
- *     markerPublications = listOf("pluginMarkerMaven")
- *     signingKey = System.getenv("MY_SIGNING_KEY")
- *     signingPassword = System.getenv("MY_SIGNING_PASSWORD")
+ *     markerPublications.set(listOf("pluginMarkerMaven"))
+ *     signingKey.set(System.getenv("MY_SIGNING_KEY"))
+ *     signingPassword.set(System.getenv("MY_SIGNING_PASSWORD"))
  * }
  * ```
  * 
@@ -206,6 +247,12 @@ open class PublishingExtension(private val project: Project) {
 fun Project.publishing(configure: PublishingExtension.() -> Unit = {}): PublishingExtension {
     val extension = extensions.findByType(PublishingExtension::class.java) ?:
         extensions.create("publishingConfig", PublishingExtension::class.java, this)
+
+    // Initialize the extension with default values if it's newly created
+    if (!extension.signingKey.isPresent) {
+        extension.configurePomFunctions()
+    }
+
     extension.configure()
     return extension
 }

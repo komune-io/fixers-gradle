@@ -56,7 +56,7 @@ class PublishingPlugin : Plugin<Project> {
                         }
 
                         // Use the configurable marker publications from the extension
-                        val markerPublications = extension.markerPublications
+                        val markerPublications = extension.markerPublications.get()
 
                         markerPublications.forEach { publicationName ->
                             findByName(publicationName)?.let { publication ->
@@ -82,8 +82,8 @@ class PublishingPlugin : Plugin<Project> {
 
             project.extensions.configure<SigningExtension>("signing") {
                 useInMemoryPgpKeys(
-                    extension.signingKey,
-                    extension.signingPassword
+                    extension.signingKey.get(),
+                    extension.signingPassword.get()
                 )
 
                 if (!isPlugin) {

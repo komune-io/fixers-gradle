@@ -19,7 +19,7 @@
 - [ ] 1.0 Improve PublishingExtension.kt
   - [x] 1.1 Remove commented-out code (lines 18-38)
   - [x] 1.2 Improve KDoc documentation for all properties and methods
-  - [ ] 1.3 Make properties more robust with validation and better defaults
+  - [x] 1.3 Make properties more robust with validation and better defaults
   - [ ] 1.4 Enhance configurability of POM metadata
   - [ ] 1.5 Implement type safety improvements using Gradle's Provider API
   - [ ] 1.6 Reorganize code by grouping related properties and methods
