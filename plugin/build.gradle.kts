@@ -4,6 +4,18 @@ plugins {
 	id("io.komune.fixers.gradle.publishing")
 }
 
+publishingConfig {
+	 markerPublications = listOf(
+	     "io.komune.fixers.gradle.configPluginMarkerMaven",
+	     "io.komune.fixers.gradle.dependenciesPluginMarkerMaven",
+	     "io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven",
+	     "io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven",
+	     "io.komune.fixers.gradle.publishPluginMarkerMaven",
+	     "io.komune.fixers.gradle.npmPluginMarkerMaven",
+	     "io.komune.fixers.gradle.checkPluginMarkerMaven"
+	 )
+}
+
 dependencies {
 	implementation(libs.bundles.kotlin.plugin)
 

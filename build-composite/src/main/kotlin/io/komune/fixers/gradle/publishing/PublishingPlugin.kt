@@ -55,15 +55,8 @@ class PublishingPlugin : Plugin<Project> {
                             (publication as MavenPublication).pom.withXml(extension.configureMavenCentralMetadata)
                         }
 
-                        val markerPublications = listOf(
-                            "io.komune.fixers.gradle.configPluginMarkerMaven",
-                            "io.komune.fixers.gradle.dependenciesPluginMarkerMaven",
-                            "io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven",
-                            "io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven",
-                            "io.komune.fixers.gradle.publishPluginMarkerMaven",
-                            "io.komune.fixers.gradle.npmPluginMarkerMaven",
-                            "io.komune.fixers.gradle.checkPluginMarkerMaven"
-                        )
+                        // Use the configurable marker publications from the extension
+                        val markerPublications = extension.markerPublications
 
                         markerPublications.forEach { publicationName ->
                             findByName(publicationName)?.let { publication ->
