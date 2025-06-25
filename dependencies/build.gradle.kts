@@ -1,7 +1,6 @@
 plugins {
     `kotlin-dsl`
-    id("composite.publishing-jreleaser")
-    id("composite.publishing-module")
+    id("io.komune.fixers.gradle.publishing")
 }
 
 project.plugins.withId("java-gradle-plugin") { // only do it if it's actually applied

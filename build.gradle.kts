@@ -14,7 +14,12 @@ tasks.withType<JavaCompile> {
 }
 
 allprojects {
-	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
+	val versionFile = rootProject.file("VERSION")
+	version = if (versionFile.exists()) {
+		versionFile.readText().trim()
+	} else {
+		System.getenv("VERSION") ?: "experimental-SNAPSHOT"
+	}
 	group = "io.komune.fixers.gradle"
 	repositories {
 		mavenCentral()
