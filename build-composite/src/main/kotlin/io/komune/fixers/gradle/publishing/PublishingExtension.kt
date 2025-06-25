@@ -14,32 +14,13 @@ open class PublishingExtension(private val project: Project) {
     var signingKey: String = System.getenv("GPG_SIGNING_KEY") ?: ""
     var signingPassword: String = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
 
-    // Repository properties
-    var repo: String? = System.getenv("PKG_MAVEN_REPO") // github || sonatype_oss
-    var repoUsername: String? = if (repo == "github") 
-        System.getenv("PKG_GITHUB_USERNAME") 
-    else 
-        System.getenv("PKG_SONATYPE_OSS_USERNAME")
-
-    var repoPassword: String? = if (repo == "github") 
-        System.getenv("PKG_GITHUB_TOKEN") 
-    else 
-        System.getenv("PKG_SONATYPE_OSS_TOKEN")
-
-    // Repository URLs
-    var githubRepoUrl: String = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
-    var releasesRepoUrl: String = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
-    var snapshotsRepoUrl: String = "https://s01.oss.sonatype.org/content/repositories/snapshots"
-
-    val repoUrl: String
-        get() = if (repo == "github") 
-            githubRepoUrl 
-        else 
-            if (project.version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
 
     // Jar tasks
     lateinit var sourcesJar: TaskProvider<Jar>
     lateinit var javadocJar: TaskProvider<Jar>
+
+    // Marker publications for plugins
+    lateinit var markerPublications: List<String>
 
     // POM configuration functions
     lateinit var addPomConfiguration: (Node) -> Unit
@@ -99,7 +80,7 @@ open class PublishingExtension(private val project: Project) {
  * Extension function to get or create the publishing extension
  */
 fun Project.publishing(configure: PublishingExtension.() -> Unit = {}): PublishingExtension {
-    val extension = extensions.findByType(PublishingExtension::class.java) ?: 
+    val extension = extensions.findByType(PublishingExtension::class.java) ?:
         extensions.create("publishingConfig", PublishingExtension::class.java, this)
     extension.configure()
     return extension
