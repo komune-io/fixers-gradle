@@ -7,28 +7,130 @@ import org.gradle.api.XmlProvider
 import groovy.util.Node
 
 /**
- * Extension to hold publishing-related properties and functions
+ * Extension to hold publishing-related properties and functions for Gradle projects.
+ * 
+ * This extension provides a centralized way to configure publishing-related settings
+ * for Maven publications, including signing properties, JAR tasks, and POM metadata.
+ * It is designed to work with the PublishingPlugin to simplify the configuration of
+ * Maven Central and other repository publications.
+ *
+ * @property project The Gradle project this extension is associated with
  */
 open class PublishingExtension(private val project: Project) {
-    // Signing properties
+    /**
+     * The GPG signing key used for signing artifacts.
+     * 
+     * This property is used by the signing plugin to sign Maven artifacts.
+     * By default, it's read from the GPG_SIGNING_KEY environment variable.
+     * For security reasons, it's recommended to provide this through environment
+     * variables rather than hardcoding it in build scripts.
+     */
     var signingKey: String = System.getenv("GPG_SIGNING_KEY") ?: ""
+
+    /**
+     * The password for the GPG signing key.
+     * 
+     * This property is used by the signing plugin to sign Maven artifacts.
+     * By default, it's read from the GPG_SIGNING_PASSWORD environment variable.
+     * For security reasons, it's recommended to provide this through environment
+     * variables rather than hardcoding it in build scripts.
+     */
     var signingPassword: String = System.getenv("GPG_SIGNING_PASSWORD") ?: ""
 
 
-    // Jar tasks
+    /**
+     * Reference to the sources JAR task.
+     * 
+     * This property holds a reference to the task that generates a JAR file containing
+     * the source code. This JAR is required for publishing to Maven Central.
+     * It is initialized by the [initializeJarTasks] method, which is called by the PublishingPlugin.
+     */
     lateinit var sourcesJar: TaskProvider<Jar>
+
+    /**
+     * Reference to the Javadoc JAR task.
+     * 
+     * This property holds a reference to the task that generates a JAR file containing
+     * the Javadoc documentation. This JAR is required for publishing to Maven Central.
+     * It is initialized by the [initializeJarTasks] method, which is called by the PublishingPlugin.
+     */
     lateinit var javadocJar: TaskProvider<Jar>
 
-    // Marker publications for plugins
+    /**
+     * List of plugin marker publication names.
+     * 
+     * When publishing Gradle plugins, this list contains the names of the marker publications
+     * that should have POM metadata configured. These marker publications are automatically
+     * created by the Gradle Plugin Publishing plugin and are used to publish plugin markers
+     * to the Gradle Plugin Portal.
+     * 
+     * Example:
+     * ```kotlin
+     * publishingConfig {
+     *     markerPublications = listOf(
+     *         "io.komune.fixers.gradle.configPluginMarkerMaven",
+     *         "io.komune.fixers.gradle.dependenciesPluginMarkerMaven"
+     *     )
+     * }
+     * ```
+     */
     lateinit var markerPublications: List<String>
 
-    // POM configuration functions
+    /**
+     * Function to add standard POM configuration elements.
+     * 
+     * This function adds license information, developer details, and SCM (Source Control Management)
+     * information to the POM file. It is used by both [configurePomMetadata] and
+     * [configureMavenCentralMetadata] to ensure consistent POM configuration.
+     * 
+     * The function is initialized by [configurePomFunctions] with a default implementation,
+     * but can be customized by clients if needed.
+     * 
+     * @param root The root Node of the POM XML to which configuration will be added
+     */
     lateinit var addPomConfiguration: (Node) -> Unit
+
+    /**
+     * Function to configure basic POM metadata.
+     * 
+     * This function adds a URL and calls [addPomConfiguration] to add standard
+     * POM elements. It is used for plugin marker publications.
+     * 
+     * The function is initialized by [configurePomFunctions] with a default implementation,
+     * but can be customized by clients if needed.
+     * 
+     * @param xmlProvider The XML provider containing the POM to configure
+     */
     lateinit var configurePomMetadata: (XmlProvider) -> Unit
+
+    /**
+     * Function to configure Maven Central specific POM metadata.
+     * 
+     * This function adds name, description, URL, and calls [addPomConfiguration]
+     * to add standard POM elements. It is used for Maven Central publications
+     * and must meet Maven Central's requirements.
+     * 
+     * The function is initialized by [configurePomFunctions] with a default implementation,
+     * but can be customized by clients if needed.
+     * 
+     * @param xmlProvider The XML provider containing the POM to configure
+     */
     lateinit var configureMavenCentralMetadata: (XmlProvider) -> Unit
 
     /**
-     * Configure POM-related functions with default implementations
+     * Configure POM-related functions with default implementations.
+     * 
+     * This method initializes the [addPomConfiguration], [configurePomMetadata], and
+     * [configureMavenCentralMetadata] functions with default implementations that
+     * add standard POM elements required for Maven Central publication.
+     * 
+     * The default implementation adds:
+     * - License information (Apache 2.0)
+     * - Developer information (Komune Team)
+     * - SCM information (GitHub repository URL)
+     * 
+     * This method is typically called by the PublishingPlugin during plugin application,
+     * but can also be called manually if needed.
      */
     fun configurePomFunctions() {
         addPomConfiguration = { root: Node ->
@@ -67,8 +169,15 @@ open class PublishingExtension(private val project: Project) {
     }
 
     /**
-     * This method should be called from the PublishingPlugin
-     * to initialize the sourcesJar and javadocJar tasks.
+     * Initializes the sources and Javadoc JAR tasks.
+     * 
+     * This method should be called from the PublishingPlugin to initialize the
+     * [sourcesJar] and [javadocJar] properties with the task providers created by the plugin.
+     * These tasks are required for publishing to Maven Central, which mandates that
+     * artifacts include source code and documentation.
+     * 
+     * @param sourcesJarTask The task provider for the sources JAR task
+     * @param javadocJarTask The task provider for the Javadoc JAR task
      */
     fun initializeJarTasks(sourcesJarTask: TaskProvider<Jar>, javadocJarTask: TaskProvider<Jar>) {
         sourcesJar = sourcesJarTask
@@ -77,7 +186,22 @@ open class PublishingExtension(private val project: Project) {
 }
 
 /**
- * Extension function to get or create the publishing extension
+ * Extension function to get or create the publishing extension for a Gradle project.
+ * 
+ * This function provides a convenient way to access and configure the PublishingExtension
+ * for a Gradle project. If the extension doesn't exist yet, it creates a new one.
+ * 
+ * Example usage in a build script:
+ * ```kotlin
+ * publishing {
+ *     markerPublications = listOf("pluginMarkerMaven")
+ *     signingKey = System.getenv("MY_SIGNING_KEY")
+ *     signingPassword = System.getenv("MY_SIGNING_PASSWORD")
+ * }
+ * ```
+ * 
+ * @param configure A configuration block to apply to the extension
+ * @return The configured PublishingExtension instance
  */
 fun Project.publishing(configure: PublishingExtension.() -> Unit = {}): PublishingExtension {
     val extension = extensions.findByType(PublishingExtension::class.java) ?:
