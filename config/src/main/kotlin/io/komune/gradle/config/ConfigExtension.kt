@@ -123,19 +123,22 @@ fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
 
 	this.scm {
 		url.set(bundle.url)
+		bundle.scmConnection?.let { connection.set(it) }
+		bundle.scmDeveloperConnection?.let { developerConnection.set(it) }
 	}
 	licenses {
 		license {
-			name.set("The Apache Software License, Version 2.0")
-			url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+			bundle.licenseName?.let { name.set(it) }
+			bundle.licenseUrl?.let { url.set(it) }
+			bundle.licenseDistribution?.let { distribution.set(it) }
 		}
 	}
 	developers {
 		developer {
-			id.set("Komune")
-			name.set("Komune Team")
-			organization.set("Komune")
-			organizationUrl.set("https://komune.io")
+			bundle.developerId?.let { id.set(it) }
+			bundle.developerName?.let { name.set(it) }
+			bundle.developerOrganization?.let { organization.set(it) }
+			bundle.developerOrganizationUrl?.let { organizationUrl.set(it) }
 		}
 	}
 }
