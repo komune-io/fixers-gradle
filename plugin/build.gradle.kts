@@ -22,11 +22,11 @@ dependencies {
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.detektGradlePlugin)
 	implementation(libs.dokkaGradlePlugin)
+	implementation(libs.jreleaserGradlePlugin)
 	api(libs.sonarqubeGradlePlugin)
 
 	api(project(":dependencies"))
 	api(project(":config"))
-
 
 	implementation(libs.bundles.test)
 }
