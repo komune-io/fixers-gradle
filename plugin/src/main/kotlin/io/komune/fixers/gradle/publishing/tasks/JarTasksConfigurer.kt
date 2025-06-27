@@ -49,7 +49,7 @@ class JarTasksConfigurer {
      * @param extension The PublishingExtension
      * @throws IllegalStateException if required JAR tasks are not properly configured
      */
-    fun validateJarTasks(project: Project, extension: io.komune.fixers.gradle.publishing.PublishingExtension) {
+    fun validateJarTasks( extension: io.komune.fixers.gradle.publishing.PublishingExtension) {
         try {
             // Access the sourcesJar property to check if it's initialized
             extension.sourcesJar
