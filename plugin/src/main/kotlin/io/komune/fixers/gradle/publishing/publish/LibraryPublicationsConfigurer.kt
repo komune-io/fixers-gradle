@@ -28,7 +28,7 @@ class LibraryPublicationsConfigurer {
         extension: PublishingExtension
     ) {
         val jarTasksConfigurer = JarTasksConfigurer()
-        jarTasksConfigurer.validateJarTasks(project, extension)
+        jarTasksConfigurer.validateJarTasks(extension)
 
         publications.create<MavenPublication>("mavenJava") {
             from(project.components.getByName("java"))

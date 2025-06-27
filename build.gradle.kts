@@ -2,6 +2,7 @@ plugins {
 	kotlin("jvm") version embeddedKotlinVersion apply false
 	alias(libs.plugins.gradlePublish) apply false
 	id("composite.detekt")
+	id("composite.config")
 }
 
 tasks.withType<JavaCompile> {
@@ -21,6 +22,7 @@ allprojects {
 		System.getenv("VERSION") ?: "experimental-SNAPSHOT"
 	}
 	group = "io.komune.fixers.gradle"
+	description = "Gradle common fixers and utilities for Komune projects"
 	repositories {
 		mavenCentral()
 		gradlePluginPortal()

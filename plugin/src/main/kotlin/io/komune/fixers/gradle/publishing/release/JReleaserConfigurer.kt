@@ -104,7 +104,7 @@ class JReleaserConfigurer {
             project.extensions.configure<JReleaserExtension> {
                 try {
                     project {
-                        version.set(versionFromFileProvider.map { it ?: project.version.toString() })
+                        version.set(versionFromFileProvider.map { it })
                     }
                     signing {
                         active.set(Active.ALWAYS)
