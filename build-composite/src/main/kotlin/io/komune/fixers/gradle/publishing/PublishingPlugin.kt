@@ -6,12 +6,15 @@ import io.komune.fixers.gradle.config.PkgMavenRepo
 import io.komune.fixers.gradle.config.config
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.PublishingExtension as GradlePublishingExtension
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.plugins.signing.SigningPlugin
 import org.jreleaser.model.Signing
 import org.jreleaser.gradle.plugin.JReleaserExtension
+import org.jreleaser.gradle.plugin.JReleaserPlugin
 import org.jreleaser.model.Active
 
 /**
@@ -20,10 +23,9 @@ import org.jreleaser.model.Active
  */
 class PublishingPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.plugins.apply("java-library")
-        project.plugins.apply("maven-publish")
-        project.plugins.apply("signing")
-        project.plugins.apply("org.jreleaser")
+        project.plugins.apply(MavenPublishPlugin::class.java)
+        project.plugins.apply(SigningPlugin::class.java)
+        project.plugins.apply(JReleaserPlugin::class.java)
 
         val extension = project.publishing()
         val configExtension = project.config()
@@ -107,6 +109,7 @@ class PublishingPlugin : Plugin<Project> {
                             val pkgGithubUsername = configExtension.pkgGithubUsername.get()
                             project.logger.lifecycle("PKG_GITHUB_USERNAME: $pkgGithubUsername")
                             val pkgGithubToken = configExtension.pkgGithubToken.get()
+
                             username.set(pkgGithubUsername)
                             password.set(pkgGithubToken)
 

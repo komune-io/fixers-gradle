@@ -2,8 +2,6 @@ package io.komune.fixers.gradle.publish
 
 import io.komune.gradle.config.ConfigExtension
 import io.komune.gradle.config.fixers
-import io.komune.gradle.config.model.Repository
-import io.komune.gradle.config.model.github
 import java.lang.System.getenv
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -23,6 +21,7 @@ class PublishPlugin : Plugin<Project> {
 			fixers?.let { fixersConfig ->
 				setupPublishing(fixersConfig)
 				setupSign()
+				JReleaserConfigurer().configure(target, fixersConfig)
 			}
 		}
 	}
@@ -30,18 +29,27 @@ class PublishPlugin : Plugin<Project> {
 	private fun Project.setupPublishing(fixersConfig: ConfigExtension) {
 		val publishing = project.extensions.getByType(PublishingExtension::class.java)
 		val publication = fixersConfig.publication
-		val repositoryName = getenv("PKG_MAVEN_REPO") ?: findProperty("PKG_MAVEN_REPO")?.toString() ?: ""
+//		val repositoryName = getenv("PKG_MAVEN_REPO") ?: findProperty("PKG_MAVEN_REPO")?.toString() ?: ""
 
-		val repository = fixersConfig.repositories[repositoryName] ?: Repository.github(project)
+//		val repository = fixersConfig.repositories[repositoryName] ?: Repository.github(project)
 
 		publishing.repositories {
+//			maven {
+//				name = repository.name
+//				url = repository.getUrl()
+//				credentials {
+//					username = repository.username
+//					password = repository.password
+//				}
+//			}
 			maven {
-				name = repository.name
-				url = repository.getUrl()
-				credentials {
-					username = repository.username
-					password = repository.password
-				}
+//				name = repository.name
+//				url = repository.getUrl()
+//				credentials {
+//					username = repository.username
+//					password = repository.password
+//				}
+				url = project.uri(project.layout.buildDirectory.dir("staging-deploy"))
 			}
 		}
 		PublishMppPlugin.setupMppPublish(this, publication)
