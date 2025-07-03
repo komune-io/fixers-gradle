@@ -9,7 +9,6 @@ import org.gradle.api.publish.PublishingExtension as GradlePublishingExtension
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.plugins.signing.SigningPlugin
-import org.jreleaser.gradle.plugin.JReleaserPlugin
 
 /**
  * Consolidated plugin that replaces all the separate publishing plugins.
