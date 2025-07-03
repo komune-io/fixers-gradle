@@ -146,6 +146,20 @@ open class ConfigExtension(project: Project) {
     val isPromote: Provider<Boolean> = project.provider {
         isPkgDeployTypePromote.get() || isNotGithubMavenRepo.get()
     }
+
+    /**
+     * Searches for the version in the VERSION file or falls back to the project's version.
+     *
+     * @return A provider that resolves to the version string
+     */
+    val version: Provider<String> = project.provider {
+        val versionFile = project.rootProject.file("VERSION")
+        if (versionFile.exists()) {
+            versionFile.readText().trim()
+        } else {
+            project.version.toString()
+        }
+    }
 }
 
 /**

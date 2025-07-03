@@ -26,16 +26,10 @@ class JReleaserGenConfigurer {
     fun configure(project: Project, fixersConfig: ConfigExtension) {
         project.plugins.apply(JReleaserPlugin::class.java)
 
-        val versionFromFile = searchVersion(project)
+        val versionFromFile = fixersConfig.version.get()
 
-        val ispkgDeployTypePromote = fixersConfig.isPkgDeployTypePromote.get()
-        val ispkgDeployTypePublish = fixersConfig.isPkgDeployTypePublish.get()
-
-        val isGithubMavenRepo = fixersConfig.isGithubMavenRepo.get()
-        val isNotGithubMavenRepo = fixersConfig.isNotGithubMavenRepo.get()
-
-        val isPublish = ispkgDeployTypePublish || isGithubMavenRepo
-        val isPromote = (ispkgDeployTypePromote || isNotGithubMavenRepo)
+        val isPublish = fixersConfig.isPublish.get()
+        val isPromote = fixersConfig.isPromote.get()
 
         if (project.version.toString().isEmpty()) {
             project.version = versionFromFile
@@ -156,21 +150,5 @@ class JReleaserGenConfigurer {
             description = "Publishes all artifacts using JReleaser"
             dependsOn("publish", "jreleaserDeploy")
         }
-    }
-
-    /**
-     * Searches for the version in the VERSION file or falls back to the project's version.
-     *
-     * @param project The project to search the version for
-     * @return The version string
-     */
-    private fun searchVersion(project: Project): String {
-        val versionFile = project.rootProject.file("VERSION")
-        val versionFromFile = if (versionFile.exists()) {
-            versionFile.readText().trim()
-        } else {
-            project.version.toString()
-        }
-        return versionFromFile
     }
 }

@@ -263,6 +263,20 @@ abstract class ConfigExtension(
 	fun repositories(configure: Action<Map<String, Repository>>) {
 		configure.execute(repositories)
 	}
+
+	/**
+	 * Searches for the version in the VERSION file or falls back to the project's version.
+	 *
+	 * @return A provider that resolves to the version string
+	 */
+	val version: Provider<String> = project.provider {
+		val versionFile = project.rootProject.file("VERSION")
+		if (versionFile.exists()) {
+			versionFile.readText().trim()
+		} else {
+			project.version.toString()
+		}
+	}
 }
 
 fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
