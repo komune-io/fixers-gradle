@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.config
 
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 
 /**
  * Enum representing the deployment type
@@ -24,7 +25,7 @@ enum class PkgDeployType {
 }
 
 enum class PkgMavenRepo {
-    GITHUB, MAVEN_CENTRAL;
+    GITHUB, MAVEN_CENTRAL, NONE;
 
     companion object {
         /**
@@ -34,7 +35,7 @@ enum class PkgMavenRepo {
             return when (value?.uppercase()) {
                 "GITHUB" -> GITHUB
                 "MAVEN_CENTRAL" -> MAVEN_CENTRAL
-                else -> GITHUB
+                else -> NONE
             }
         }
     }
@@ -84,7 +85,9 @@ open class ConfigExtension(project: Project) {
 
     val pkgMavenRepo: Property<PkgMavenRepo> = project.objects.property(PkgMavenRepo::class.java).apply {
         convention(project.provider {
-            PkgMavenRepo.fromString(System.getenv("PKG_MAVEN_REPO"))
+            val tt = PkgMavenRepo.fromString(System.getenv("PKG_MAVEN_REPO"))
+            project.logger.lifecycle("PKG_MAVEN_REPO: $tt")
+            tt
         })
     }
 
@@ -98,6 +101,50 @@ open class ConfigExtension(project: Project) {
         System.getenv("PKG_GITHUB_TOKEN")?.let { value ->
             convention(project.provider { value })
         }
+    }
+
+    /**
+     * Checks if the package deployment type is PROMOTE.
+     */
+    val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
+        pkgDeployType.get() == PkgDeployType.PROMOTE
+    }
+
+    /**
+     * Checks if the package deployment type is PUBLISH.
+     */
+    val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
+        pkgDeployType.get() == PkgDeployType.PUBLISH
+    }
+
+    /**
+     * Checks if the Maven repository is GitHub.
+     */
+    val isGithubMavenRepo: Provider<Boolean> = project.provider {
+        pkgMavenRepo.get() == PkgMavenRepo.GITHUB
+    }
+
+    /**
+     * Checks if the Maven repository is not GitHub and not NONE.
+     */
+    val isNotGithubMavenRepo: Provider<Boolean> = project.provider {
+        !isGithubMavenRepo.get() && pkgMavenRepo.get() != PkgMavenRepo.NONE
+    }
+
+    /**
+     * Determines if artifacts should be published.
+     * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
+     */
+    val isPublish: Provider<Boolean> = project.provider {
+        isPkgDeployTypePublish.get() || isGithubMavenRepo.get()
+    }
+
+    /**
+     * Determines if artifacts should be promoted.
+     * Artifacts are promoted if the deployment type is PROMOTE or if the repository is not GitHub.
+     */
+    val isPromote: Provider<Boolean> = project.provider {
+        isPkgDeployTypePromote.get() || isNotGithubMavenRepo.get()
     }
 }
 

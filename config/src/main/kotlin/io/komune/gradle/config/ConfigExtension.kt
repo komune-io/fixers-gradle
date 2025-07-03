@@ -14,6 +14,8 @@ import io.komune.gradle.config.model.sonatypeOss
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -42,7 +44,7 @@ enum class PkgDeployType {
  * Enum representing the Maven repository type
  */
 enum class PkgMavenRepo {
-    GITHUB, MAVEN_CENTRAL;
+    GITHUB, MAVEN_CENTRAL, NONE;
 
     companion object {
         /**
@@ -52,7 +54,7 @@ enum class PkgMavenRepo {
             return when (value?.uppercase()) {
                 "GITHUB" -> GITHUB
                 "MAVEN_CENTRAL" -> MAVEN_CENTRAL
-                else -> GITHUB // Default value
+                else -> NONE
             }
         }
     }
@@ -123,10 +125,31 @@ abstract class ConfigExtension(
 	var properties: MutableMap<String, Any> = mutableMapOf()
 
 	/**
+	 * Maven Central URL for publishing.
+	 */
+	val mavenCentralUrl: Property<String> = project.objects.property(String::class.java).apply {
+		convention("https://central.sonatype.com/api/v1/publisher")
+	}
+
+	/**
+	 * GitHub Packages URL for publishing.
+	 */
+	val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
+		convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
+	}
+
+	/**
+	 * Maven Snapshots URL for publishing.
+	 */
+	val mavenSnapshotsUrl: Property<String> = project.objects.property(String::class.java).apply {
+		convention("https://central.sonatype.com/repository/maven-snapshots/")
+	}
+
+	/**
 	 * Gets the package deployment type from environment variables or project properties.
 	 * @return The package deployment type, defaulting to PUBLISH if not specified.
 	 */
-	val pkgDeployType: org.gradle.api.provider.Property<PkgDeployType>
+	val pkgDeployType: Property<PkgDeployType>
 		= project.objects.property(PkgDeployType::class.java).apply {
 		convention(project.provider {
 			val deployTypeStr = System.getenv("PKG_DEPLOY_TYPE") ?: project.findProperty("PKG_DEPLOY_TYPE")?.toString()
@@ -138,7 +161,7 @@ abstract class ConfigExtension(
 	 * Gets the Maven repository type from environment variables or project properties.
 	 * @return The Maven repository type, defaulting to GITHUB if not specified.
 	 */
-	val pkgMavenRepo: org.gradle.api.provider.Property<PkgMavenRepo>
+	val pkgMavenRepo: Property<PkgMavenRepo>
 		= project.objects.property(PkgMavenRepo::class.java).apply {
 		convention(project.provider {
 			val repoTypeStr = System.getenv("PKG_MAVEN_REPO") ?: project.findProperty("PKG_MAVEN_REPO")?.toString()
@@ -149,28 +172,28 @@ abstract class ConfigExtension(
 	/**
 	 * Checks if the package deployment type is PROMOTE.
 	 */
-	val isPkgDeployTypePromote: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
 		pkgDeployType.get() == PkgDeployType.PROMOTE
 	}
 
 	/**
 	 * Checks if the package deployment type is PUBLISH.
 	 */
-	val isPkgDeployTypePublish: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
 		pkgDeployType.get() == PkgDeployType.PUBLISH
 	}
 
 	/**
 	 * Checks if the Maven repository is GitHub.
 	 */
-	val isGithubMavenRepo: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isGithubMavenRepo: Provider<Boolean> = project.provider {
 		pkgMavenRepo.get() == PkgMavenRepo.GITHUB
 	}
 
 	/**
 	 * Checks if the Maven repository is not GitHub.
 	 */
-	val isNotGithubMavenRepo: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isNotGithubMavenRepo: Provider<Boolean> = project.provider {
 		pkgMavenRepo.get() != PkgMavenRepo.GITHUB
 	}
 
@@ -178,7 +201,7 @@ abstract class ConfigExtension(
 	 * Determines if artifacts should be promoted.
 	 * Artifacts are promoted if the deployment type is PROMOTE or if the repository is not GitHub.
 	 */
-	val isPromote: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isPromote: Provider<Boolean> = project.provider {
 		isPkgDeployTypePromote.get() || isNotGithubMavenRepo.get()
 	}
 
@@ -186,14 +209,14 @@ abstract class ConfigExtension(
 	 * Determines if artifacts should be published.
 	 * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
 	 */
-	val isPublish: org.gradle.api.provider.Provider<Boolean> = project.provider {
+	val isPublish: Provider<Boolean> = project.provider {
 		isPkgDeployTypePublish.get() || isGithubMavenRepo.get()
 	}
 
 	/**
 	 * GitHub username for package publishing.
 	 */
-	val pkgGithubUsername: org.gradle.api.provider.Property<String> = project.objects.property(String::class.java).apply {
+	val pkgGithubUsername: Property<String> = project.objects.property(String::class.java).apply {
 		convention(project.provider { 
 			System.getenv("PKG_GITHUB_USERNAME") ?: project.findProperty("PKG_GITHUB_USERNAME")?.toString() ?: ""
 		})
@@ -202,7 +225,7 @@ abstract class ConfigExtension(
 	/**
 	 * GitHub token for package publishing.
 	 */
-	val pkgGithubToken: org.gradle.api.provider.Property<String> = project.objects.property(String::class.java).apply {
+	val pkgGithubToken: Property<String> = project.objects.property(String::class.java).apply {
 		convention(project.provider { 
 			System.getenv("PKG_GITHUB_TOKEN") ?: project.findProperty("PKG_GITHUB_TOKEN")?.toString() ?: ""
 		})

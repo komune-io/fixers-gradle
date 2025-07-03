@@ -12,16 +12,16 @@ import org.gradle.plugins.signing.SigningPlugin
 
 class PublishPlugin : Plugin<Project> {
 
-	override fun apply(target: Project) {
-		target.plugins.apply(MavenPublishPlugin::class.java)
-		target.plugins.apply(SigningPlugin::class.java)
-		target.logger.info("Apply PublishPlugin to ${target.name}")
-		target.afterEvaluate {
-			val fixers = target.rootProject.extensions.fixers
+	override fun apply(project: Project) {
+		project.plugins.apply(MavenPublishPlugin::class.java)
+		project.plugins.apply(SigningPlugin::class.java)
+
+		project.afterEvaluate {
+			val fixers = project.rootProject.extensions.fixers
 			fixers?.let { fixersConfig ->
 				setupPublishing(fixersConfig)
 				setupSign()
-				JReleaserConfigurer().configure(target, fixersConfig)
+				JReleaserConfigurer().configure(project, fixersConfig)
 			}
 		}
 	}

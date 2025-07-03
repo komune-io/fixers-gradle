@@ -1,6 +1,6 @@
-package io.komune.fixers.gradle.publish
+package io.komune.fixers.gradle.publishing
 
-import io.komune.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.ConfigExtension
 import org.gradle.api.Project
 import org.jreleaser.model.Signing
 import org.jreleaser.gradle.plugin.JReleaserExtension
@@ -15,7 +15,7 @@ import org.jreleaser.gradle.plugin.dsl.deploy.maven.MavenDeployer
 /**
  * Configures JReleaser for publishing artifacts.
  */
-class JReleaserConfigurer {
+class JReleaserGenConfigurer {
 
     /**
      * Configures JReleaser plugin for the given project.
