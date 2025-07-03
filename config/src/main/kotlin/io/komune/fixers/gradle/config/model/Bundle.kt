@@ -1,4 +1,4 @@
-package io.komune.gradle.config.model
+package io.komune.fixers.gradle.config.model
 
 data class Bundle(
 	var name: String,

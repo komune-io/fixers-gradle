@@ -2,7 +2,7 @@ package io.komune.fixers.gradle.npm.task
 
 import io.komune.fixers.gradle.config.buildCleaningRegex
 import io.komune.fixers.gradle.config.cleanProject
-import io.komune.gradle.config.fixers
+import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 

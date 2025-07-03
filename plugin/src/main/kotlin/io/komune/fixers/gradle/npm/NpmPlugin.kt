@@ -4,9 +4,9 @@ import dev.petuska.npm.publish.NpmPublishPlugin
 import dev.petuska.npm.publish.extension.NpmPublishExtension
 import dev.petuska.npm.publish.task.NpmPublishTask
 import io.komune.fixers.gradle.npm.task.NpmTsGenTask
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.fixers
-import io.komune.gradle.config.model.Npm
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.Npm
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.the

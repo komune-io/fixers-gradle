@@ -1,8 +1,8 @@
 package io.komune.fixers.gradle.check
 
 import io.gitlab.arturbosch.detekt.getSupportedKotlinVersion
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.fixers
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin

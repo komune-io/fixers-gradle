@@ -1,6 +1,6 @@
 package io.komune.fixers.gradle.publish
 
-import io.komune.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.ConfigExtension
 import org.gradle.api.Project
 import org.jreleaser.model.Signing
 import org.jreleaser.gradle.plugin.JReleaserExtension

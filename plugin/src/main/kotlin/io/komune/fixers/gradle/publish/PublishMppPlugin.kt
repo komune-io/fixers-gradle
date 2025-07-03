@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.publish
 
 import io.komune.fixers.gradle.kotlin.MppPlugin
-import io.komune.gradle.config.model.Publication
+import io.komune.fixers.gradle.config.model.Publication
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication

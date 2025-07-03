@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.kotlin
 
-import io.komune.gradle.config.fixers
-import io.komune.gradle.config.model.Jdk
+import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.gradle.dependencies.FixersDependencies
 import io.komune.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Action

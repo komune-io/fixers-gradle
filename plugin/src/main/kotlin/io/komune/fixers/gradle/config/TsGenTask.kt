@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.config
 
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.model.Kt2Ts
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy

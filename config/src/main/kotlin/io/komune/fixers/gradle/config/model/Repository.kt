@@ -1,4 +1,4 @@
-package io.komune.gradle.config.model
+package io.komune.fixers.gradle.config.model
 
 import java.lang.System.getenv
 import java.net.URI

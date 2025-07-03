@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.publish
 
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.fixers
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.fixers
 import java.lang.System.getenv
 import org.gradle.api.Plugin
 import org.gradle.api.Project

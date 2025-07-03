@@ -1,8 +1,8 @@
 package io.komune.fixers.gradle.config
 
-import io.komune.gradle.config.ConfigExtension
-import io.komune.gradle.config.fixers
-import io.komune.gradle.config.fixersIfExists
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.fixersIfExists
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
