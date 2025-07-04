@@ -14,7 +14,7 @@ import org.gradle.kotlin.dsl.the
 
 class MavenConfigurer(
     private val project: Project,
-    private val extension: PublishingExtension,
+    private val publishConfiguration: PublishConfiguration,
     private val configExtension: ConfigExtension,
     private val publications: PublicationContainer,
 ) {
@@ -24,7 +24,7 @@ class MavenConfigurer(
             (publication as MavenPublication).pom(getMavenCentralMetadata())
         }
 
-        val markerPublications = extension.markerPublications.get()
+        val markerPublications = publishConfiguration.markerPublications.get()
         markerPublications.forEach { publicationName ->
             publications.findByName(publicationName)?.let { publication ->
                 (publication as MavenPublication).pom(getPomMetadata())
@@ -89,10 +89,10 @@ class MavenConfigurer(
 
 fun PublicationContainer.configureMavenPublications(
     project: Project,
-    extension: PublishingExtension,
+    publishConfiguration: PublishConfiguration,
     configExtension: ConfigExtension
 ) {
-    val mavenConfigurer = MavenConfigurer(project, extension, configExtension, this)
+    val mavenConfigurer = MavenConfigurer(project, publishConfiguration, configExtension, this)
     val hasPublishPlugin = project.plugins.hasPlugin("com.gradle.plugin-publish")
 
     if (hasPublishPlugin) {

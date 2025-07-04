@@ -21,7 +21,8 @@ class PublishPlugin : Plugin<Project> {
 			fixers?.let { fixersConfig ->
 				setupPublishing(fixersConfig)
 				setupSign()
-				JReleaserConfigurer().configure(project, fixersConfig)
+				val publishConfiguration = project.publishing()
+				JReleaserConfigurer(publishConfiguration).configure(project, fixersConfig)
 			}
 		}
 	}

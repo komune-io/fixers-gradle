@@ -15,7 +15,9 @@ import org.jreleaser.gradle.plugin.dsl.deploy.maven.MavenDeployer
 /**
  * Configures JReleaser for publishing artifacts.
  */
-class JReleaserConfigurer {
+class JReleaserConfigurer(
+    private val publishConfiguration: PublishConfiguration
+) {
 
     /**
      * Configures JReleaser plugin for the given project.
@@ -26,11 +28,10 @@ class JReleaserConfigurer {
     fun configure(project: Project, fixersConfig: ConfigExtension) {
         project.plugins.apply(JReleaserPlugin::class.java)
 
-        val versionFromFile = fixersConfig.version.get()
+        val isPublish = publishConfiguration.isPublish.get()
+        val isPromote = publishConfiguration.isPromote.get()
 
-        val isPublish = fixersConfig.isPublish.get()
-        val isPromote = fixersConfig.isPromote.get()
-
+        val versionFromFile = publishConfiguration.version.get()
         if (project.version.toString().isEmpty()) {
             project.version = versionFromFile
         }
@@ -65,7 +66,7 @@ class JReleaserConfigurer {
                     mavenCentral {
                         create("MAVENCENTRAL") {
                             active.set(if (isPromote) Active.RELEASE else Active.NEVER)
-                            url.set(fixersConfig.mavenCentralUrl.get())
+                            url.set(publishConfiguration.mavenCentralUrl.get())
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(false)
                             stagingRepository(
@@ -78,8 +79,8 @@ class JReleaserConfigurer {
                     github {
                         create("GITHUB") {
                             active.set(if (isPublish) Active.ALWAYS else Active.NEVER)
-                            val pkgGithubUsername = fixersConfig.pkgGithubUsername.get()
-                            val pkgGithubToken = fixersConfig.pkgGithubToken.get()
+                            val pkgGithubUsername = publishConfiguration.pkgGithubUsername.get()
+                            val pkgGithubToken = publishConfiguration.pkgGithubToken.get()
                             username.set(pkgGithubUsername)
                             password.set(pkgGithubToken)
 
@@ -96,8 +97,8 @@ class JReleaserConfigurer {
                     nexus2 {
                         create("SNAPSHOT") {
                             active.set(if (isPromote) Active.SNAPSHOT else Active.NEVER)
-                            url.set(fixersConfig.mavenSnapshotsUrl.get())
-                            snapshotUrl.set(fixersConfig.mavenSnapshotsUrl.get())
+                            url.set(publishConfiguration.mavenSnapshotsUrl.get())
+                            snapshotUrl.set(publishConfiguration.mavenSnapshotsUrl.get())
                             snapshotSupported.set(true)
                             closeRepository.set(true)
                             applyMavenCentralRules.set(true)

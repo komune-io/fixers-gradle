@@ -19,16 +19,14 @@ class PublishingPlugin : Plugin<Project> {
         project.plugins.apply(MavenPublishPlugin::class.java)
         project.plugins.apply(SigningPlugin::class.java)
 
-        val extension = project.publishing()
         val configExtension = project.config()
 
         val hasPublishPlugin = project.plugins.hasPlugin("com.gradle.plugin-publish")
-        val hasJReleaserPlugin = project.plugins.hasPlugin("org.jreleaser")
-
+        val publishConfiguration = project.publishing()
         project.afterEvaluate {
             project.extensions.configure<GradlePublishingExtension>("publishing") {
                 publications {
-                    configureMavenPublications(project, extension, configExtension)
+                    configureMavenPublications(project, publishConfiguration, configExtension)
                 }
                 repositories {
                     maven {
@@ -39,8 +37,8 @@ class PublishingPlugin : Plugin<Project> {
 
             project.extensions.configure<SigningExtension>("signing") {
                 useInMemoryPgpKeys(
-                    extension.signingKey.get(),
-                    extension.signingPassword.get()
+                    publishConfiguration.signingKey.get(),
+                    publishConfiguration.signingPassword.get()
                 )
 
                 if (!hasPublishPlugin) {
@@ -50,11 +48,10 @@ class PublishingPlugin : Plugin<Project> {
             }
         }
 
-        configureJReleasePlugin(project, configExtension)
+        configureJReleasePlugin(project, publishConfiguration, configExtension)
     }
 
-    private fun configureJReleasePlugin(project: Project, configExtension: ConfigExtension) {
-        JReleaserGenConfigurer().configure(project, configExtension)
+    private fun configureJReleasePlugin(project: Project, publishConfiguration: PublishConfiguration, configExtension: ConfigExtension) {
+        JReleaserConfigurer(publishConfiguration).configure(project, configExtension)
     }
-
 }

@@ -2,45 +2,6 @@ package io.komune.fixers.gradle.config
 
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
-
-/**
- * Enum representing the deployment type
- */
-enum class PkgDeployType {
-    PUBLISH, PROMOTE;
-
-    companion object {
-        /**
-         * Parse a string value to DeployType, with PUBLISH as default
-         */
-        fun fromString(value: String?): PkgDeployType {
-            return when (value?.uppercase()) {
-                "PROMOTE" -> PROMOTE
-                "PUBLISH" -> PUBLISH
-                else -> PUBLISH // Default value
-            }
-        }
-    }
-}
-
-enum class PkgMavenRepo {
-    GITHUB, MAVEN_CENTRAL, NONE;
-
-    companion object {
-        /**
-         * Parse a string value to PkgMavenRepo, with MAVEN_CENTRAL as default
-         */
-        fun fromString(value: String?): PkgMavenRepo {
-            return when (value?.uppercase()) {
-                "GITHUB" -> GITHUB
-                "MAVEN_CENTRAL" -> MAVEN_CENTRAL
-                else -> NONE
-            }
-        }
-    }
-}
-
 
 /**
  * Configuration extension for the publishing plugin.
@@ -65,101 +26,10 @@ open class ConfigExtension(project: Project) {
         convention(project.provider { "https://github.com/${githubOrganization.get()}/${githubProject.get()}" })
     }
 
-    val mavenCentralUrl: Property<String> = project.objects.property(String::class.java).apply {
-        convention("https://central.sonatype.com/api/v1/publisher")
-    }
-
     val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
         convention(project.provider { "https://maven.pkg.github.com/${githubOrganization.get()}/${githubProject.get()}" })
     }
 
-    val mavenSnapshotsUrl: Property<String> = project.objects.property(String::class.java).apply {
-        convention("https://central.sonatype.com/repository/maven-snapshots/")
-    }
-
-    val pkgDeployType: Property<PkgDeployType> = project.objects.property(PkgDeployType::class.java).apply {
-        convention(project.provider {
-            PkgDeployType.fromString(System.getenv("PKG_DEPLOY_TYPE"))
-        })
-    }
-
-    val pkgMavenRepo: Property<PkgMavenRepo> = project.objects.property(PkgMavenRepo::class.java).apply {
-        convention(project.provider {
-            val tt = PkgMavenRepo.fromString(System.getenv("PKG_MAVEN_REPO"))
-            project.logger.lifecycle("PKG_MAVEN_REPO: $tt")
-            tt
-        })
-    }
-
-    val pkgGithubUsername: Property<String> = project.objects.property(String::class.java).apply {
-        System.getenv("PKG_GITHUB_USERNAME")?.let { value ->
-            convention(project.provider { value })
-        }
-    }
-
-    val pkgGithubToken: Property<String> = project.objects.property(String::class.java).apply {
-        System.getenv("PKG_GITHUB_TOKEN")?.let { value ->
-            convention(project.provider { value })
-        }
-    }
-
-    /**
-     * Checks if the package deployment type is PROMOTE.
-     */
-    val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
-        pkgDeployType.get() == PkgDeployType.PROMOTE
-    }
-
-    /**
-     * Checks if the package deployment type is PUBLISH.
-     */
-    val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
-        pkgDeployType.get() == PkgDeployType.PUBLISH
-    }
-
-    /**
-     * Checks if the Maven repository is GitHub.
-     */
-    val isGithubMavenRepo: Provider<Boolean> = project.provider {
-        pkgMavenRepo.get() == PkgMavenRepo.GITHUB
-    }
-
-    /**
-     * Checks if the Maven repository is not GitHub and not NONE.
-     */
-    val isNotGithubMavenRepo: Provider<Boolean> = project.provider {
-        !isGithubMavenRepo.get() && pkgMavenRepo.get() != PkgMavenRepo.NONE
-    }
-
-    /**
-     * Determines if artifacts should be published.
-     * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
-     */
-    val isPublish: Provider<Boolean> = project.provider {
-        isPkgDeployTypePublish.get() || isGithubMavenRepo.get()
-    }
-
-    /**
-     * Determines if artifacts should be promoted.
-     * Artifacts are promoted if the deployment type is PROMOTE or if the repository is not GitHub.
-     */
-    val isPromote: Provider<Boolean> = project.provider {
-        isPkgDeployTypePromote.get() || isNotGithubMavenRepo.get()
-    }
-
-    /**
-     * Searches for the version in the VERSION file or falls back to the project's version.
-     *
-     * @return A provider that resolves to the version string
-     */
-    val version: Provider<String> = project.provider {
-        val versionFile = project.rootProject.file("VERSION")
-        if (versionFile.exists()) {
-            versionFile.readText().trim()
-        } else {
-            project.version.toString()
-        }
-    }
 }
 
 /**

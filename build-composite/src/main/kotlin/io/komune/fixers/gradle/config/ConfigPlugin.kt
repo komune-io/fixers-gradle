@@ -39,13 +39,6 @@ class ConfigPlugin : Plugin<Project> {
         target.logger.lifecycle("Repository URL: ${extension.repositoryUrl.get()}")
         target.logger.lifecycle("GitHub Packages URL: ${extension.githubPackagesUrl.get()}")
 
-        // Log environment variables
-        target.logger.lifecycle("PKG_DEPLOY_TYPE: ${extension.pkgDeployType.orNull ?: "not set"}")
-        target.logger.lifecycle("PKG_MAVEN_REPO: ${extension.pkgMavenRepo.orNull ?: "not set"}")
-        target.logger.lifecycle("PKG_GITHUB_USERNAME: ${extension.pkgGithubUsername.orNull ?: "not set"}")
-        // Don't log the token for security reasons
-        target.logger.lifecycle("PKG_GITHUB_TOKEN: ${if (extension.pkgGithubToken.orNull.isNullOrEmpty()) "not set" else "****"}")
-
         target.logger.lifecycle("====================")
     }
 
@@ -75,25 +68,6 @@ class ConfigPlugin : Plugin<Project> {
         if (!subprojectExtension.organizationUrl.isPresent) {
             subprojectExtension.organizationUrl.set(extension.organizationUrl)
         }
-        if (!subprojectExtension.mavenCentralUrl.isPresent) {
-            subprojectExtension.mavenCentralUrl.set(extension.mavenCentralUrl)
-        }
-        if (!subprojectExtension.mavenSnapshotsUrl.isPresent) {
-            subprojectExtension.mavenSnapshotsUrl.set(extension.mavenSnapshotsUrl)
-        }
 
-        // Propagate environment variables
-        if (!subprojectExtension.pkgDeployType.isPresent) {
-            subprojectExtension.pkgDeployType.set(extension.pkgDeployType)
-        }
-        if (!subprojectExtension.pkgMavenRepo.isPresent) {
-            subprojectExtension.pkgMavenRepo.set(extension.pkgMavenRepo)
-        }
-        if (!subprojectExtension.pkgGithubUsername.isPresent) {
-            subprojectExtension.pkgGithubUsername.set(extension.pkgGithubUsername)
-        }
-        if (!subprojectExtension.pkgGithubToken.isPresent) {
-            subprojectExtension.pkgGithubToken.set(extension.pkgGithubToken)
-        }
     }
 }
