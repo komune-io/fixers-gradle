@@ -1,7 +1,7 @@
-package io.komune.fixers.gradle.plugin.publishing
+package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.config.config
+import io.komune.fixers.gradle.plugin.config.config
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin

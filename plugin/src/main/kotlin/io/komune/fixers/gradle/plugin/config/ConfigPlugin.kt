@@ -2,48 +2,123 @@ package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.config.fixersIfExists
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+/**
+ * Plugin that applies and configures the ConfigExtension for a project.
+ * 
+ * This plugin:
+ * 1. Creates a ConfigExtension for the target project if it doesn't exist
+ * 2. Logs configuration information
+ * 3. Propagates configuration from the root project to subprojects
+ * 4. Configures Kotlin to TypeScript generation if enabled
+ */
 class ConfigPlugin : Plugin<Project> {
-	override fun apply(target: Project) {
-		target.createExtension()
-		val root: Project = target.rootProject
-		target.afterEvaluate {
-			target.logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-			target.logger.info("Target: ${target.name}")
-			target.logger.info("Root: ${root.name}")
-			target.logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-			root.extensions.fixersIfExists {
-				root.extensions.configure(ConfigExtension::class.java) {
-//						this.bundle = mainConfig.bundle
-//						this.sonar = mainConfig.sonar
-//						this.publication = mainConfig.publication
-//						this.repository = mainConfig.repository
-//						this.kt2Ts = mainConfig.kt2Ts
-//						this.jdk = mainConfig.jdk
-				}
-			}
-			root.extensions.fixers?.let { config ->
-				target.logger.info("Fixers Configuration")
-				target.logger.info("bundle.name: ${config.bundle.name}")
-				target.logger.info("bundle.description: ${config.bundle.description}")
-				target.logger.info("bundle.version: ${config.bundle.version}")
-				target.logger.info("repositories: ${config.repositories.values.joinToString { it.name } }")
-				target.logger.info("kt2Ts?.outputDirectory: ${config.kt2Ts.outputDirectory}")
-				target.logger.info("kt2Ts?.inputDirectory: ${config.kt2Ts.inputDirectory}")
-				target.logger.info("######################################################")
+    override fun apply(target: Project) {
+        val extension = target.config()
+        val root: Project = target.rootProject
+        target.afterEvaluate {
+            log(target, root, extension)
 
-				target.configureKt2Ts(config)
-			}
-		}
-	}
+            if (target == root) {
+                root.subprojects.forEach { subproject ->
+                    subproject.mergeConfig(extension)
+                }
+            }
 
+            root.extensions.fixers?.let { config ->
+                target.configureKt2Ts(config)
+            }
+        }
+    }
 
-	private fun Project.createExtension() = extensions.findByType(ConfigExtension::class.java) ?: extensions.create(
-		ConfigExtension.NAME,
-		ConfigExtension::class.java,
-		this@createExtension
-	)
+    private fun log(
+        target: Project,
+        root: Project,
+        extension: ConfigExtension
+    ) {
+        target.logger.lifecycle("=== Config Plugin ===")
+        target.logger.lifecycle("Target project: ${target.name}")
+        target.logger.lifecycle("Root project: ${root.name}")
+
+        // Log detailed configuration if available
+        root.extensions.fixers?.let { config ->
+            target.logger.lifecycle("Bundle name: ${config.bundle.name}")
+            target.logger.lifecycle("Bundle description: ${config.bundle.description ?: "Not set"}")
+            target.logger.lifecycle("Bundle version: ${config.bundle.version ?: "Not set"}")
+            target.logger.lifecycle("Repositories: ${config.repositories.values.joinToString { it.name }}")
+            target.logger.lifecycle("Kt2Ts output directory: ${config.kt2Ts.outputDirectory}")
+            target.logger.lifecycle("Kt2Ts input directory: ${config.kt2Ts.inputDirectory ?: "Not set"}")
+            target.logger.lifecycle("GitHub Packages URL: ${extension.githubPackagesUrl.get()}")
+        }
+
+        target.logger.lifecycle("====================")
+    }
+
+    private fun Project.mergeConfig(extension: ConfigExtension) {
+        val subprojectExtension = this.config()
+        subprojectExtension.bundle.apply {
+            if (id == null) {
+                id = extension.bundle.id
+            }
+            if (description == null) {
+                description = extension.bundle.description
+            }
+            if (url == null) {
+                url = extension.bundle.url
+            }
+
+            // Copy license properties
+            if (licenseName == null) {
+                licenseName = extension.bundle.licenseName
+            }
+            if (licenseUrl == null) {
+                licenseUrl = extension.bundle.licenseUrl
+            }
+            if (licenseDistribution == null) {
+                licenseDistribution = extension.bundle.licenseDistribution
+            }
+
+            // Copy developer properties
+            if (developerId == null) {
+                developerId = extension.bundle.developerId
+            }
+            if (developerName == null) {
+                developerName = extension.bundle.developerName
+            }
+            if (developerOrganization == null) {
+                developerOrganization = extension.bundle.developerOrganization
+            }
+            if (developerOrganizationUrl == null) {
+                developerOrganizationUrl = extension.bundle.developerOrganizationUrl
+            }
+
+            // Copy SCM properties
+            if (scmConnection == null) {
+                scmConnection = extension.bundle.scmConnection
+            }
+            if (scmDeveloperConnection == null) {
+                scmDeveloperConnection = extension.bundle.scmDeveloperConnection
+            }
+        }
+    }
+}
+
+/**
+ * Extension function to get or create the config extension for a Gradle project.
+ *
+ * This function provides a convenient way to access and configure the ConfigExtension
+ * for a Gradle project. If the extension doesn't exist yet, it creates a new one.
+ *
+ * @param configure A configuration block to apply to the extension
+ * @return The configured ConfigExtension instance
+ */
+fun Project.config(configure: ConfigExtension.() -> Unit = {}): ConfigExtension {
+    val extension = extensions.findByType(ConfigExtension::class.java) ?: extensions.create(
+        ConfigExtension.NAME, ConfigExtension::class.java, this
+    )
+
+    extension.configure()
+    return extension
 }

@@ -120,8 +120,6 @@ abstract class ConfigExtension(
 }
 
 fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
-    logger.lifecycle("///////////////////////////")
-    logger.lifecycle("Configuring POM for bundle: ${bundle.id}, ${bundle.name}, ${bundle.description}, ${bundle.url}")
 	name.set(bundle.name)
 	description.set(bundle.description)
 	url.set(bundle.url)

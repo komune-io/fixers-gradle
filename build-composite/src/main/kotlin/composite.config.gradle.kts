@@ -1,3 +1,3 @@
-import io.komune.fixers.gradle.config.ConfigPlugin
+import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 
 apply<ConfigPlugin>()

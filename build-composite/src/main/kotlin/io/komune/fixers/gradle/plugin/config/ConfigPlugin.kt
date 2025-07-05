@@ -1,5 +1,7 @@
-package io.komune.fixers.gradle.config
+package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -10,18 +12,23 @@ import org.gradle.api.Project
  * 1. Creates a ConfigExtension for the target project if it doesn't exist
  * 2. Logs configuration information
  * 3. Propagates configuration from the root project to subprojects
+ * 4. Configures Kotlin to TypeScript generation if enabled
  */
 class ConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         val extension = target.config()
         val root: Project = target.rootProject
-
         target.afterEvaluate {
             log(target, root, extension)
+
             if (target == root) {
                 root.subprojects.forEach { subproject ->
                     subproject.mergeConfig(extension)
                 }
+            }
+
+            root.extensions.fixers?.let { config ->
+                target.configureKt2Ts(config)
             }
         }
     }
@@ -34,16 +41,24 @@ class ConfigPlugin : Plugin<Project> {
         target.logger.lifecycle("=== Config Plugin ===")
         target.logger.lifecycle("Target project: ${target.name}")
         target.logger.lifecycle("Root project: ${root.name}")
-        target.logger.lifecycle("GitHub Packages URL: ${extension.githubPackagesUrl.get()}")
+
+        // Log detailed configuration if available
+        root.extensions.fixers?.let { config ->
+            target.logger.lifecycle("Bundle name: ${config.bundle.name}")
+            target.logger.lifecycle("Bundle description: ${config.bundle.description ?: "Not set"}")
+            target.logger.lifecycle("Bundle version: ${config.bundle.version ?: "Not set"}")
+            target.logger.lifecycle("Repositories: ${config.repositories.values.joinToString { it.name }}")
+            target.logger.lifecycle("Kt2Ts output directory: ${config.kt2Ts.outputDirectory}")
+            target.logger.lifecycle("Kt2Ts input directory: ${config.kt2Ts.inputDirectory ?: "Not set"}")
+            target.logger.lifecycle("GitHub Packages URL: ${extension.githubPackagesUrl.get()}")
+        }
+
         target.logger.lifecycle("====================")
     }
 
     private fun Project.mergeConfig(extension: ConfigExtension) {
         val subprojectExtension = this.config()
-
-        // Copy bundle properties
         subprojectExtension.bundle.apply {
-            // Copy main bundle properties
             if (id == null) {
                 id = extension.bundle.id
             }
