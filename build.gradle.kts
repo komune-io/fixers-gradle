@@ -1,3 +1,5 @@
+import io.komune.fixers.gradle.config.fixers
+
 plugins {
 	kotlin("jvm") version embeddedKotlinVersion apply false
 	alias(libs.plugins.gradlePublish) apply false
@@ -38,5 +40,18 @@ subprojects {
 				"Implementation-Version" to project.version
 			)
 		}
+	}
+}
+
+fixers {
+	bundle {
+		id = "gradle"
+		name = "Gradle Fixers"
+		description = "Gradle common fixers and utilities for Komune projects"
+		url = "https://github.com/komune-io/fixers-gradle"
+	}
+	sonar {
+		organization = "komune-io"
+		projectKey = "komune-io_fixers-gradle"
 	}
 }

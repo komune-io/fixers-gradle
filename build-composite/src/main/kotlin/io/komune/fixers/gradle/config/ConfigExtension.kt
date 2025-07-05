@@ -1,66 +1,149 @@
 package io.komune.fixers.gradle.config
 
+import io.komune.fixers.gradle.config.model.Bundle
+import io.komune.fixers.gradle.config.model.Detekt
+import io.komune.fixers.gradle.config.model.Jdk
+import io.komune.fixers.gradle.config.model.Kt2Ts
+import io.komune.fixers.gradle.config.model.Npm
+import io.komune.fixers.gradle.config.model.Publication
+import io.komune.fixers.gradle.config.model.Repository
+import io.komune.fixers.gradle.config.model.Sonar
+import io.komune.fixers.gradle.config.model.github
+import io.komune.fixers.gradle.config.model.sonarCloud
+import io.komune.fixers.gradle.config.model.sonatypeOss
+import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.provider.Property
+import org.gradle.api.publish.maven.MavenPom
+import org.gradle.plugin.use.PluginDependenciesSpec
+import org.gradle.plugin.use.PluginDependencySpec
 
 /**
- * Configuration extension for the publishing plugin.
- * Contains all configurable properties used across the publishing functionality.
+ * Retrieves the [fixers][io.komune.fixers.gradle.fixers] extension.
  */
-open class ConfigExtension(project: Project) {
-    val licenseName: Property<String> = project.objects.property(String::class.java)
+val ExtensionContainer.fixers: ConfigExtension?
+	get() = findByName(ConfigExtension.NAME) as ConfigExtension?
 
-    val licenseUrl: Property<String> = project.objects.property(String::class.java)
+/**
+ * Configures the [fixers][io.komune.fixers.gradle.fixers] extension.
+ */
+fun Project.fixers(configure: Action<ConfigExtension>): Unit =
+	this.rootProject.extensions.configure(ConfigExtension.NAME, configure)
 
-    val organizationId: Property<String> = project.objects.property(String::class.java)
-
-    val organizationName: Property<String> = project.objects.property(String::class.java)
-
-    val organizationUrl: Property<String> = project.objects.property(String::class.java)
-
-    val githubOrganization: Property<String> = project.objects.property(String::class.java)
-
-    val githubProject: Property<String> = project.objects.property(String::class.java)
-
-    val repositoryUrl: Property<String> = project.objects.property(String::class.java).apply {
-        convention(project.provider { "https://github.com/${githubOrganization.get()}/${githubProject.get()}" })
-    }
-
-    val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
-        convention(project.provider { "https://maven.pkg.github.com/${githubOrganization.get()}/${githubProject.get()}" })
-    }
-
+/**
+ * Configures the [fixers][io.komune.fixers.gradle.fixers] extension if exists.
+ */
+fun ExtensionContainer.fixersIfExists(configure: Action<ConfigExtension>) {
+	if (fixers != null) {
+		configure(ConfigExtension.NAME, configure)
+	}
 }
 
-/**
- * Extension function to get or create the config extension for a Gradle project.
- *
- * This function provides a convenient way to access and configure the ConfigExtension
- * for a Gradle project. If the extension doesn't exist yet, it creates a new one.
- *
- * Example usage in a build script:
- * ```kotlin
- * config {
- *     organizationName.set("My Organization")
- *
- *     // Configure GitHub properties
- *     githubOrganization.set("my-org")
- *     githubProject.set("my-repo")
- *
- *     // The repository URLs will be automatically updated based on the GitHub properties:
- *     // repositoryUrl will be "https://github.com/my-org/my-repo"
- *     // githubPackagesUrl will be "https://maven.pkg.github.com/my-org/my-repo"
- * }
- * ```
- *
- * @param configure A configuration block to apply to the extension
- * @return The configured ConfigExtension instance
- */
-fun Project.config(configure: ConfigExtension.() -> Unit = {}): ConfigExtension {
-    val extension = extensions.findByType(ConfigExtension::class.java) ?: extensions.create(
-        "config", ConfigExtension::class.java, this
-    )
+fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io.komune.fixers.gradle.${module}")
 
-    extension.configure()
-    return extension
+/**
+ * Main configuration extension for the Fixers Gradle plugins.
+ * 
+ * This class is marked as abstract to allow Gradle to create a dynamic subclass at runtime
+ * for property convention mapping and extension instantiation. This is a common pattern
+ * in Gradle plugin development, even when the class doesn't have explicit abstract members.
+ */
+@Suppress("UnnecessaryAbstractClass")
+abstract class ConfigExtension(
+	val project: Project
+) {
+	companion object {
+		const val NAME: String = "fixers"
+	}
+
+	var bundle: Bundle = Bundle(
+		name = project.name
+	)
+
+	var kt2Ts: Kt2Ts = Kt2Ts(outputDirectory = "platform/web/kotlin")
+
+	var jdk: Jdk = Jdk(
+		version = 17
+	)
+
+	var buildTime: Long = System.currentTimeMillis()
+
+	var repositories: Map<String, Repository> = setOf(
+		Repository.sonatypeOss(project), Repository.github(project)
+	).associateBy { it.name }
+
+	var publication: Publication? = null
+
+	var npm: Npm = Npm()
+
+	var detekt: Detekt = Detekt()
+
+	var sonar: Sonar = Sonar.sonarCloud(project)
+
+	fun bundle(configure: Action<Bundle>) {
+		configure.execute(bundle)
+		publication(project.pom(bundle))
+	}
+
+	fun kt2Ts(configure: Action<Kt2Ts>) {
+		configure.execute(kt2Ts)
+	}
+
+	fun sonar(configure: Action<Sonar>) {
+		configure.execute(sonar)
+	}
+
+	fun jdk(configure: Action<Jdk>) {
+		configure.execute(jdk)
+	}
+
+	fun publication(configure: Action<MavenPom>) {
+		publication = Publication(configure)
+	}
+
+	fun npm(configure: Action<Npm>) {
+		configure.execute(npm)
+	}
+
+	fun detekt(configure: Action<Detekt>) {
+		configure.execute(detekt)
+	}
+
+	fun repositories(configure: Action<Map<String, Repository>>) {
+		configure.execute(repositories)
+	}
+
+	val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
+		convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
+	}
+}
+
+fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
+    logger.lifecycle("///////////////////////////")
+    logger.lifecycle("Configuring POM for bundle: ${bundle.id}, ${bundle.name}, ${bundle.description}, ${bundle.url}")
+	name.set(bundle.name)
+	description.set(bundle.description)
+	url.set(bundle.url)
+
+	this.scm {
+		url.set(bundle.url)
+		bundle.scmConnection?.let { connection.set(it) }
+		bundle.scmDeveloperConnection?.let { developerConnection.set(it) }
+	}
+	licenses {
+		license {
+			bundle.licenseName?.let { name.set(it) }
+			bundle.licenseUrl?.let { url.set(it) }
+			bundle.licenseDistribution?.let { distribution.set(it) }
+		}
+	}
+	developers {
+		developer {
+			bundle.developerId?.let { id.set(it) }
+			bundle.developerName?.let { name.set(it) }
+			bundle.developerOrganization?.let { organization.set(it) }
+			bundle.developerOrganizationUrl?.let { organizationUrl.set(it) }
+		}
+	}
 }

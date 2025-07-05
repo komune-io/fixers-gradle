@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.publishing
 
 import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.pom
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.publish.PublicationContainer
@@ -52,37 +53,10 @@ class MavenConfigurer(
     }
 
 
-    private fun getPomMetadata(): Action<MavenPom> = Action {
-        getPomConfiguration().execute(this)
-    }
+    private fun getPomMetadata(): Action<MavenPom> = project.pom(configExtension.bundle)
 
     private fun getMavenCentralMetadata(): Action<MavenPom> = Action {
-        name.set(project.name)
-        description.set(project.description)
-        getPomConfiguration().execute(this)
-    }
-
-
-    private fun getPomConfiguration(): Action<MavenPom> = Action {
-        licenses {
-            license {
-                name.set(configExtension.licenseName.get())
-                url.set(configExtension.licenseUrl.get())
-                distribution.set("repo")
-            }
-        }
-        developers {
-            developer {
-                id.set(configExtension.organizationId.get())
-                name.set(configExtension.organizationName.get())
-                organization.set(configExtension.organizationId.get())
-                organizationUrl.set(configExtension.organizationUrl.get())
-            }
-        }
-        url.set(configExtension.repositoryUrl.get())
-        scm {
-            url.set(configExtension.repositoryUrl.get())
-        }
+        project.pom(configExtension.bundle).execute(this)
     }
 
 }
