@@ -3,6 +3,7 @@ package io.komune.fixers.gradle.check
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Detekt
 import io.komune.fixers.gradle.config.model.Sonar
+import io.komune.fixers.gradle.plugin.check.CheckPlugin
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.api.internal.project.ProjectInternal

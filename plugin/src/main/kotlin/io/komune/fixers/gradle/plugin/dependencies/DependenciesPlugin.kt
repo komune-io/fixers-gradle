@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.dependencies
+package io.komune.fixers.gradle.plugin.dependencies
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

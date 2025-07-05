@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.publish
 
+import io.komune.fixers.gradle.plugin.publish.PublishMppPlugin
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 

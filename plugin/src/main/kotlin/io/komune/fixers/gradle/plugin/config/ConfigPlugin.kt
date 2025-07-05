@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.config
+package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers

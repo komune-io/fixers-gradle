@@ -1,9 +1,9 @@
-package io.komune.fixers.gradle.npm
+package io.komune.fixers.gradle.plugin.npm
 
 import dev.petuska.npm.publish.NpmPublishPlugin
 import dev.petuska.npm.publish.extension.NpmPublishExtension
 import dev.petuska.npm.publish.task.NpmPublishTask
-import io.komune.fixers.gradle.npm.task.NpmTsGenTask
+import io.komune.fixers.gradle.plugin.npm.task.NpmTsGenTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Npm

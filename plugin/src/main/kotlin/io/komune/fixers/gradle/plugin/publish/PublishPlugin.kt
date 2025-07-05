@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.publish
+package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers

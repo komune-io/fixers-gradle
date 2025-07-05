@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.publishing
+package io.komune.fixers.gradle.plugin.publishing
 
 import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty

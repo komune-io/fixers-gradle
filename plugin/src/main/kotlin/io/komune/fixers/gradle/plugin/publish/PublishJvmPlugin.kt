@@ -1,6 +1,6 @@
-package io.komune.fixers.gradle.publish
+package io.komune.fixers.gradle.plugin.publish
 
-import io.komune.fixers.gradle.kotlin.JvmPlugin
+import io.komune.fixers.gradle.plugin.kotlin.JvmPlugin
 import io.komune.fixers.gradle.config.model.Publication
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension

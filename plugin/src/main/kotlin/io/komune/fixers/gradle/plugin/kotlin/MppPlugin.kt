@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.kotlin
+package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk

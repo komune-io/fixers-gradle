@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.kotlin
+package io.komune.fixers.gradle.plugin.kotlin
 
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.extra

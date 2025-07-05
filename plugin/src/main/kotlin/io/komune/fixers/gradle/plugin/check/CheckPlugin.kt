@@ -1,4 +1,4 @@
-package io.komune.fixers.gradle.check
+package io.komune.fixers.gradle.plugin.check
 
 import io.gitlab.arturbosch.detekt.getSupportedKotlinVersion
 import io.komune.fixers.gradle.config.ConfigExtension
