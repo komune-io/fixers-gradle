@@ -115,7 +115,7 @@ class ConfigPlugin : Plugin<Project> {
             mergePropertyIfNotPresent(mavenSnapshotsUrl, rootConfig.publish.mavenSnapshotsUrl)
 
             // Package deployment properties
-            mergePropertyIfNotPresent(pkgDeployType, rootConfig.publish.pkgDeployType)
+            mergeListPropertyIfNotPresent(pkgDeployTypes, rootConfig.publish.pkgDeployTypes)
             mergePropertyIfNotPresent(pkgMavenRepo, rootConfig.publish.pkgMavenRepo)
 
             // GitHub properties

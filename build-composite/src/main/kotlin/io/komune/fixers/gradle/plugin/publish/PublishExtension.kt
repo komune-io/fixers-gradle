@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import org.gradle.api.Project
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 
@@ -31,6 +32,9 @@ enum class PkgDeployType {
                 "PUBLISH" -> PUBLISH
                 else -> PUBLISH // Default value
             }
+        }
+        fun fromStrings(value: String?): List<PkgDeployType> {
+            return value?.split(",")?.map { fromString(it.trim()) } ?: listOf(PUBLISH)
         }
     }
 }
@@ -88,11 +92,11 @@ open class PublishConfiguration(
 	 * Gets the package deployment type from environment variables or project properties.
 	 * @return The package deployment type, defaulting to PUBLISH if not specified.
 	 */
-	val pkgDeployType: Property<PkgDeployType>
-		= project.objects.property(PkgDeployType::class.java).apply {
+	val pkgDeployTypes: ListProperty<PkgDeployType>
+		= project.objects.listProperty(PkgDeployType::class.java).apply {
 		convention(project.provider {
 			val deployTypeStr = System.getenv("PKG_DEPLOY_TYPE") ?: project.findProperty("PKG_DEPLOY_TYPE")?.toString()
-			PkgDeployType.fromString(deployTypeStr)
+			PkgDeployType.fromStrings(deployTypeStr)
 		})
 	}
 
@@ -112,14 +116,14 @@ open class PublishConfiguration(
 	 * Checks if the package deployment type is PROMOTE.
 	 */
 	val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
-		pkgDeployType.get().isPkgDeployTypePromote()
+		pkgDeployTypes.get().contains(PkgDeployType.PROMOTE)
 	}
 
 	/**
 	 * Checks if the package deployment type is PUBLISH.
 	 */
 	val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
-		pkgDeployType.get().isPkgDeployTypePublish()
+		pkgDeployTypes.get().contains(PkgDeployType.PUBLISH)
 	}
 
 	/**

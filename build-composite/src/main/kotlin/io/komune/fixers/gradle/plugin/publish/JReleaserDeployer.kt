@@ -51,7 +51,7 @@ object JReleaserDeployer {
                 mode.set(Signing.Mode.COSIGN)
             }
 
-            val pkgDeployType = fixersConfig.publish.pkgDeployType
+            val pkgDeployTypes = fixersConfig.publish.pkgDeployTypes
 
             deploy {
                 maven {
@@ -59,7 +59,7 @@ object JReleaserDeployer {
                         create("MAVENCENTRAL") {
                             // IMPORTANT: Use project.provider to defer the decision until execution time
                             active.set(project.provider {
-                                if (pkgDeployType.get() == PkgDeployType.PROMOTE) Active.RELEASE else Active.NEVER
+                                if (fixersConfig.publish.isPromote.get()) Active.RELEASE else Active.NEVER
                             })
                             url.set(fixersConfig.publish.mavenCentralUrl)
                             applyMavenCentralRules.set(true)
@@ -74,7 +74,7 @@ object JReleaserDeployer {
                         create("GITHUB") {
                             // IMPORTANT: Use project.provider to defer the decision until execution time
                             active.set(project.provider {
-                                if (pkgDeployType.get() == PkgDeployType.STAGE) Active.ALWAYS else Active.NEVER
+                                if (fixersConfig.publish.isStage.get()) Active.ALWAYS else Active.NEVER
                             })
                             username.set(fixersConfig.publish.pkgGithubUsername)
                             password.set(fixersConfig.publish.pkgGithubToken)
@@ -91,7 +91,7 @@ object JReleaserDeployer {
                         create("SNAPSHOT") {
                             // IMPORTANT: Use project.provider to defer the decision until execution time
                             active.set(project.provider {
-                                if (pkgDeployType.get() == PkgDeployType.PROMOTE) Active.SNAPSHOT else Active.NEVER
+                                if (fixersConfig.publish.isPromote.get()) Active.SNAPSHOT else Active.NEVER
                             })
                             url.set(fixersConfig.publish.mavenSnapshotsUrl)
                             snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
@@ -161,7 +161,7 @@ object JReleaserDeployer {
             group = "publishing"
             description = "Sets deployment type to ${deployType.name} and triggers the deploy task"
             doFirst {
-                fixersConfig.publish.pkgDeployType.set(deployType)
+                fixersConfig.publish.pkgDeployTypes.add(deployType)
             }
             dependsOn("publish")
             finalizedBy("deploy")

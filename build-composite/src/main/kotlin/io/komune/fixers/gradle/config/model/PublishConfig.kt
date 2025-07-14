@@ -28,12 +28,15 @@ enum class PkgDeployType {
     }
 
     companion object {
-        fun fromString(value: String?): PkgDeployType {
+        private fun fromString(value: String?): PkgDeployType? {
             return when (value?.uppercase()) {
                 "PROMOTE" -> PROMOTE
                 "PUBLISH" -> STAGE
-                else -> STAGE // Default value
+                else -> null
             }
+        }
+        fun fromStrings(value: String?): List<PkgDeployType> {
+            return value?.split(",")?.mapNotNull { fromString(it.trim()) } ?: emptyList()
         }
     }
 }
@@ -74,7 +77,7 @@ open class PublishConfig(
             PublishConfig(
                 mavenCentralUrl=${mavenCentralUrl.orNull}, 
                 mavenSnapshotsUrl=${mavenSnapshotsUrl.orNull}, 
-                pkgDeployType=${pkgDeployType.orNull}, 
+                pkgDeployTypes=${pkgDeployTypes.orNull}, 
                 pkgMavenRepo=${pkgMavenRepo.orNull}, 
                 pkgGithubUsername=${pkgGithubUsername.orNull}, 
                 pkgGithubToken=******, 
@@ -106,13 +109,13 @@ open class PublishConfig(
      * Gets the package deployment type from environment variables or project properties.
      * @return The package deployment type, defaulting to PUBLISH if not specified.
      */
-    val pkgDeployType: Property<PkgDeployType> = project.objects.property(PkgDeployType::class.java).apply {
+    val pkgDeployTypes: ListProperty<PkgDeployType> = project.objects.listProperty(PkgDeployType::class.java).apply {
         convention(project.provider {
             val deployTypeStr = project.property<String>(
                 envKey = "PKG_DEPLOY_TYPE",
                 projectKey = "PKG_DEPLOY_TYPE"
             ).orNull
-            PkgDeployType.fromString(deployTypeStr)
+            PkgDeployType.fromStrings(deployTypeStr)
         })
     }
 
@@ -134,14 +137,14 @@ open class PublishConfig(
      * Checks if the package deployment type is PROMOTE.
      */
     val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
-        pkgDeployType.orNull?.isPkgDeployTypePromote() ?: false
+        pkgDeployTypes.get().contains(PkgDeployType.PROMOTE)
     }
 
     /**
      * Checks if the package deployment type is PUBLISH.
      */
     val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
-        pkgDeployType.orNull?.isPkgDeployTypePublish() ?: false
+        pkgDeployTypes.get().contains(PkgDeployType.STAGE)
     }
 
     /**
@@ -162,7 +165,7 @@ open class PublishConfig(
      * Determines if artifacts should be published.
      * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
      */
-    val isPublish: Provider<Boolean> = project.provider {
+    val isStage: Provider<Boolean> = project.provider {
         isPkgDeployTypePublish.orNull ?: false || isGithubMavenRepo.orNull ?: false
     }
 
