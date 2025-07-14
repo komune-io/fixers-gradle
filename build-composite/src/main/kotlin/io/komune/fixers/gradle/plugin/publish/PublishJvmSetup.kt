@@ -8,7 +8,7 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.jvm.tasks.Jar
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.get
@@ -50,10 +50,12 @@ object PublishJvmSetup {
 		project.extensions.findByType(PublishingExtension::class.java)?.let { publishing ->
 			extensions.findByType(JavaPluginExtension::class.java)?.let {
 				publishing.publications {
-					create<MavenPublication>("maven") {
-						from(components["kotlin"])
-						val publication = project.pom(config.bundle)
-						pom(publication)
+					if (findByName("maven") == null) {
+						create<MavenPublication>("maven") {
+							from(components["kotlin"])
+							val publication = project.pom(config.bundle)
+							pom(publication)
+						}
 					}
 				}
 			}

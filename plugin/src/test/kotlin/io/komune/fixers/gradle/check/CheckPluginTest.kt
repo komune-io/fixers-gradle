@@ -41,7 +41,7 @@ class CheckPluginTest {
     fun `should configure Detekt when not disabled`() {
         // Create a mock ConfigExtension with Detekt enabled
         val configExtension = TestConfigExtension(project)
-        configExtension.detekt = Detekt(project).apply { enabled.set(true) }
+        configExtension.detekt = Detekt(project).apply { disable.set(false) }
 
         // Add the extension to the root project
         val rootProject = ProjectBuilder.builder().build()
@@ -68,7 +68,7 @@ class CheckPluginTest {
     fun `should not configure Detekt when disabled`() {
         // Create a mock ConfigExtension with Detekt disabled
         val configExtension = TestConfigExtension(project)
-        configExtension.detekt = Detekt(project).apply { enabled.set(false) }
+        configExtension.detekt = Detekt(project).apply { disable.set(true) }
 
         // Add the extension to the root project
         val rootProject = ProjectBuilder.builder().build()

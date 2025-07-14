@@ -45,30 +45,28 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
             group = "com.example"
             version = "1.0.0"
 
-            fixers {
-                bundle {
-                    id = "test-bundle"
-                    name = "Test Bundle"
-                    description = "A test bundle for integration testing"
-                    url = "https://github.com/komune-io/fixers-gradle"
-                }
-                // Configure publication using the publication method
-                publication {
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            publishing {
+                publications {
+                    create<org.gradle.api.publish.maven.MavenPublication>("maven") {
+                        from(components["java"])
+                        pom {
+                            licenses {
+                                license {
+                                    name.set("The Apache License, Version 2.0")
+                                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                                }
+                            }
+                            developers {
+                                developer {
+                                    id.set("test-developer")
+                                    name.set("Test Developer")
+                                    email.set("test@example.com")
+                                }
+                            }
+                            scm {
+                                url.set("https://github.com/komune-io/fixers-gradle")
+                            }
                         }
-                    }
-                    developers {
-                        developer {
-                            id.set("test-developer")
-                            name.set("Test Developer")
-                            email.set("test@example.com")
-                        }
-                    }
-                    scm {
-                        url.set("https://github.com/komune-io/fixers-gradle")
                     }
                 }
             }
@@ -294,7 +292,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
             // Configure the publishing extension
             fixers {
                 publish {
-                    markerPublications.set(listOf("testPluginPluginMarkerMaven"))
+                    gradlePlugin.set(listOf("testPluginPluginMarkerMaven"))
                 }
             }
 
