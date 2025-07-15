@@ -9,7 +9,7 @@ import org.gradle.api.provider.Provider
  * Enum representing the deployment type
  */
 enum class PkgDeployType {
-    PUBLISH, PROMOTE;
+    STAGE, PROMOTE;
 
 	/**
 	 * Checks if the package deployment type is PROMOTE.
@@ -19,22 +19,22 @@ enum class PkgDeployType {
 	}
 
 	/**
-	 * Checks if the package deployment type is PUBLISH.
+	 * Checks if the package deployment type is STAGE.
 	 */
 	fun isPkgDeployTypePublish(): Boolean {
-		return this == PUBLISH
+		return this == STAGE
 	}
 
     companion object {
         fun fromString(value: String?): PkgDeployType {
             return when (value?.uppercase()) {
                 "PROMOTE" -> PROMOTE
-                "PUBLISH" -> PUBLISH
-                else -> PUBLISH // Default value
+                "STAGE" -> STAGE
+                else -> STAGE // Default value
             }
         }
         fun fromStrings(value: String?): List<PkgDeployType> {
-            return value?.split(",")?.map { fromString(it.trim()) } ?: listOf(PUBLISH)
+            return value?.split(",")?.map { fromString(it.trim()) } ?: emptyList()
         }
     }
 }
@@ -120,10 +120,10 @@ open class PublishConfiguration(
 	}
 
 	/**
-	 * Checks if the package deployment type is PUBLISH.
+	 * Checks if the package deployment type is STAGE.
 	 */
 	val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
-		pkgDeployTypes.get().contains(PkgDeployType.PUBLISH)
+		pkgDeployTypes.get().contains(PkgDeployType.STAGE)
 	}
 
 	/**
@@ -141,10 +141,10 @@ open class PublishConfiguration(
 	}
 
 	/**
-	 * Determines if artifacts should be published.
-	 * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
+	 * Determines if artifacts should be staged.
+	 * Artifacts are staged if the deployment type is STAGE or if the repository is GitHub.
 	 */
-	val isPublish: Provider<Boolean> = project.provider {
+	val isStage: Provider<Boolean> = project.provider {
 		isPkgDeployTypePublish.get() || isGithubMavenRepo.get()
 	}
 

@@ -150,8 +150,8 @@ To check code style:
 The project can be published to different repositories:
 
 ```bash
-# Publish to GitHub Packages
-make publish
+# Stage to GitHub Packages
+make stage
 
 # Publish to Maven Central
 make promote
