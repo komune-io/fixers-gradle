@@ -45,21 +45,21 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     }
 }
 
-fun Project.cleanSubProjects(cleaning: MutableMap<String, List<Pair<Regex, String>>>) {
+fun Project.cleanSubProjects(cleaning: Map<String, List<Pair<Regex, String>>>) {
     project.logger.info("----------------")
     subprojects.forEach { project ->
         project.cleanProject(cleaning)
     }
 }
 
-fun Project.cleanProject(cleaning: MutableMap<String, List<Pair<Regex, String>>>) {
+fun Project.cleanProject(cleaning: Map<String, List<Pair<Regex, String>>>) {
     val folder = "${project.layout.buildDirectory.asFile.get().absolutePath}/packages/js"
     File(folder).listFiles()?.forEach { file ->
         file.cleanFile(cleaning)
     }
 }
 
-fun Kt2Ts.buildCleaningRegex(): MutableMap<String, List<Pair<Regex, String>>> {
+fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     val additionalCleaningMap = additionalCleaning.get()
     val cleaning = mutableMapOf(
         ".d.ts" to listOf(

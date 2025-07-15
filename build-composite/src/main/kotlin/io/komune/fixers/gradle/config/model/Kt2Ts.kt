@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.MapProperty
@@ -38,4 +39,19 @@ class Kt2Ts(
         project.objects.mapProperty<String, List<Pair<Regex, String>>>().apply {
             convention(emptyMap())
         }
+
+    /**
+     * Merges properties from the source Kt2Ts into this Kt2Ts.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Kt2Ts to merge from
+     * @return This Kt2Ts after merging
+     */
+    fun mergeFrom(source: Kt2Ts): Kt2Ts {
+        outputDirectory.mergeIfNotPresent(source.outputDirectory)
+        inputDirectory.mergeIfNotPresent(source.inputDirectory)
+        additionalCleaning.mergeIfNotPresent(source.additionalCleaning)
+
+        return this
+    }
 }

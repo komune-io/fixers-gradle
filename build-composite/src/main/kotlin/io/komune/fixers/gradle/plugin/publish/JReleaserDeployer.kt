@@ -3,15 +3,15 @@ package io.komune.fixers.gradle.plugin.publish
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.PkgDeployType
 import org.gradle.api.Project
-import org.jreleaser.model.Signing
-import org.jreleaser.gradle.plugin.JReleaserExtension
-import org.jreleaser.model.Active
 import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import org.jreleaser.gradle.plugin.JReleaserExtension
 import org.jreleaser.gradle.plugin.JReleaserPlugin
 import org.jreleaser.gradle.plugin.dsl.deploy.maven.MavenDeployer
+import org.jreleaser.model.Active
+import org.jreleaser.model.Signing
 
 /**
  * Configures JReleaser for publishing artifacts.
@@ -51,8 +51,6 @@ object JReleaserDeployer {
                 mode.set(Signing.Mode.COSIGN)
             }
 
-            val pkgDeployTypes = fixersConfig.publish.pkgDeployTypes
-
             deploy {
                 maven {
                     mavenCentral {
@@ -65,7 +63,7 @@ object JReleaserDeployer {
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(false)
                             stagingRepository(
-                                project.layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
                             )
                             workAroundJarFileNotFound(project)
                         }
@@ -82,7 +80,7 @@ object JReleaserDeployer {
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(true)
                             stagingRepository(
-                                project.layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
                             )
                             workAroundJarFileNotFound(project)
                         }
@@ -99,7 +97,7 @@ object JReleaserDeployer {
                             closeRepository.set(true)
                             applyMavenCentralRules.set(true)
                             stagingRepository(
-                                project.layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath
+                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
                             )
                             workAroundJarFileNotFound(project)
                         }

@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -81,6 +82,26 @@ class Sonar(
         projectKey = "sonar.githubSummaryComment",
         defaultValue = "true"
     )
+
+    /**
+     * Merges properties from the source Sonar into this Sonar.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Sonar to merge from
+     * @return This Sonar after merging
+     */
+    fun mergeFrom(source: Sonar): Sonar {
+        url.mergeIfNotPresent(source.url)
+        organization.mergeIfNotPresent(source.organization)
+        projectKey.mergeIfNotPresent(source.projectKey)
+        jacoco.mergeIfNotPresent(source.jacoco)
+        language.mergeIfNotPresent(source.language)
+        detekt.mergeIfNotPresent(source.detekt)
+        exclusions.mergeIfNotPresent(source.exclusions)
+        githubSummaryComment.mergeIfNotPresent(source.githubSummaryComment)
+
+        return this
+    }
 
     companion object
 }

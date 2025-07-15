@@ -56,80 +56,17 @@ class ConfigPlugin : Plugin<Project> {
     private fun Project.mergeConfig(rootConfig: ConfigExtension) {
         val subprojectConfig = this.config()
 
-        with(subprojectConfig.bundle) {
-            // Basic properties
-            mergePropertyIfNotPresent(id, rootConfig.bundle.id)
-            mergePropertyIfNotPresent(description, rootConfig.bundle.description)
-            mergePropertyIfNotPresent(url, rootConfig.bundle.url)
-
-            // License properties
-            mergePropertyIfNotPresent(licenseName, rootConfig.bundle.licenseName)
-            mergePropertyIfNotPresent(licenseUrl, rootConfig.bundle.licenseUrl)
-            mergePropertyIfNotPresent(licenseDistribution, rootConfig.bundle.licenseDistribution)
-
-            // Developer properties
-            mergePropertyIfNotPresent(developerId, rootConfig.bundle.developerId)
-            mergePropertyIfNotPresent(developerName, rootConfig.bundle.developerName)
-            mergePropertyIfNotPresent(developerOrganization, rootConfig.bundle.developerOrganization)
-            mergePropertyIfNotPresent(developerOrganizationUrl, rootConfig.bundle.developerOrganizationUrl)
-
-            // SCM properties
-            mergePropertyIfNotPresent(scmConnection, rootConfig.bundle.scmConnection)
-            mergePropertyIfNotPresent(scmDeveloperConnection, rootConfig.bundle.scmDeveloperConnection)
-        }
-
-        mergePublish(rootConfig, subprojectConfig)
+        // Use the model-specific merge methods
+        subprojectConfig.bundle.mergeFrom(rootConfig.bundle)
+        subprojectConfig.publish.mergeFrom(rootConfig.publish)
+        subprojectConfig.detekt.mergeFrom(rootConfig.detekt)
+        subprojectConfig.jdk.mergeFrom(rootConfig.jdk)
+        subprojectConfig.kt2Ts.mergeFrom(rootConfig.kt2Ts)
+        subprojectConfig.npm.mergeFrom(rootConfig.npm)
+        subprojectConfig.pom.mergeFrom(rootConfig.pom)
+        subprojectConfig.sonar.mergeFrom(rootConfig.sonar)
     }
 
-    /**
-     * Helper function to merge a property from source to target if target is not present and source is present
-     */
-    private fun <T> mergePropertyIfNotPresent(
-        targetProp: org.gradle.api.provider.Property<T>, 
-        sourceProp: org.gradle.api.provider.Property<T>
-    ) {
-        if (!targetProp.isPresent && sourceProp.isPresent) {
-            targetProp.set(sourceProp)
-        }
-    }
-
-    /**
-     * Helper function to merge a list property from source to target if target is not present and source is present
-     */
-    private fun <T> mergeListPropertyIfNotPresent(
-        targetProp: org.gradle.api.provider.ListProperty<T>, 
-        sourceProp: org.gradle.api.provider.ListProperty<T>
-    ) {
-        if (!targetProp.isPresent && sourceProp.isPresent) {
-            targetProp.set(sourceProp)
-        }
-    }
-
-    private fun mergePublish(
-        rootConfig: ConfigExtension,
-        subprojectConfig: ConfigExtension,
-    ) {
-        with(subprojectConfig.publish) {
-            // URL properties
-            mergePropertyIfNotPresent(mavenCentralUrl, rootConfig.publish.mavenCentralUrl)
-            mergePropertyIfNotPresent(mavenSnapshotsUrl, rootConfig.publish.mavenSnapshotsUrl)
-
-            // Package deployment properties
-            mergeListPropertyIfNotPresent(pkgDeployTypes, rootConfig.publish.pkgDeployTypes)
-            mergePropertyIfNotPresent(pkgMavenRepo, rootConfig.publish.pkgMavenRepo)
-
-            // GitHub properties
-            mergePropertyIfNotPresent(pkgGithubUsername, rootConfig.publish.pkgGithubUsername)
-            mergePropertyIfNotPresent(pkgGithubToken, rootConfig.publish.pkgGithubToken)
-
-            // Signing properties
-            mergePropertyIfNotPresent(signingKey, rootConfig.publish.signingKey)
-            mergePropertyIfNotPresent(signingPassword, rootConfig.publish.signingPassword)
-
-            // Gradle plugin properties (ListProperty)
-            mergeListPropertyIfNotPresent(gradlePlugin, rootConfig.publish.gradlePlugin)
-        }
-    }
 }
 
 /**

@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.config.utils
 
 import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.listProperty
 import org.gradle.kotlin.dsl.property
@@ -87,4 +88,43 @@ inline fun <reified T> Project.initListProperty(
             convention(defaultValue)
         }
     }
+}
+
+/**
+ * Helper function to merge a property from source to target if target is not present and source is present
+ * 
+ * @param sourceProp The source property to merge from
+ * @return The target property (this) after merging
+ */
+fun <T> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
+    if (!this.isPresent && sourceProp.isPresent) {
+        this.set(sourceProp)
+    }
+    return this
+}
+
+/**
+ * Helper function to merge a list property from source to target if target is not present and source is present
+ * 
+ * @param sourceProp The source list property to merge from
+ * @return The target list property (this) after merging
+ */
+fun <T> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProperty<T> {
+    if (!this.isPresent && sourceProp.isPresent) {
+        this.set(sourceProp)
+    }
+    return this
+}
+
+/**
+ * Helper function to merge a map property from source to target if target is not present and source is present
+ * 
+ * @param sourceProp The source map property to merge from
+ * @return The target map property (this) after merging
+ */
+fun <K, V> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>): MapProperty<K, V> {
+    if (!this.isPresent && sourceProp.isPresent) {
+        this.set(sourceProp)
+    }
+    return this
 }

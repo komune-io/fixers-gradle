@@ -1,8 +1,9 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
+import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
-import io.komune.fixers.gradle.config.utils.property
 
 /**
  * Configuration for NPM package publishing.
@@ -44,4 +45,20 @@ class Npm(
         envKey = "NPM_VERSION",
         projectKey = "npm.version"
     )
+
+    /**
+     * Merges properties from the source Npm into this Npm.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Npm to merge from
+     * @return This Npm after merging
+     */
+    fun mergeFrom(source: Npm): Npm {
+        publish.mergeIfNotPresent(source.publish)
+        organization.mergeIfNotPresent(source.organization)
+        clean.mergeIfNotPresent(source.clean)
+        version.mergeIfNotPresent(source.version)
+
+        return this
+    }
 }

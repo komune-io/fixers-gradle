@@ -1,10 +1,10 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
-import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.dependencies.FixersDependencies
 import io.komune.fixers.gradle.dependencies.FixersPluginVersions
+import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin

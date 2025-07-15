@@ -27,7 +27,7 @@ class PublishPlugin : Plugin<Project> {
 		val publishing = extensions.getByType(PublishingExtension::class.java)
 		publishing.repositories {
 			maven {
-				url = project.uri(project.layout.buildDirectory.dir("staging-deploy"))
+				url = project.uri(project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()))
 			}
 		}
 		val currentProject = this

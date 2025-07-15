@@ -1,8 +1,8 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import io.komune.fixers.gradle.config.utils.pom
+import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication

@@ -1,9 +1,10 @@
 package io.komune.fixers.gradle.config.model
 
-import org.gradle.api.Project
-import org.gradle.api.provider.Property
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import io.komune.fixers.gradle.config.utils.versionFromFile
+import org.gradle.api.Project
+import org.gradle.api.provider.Property
 
 /**
  * Configuration for project bundle information.
@@ -174,5 +175,36 @@ class Bundle(
                 scmDeveloperConnection=${scmDeveloperConnection.orNull}
             )
         """.trimIndent()
+    }
+
+    /**
+     * Merges properties from the source Bundle into this Bundle.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Bundle to merge from
+     * @return This Bundle after merging
+     */
+    fun mergeFrom(source: Bundle): Bundle {
+        // Basic properties
+        id.mergeIfNotPresent(source.id)
+        description.mergeIfNotPresent(source.description)
+        url.mergeIfNotPresent(source.url)
+
+        // License properties
+        licenseName.mergeIfNotPresent(source.licenseName)
+        licenseUrl.mergeIfNotPresent(source.licenseUrl)
+        licenseDistribution.mergeIfNotPresent(source.licenseDistribution)
+
+        // Developer properties
+        developerId.mergeIfNotPresent(source.developerId)
+        developerName.mergeIfNotPresent(source.developerName)
+        developerOrganization.mergeIfNotPresent(source.developerOrganization)
+        developerOrganizationUrl.mergeIfNotPresent(source.developerOrganizationUrl)
+
+        // SCM properties
+        scmConnection.mergeIfNotPresent(source.scmConnection)
+        scmDeveloperConnection.mergeIfNotPresent(source.scmDeveloperConnection)
+
+        return this
     }
 }

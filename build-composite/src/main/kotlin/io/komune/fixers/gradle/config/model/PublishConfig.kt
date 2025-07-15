@@ -1,11 +1,12 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.config.utils.initListProperty
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
+import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
-import io.komune.fixers.gradle.config.utils.property
-import io.komune.fixers.gradle.config.utils.initListProperty
 
 /**
  * Enum representing the deployment type
@@ -83,7 +84,8 @@ open class PublishConfig(
                 pkgGithubToken=******, 
                 signingKey=******, 
                 signingPassword=******,
-                gradlePlugin=${gradlePlugin.orNull}
+                gradlePlugin=${gradlePlugin.orNull},
+                stagingDirectory=${stagingDirectory.orNull}
             )
         """.trimIndent()
     }
@@ -217,4 +219,46 @@ open class PublishConfig(
         projectKey = "gradle.plugin",
         defaultValue = emptyList()
     )
+
+    /**
+     * Directory for staging deployments.
+     */
+    val stagingDirectory: Property<String> = project.property(
+        envKey = "STAGING_DIRECTORY",
+        projectKey = "staging.directory",
+        defaultValue = "staging-deploy"
+    )
+
+    /**
+     * Merges properties from the source PublishConfig into this PublishConfig.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source PublishConfig to merge from
+     * @return This PublishConfig after merging
+     */
+    fun mergeFrom(source: PublishConfig): PublishConfig {
+        // URL properties
+        mavenCentralUrl.mergeIfNotPresent(source.mavenCentralUrl)
+        mavenSnapshotsUrl.mergeIfNotPresent(source.mavenSnapshotsUrl)
+
+        // Package deployment properties
+        pkgDeployTypes.mergeIfNotPresent(source.pkgDeployTypes)
+        pkgMavenRepo.mergeIfNotPresent(source.pkgMavenRepo)
+
+        // GitHub properties
+        pkgGithubUsername.mergeIfNotPresent(source.pkgGithubUsername)
+        pkgGithubToken.mergeIfNotPresent(source.pkgGithubToken)
+
+        // Signing properties
+        signingKey.mergeIfNotPresent(source.signingKey)
+        signingPassword.mergeIfNotPresent(source.signingPassword)
+
+        // Gradle plugin properties
+        gradlePlugin.mergeIfNotPresent(source.gradlePlugin)
+
+        // Staging directory
+        stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
+
+        return this
+    }
 }
