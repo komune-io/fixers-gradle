@@ -230,6 +230,18 @@ open class PublishConfig(
     )
 
     /**
+     * Gets the staging repository path.
+     *
+     * @param project The Gradle project
+     * @return The absolute path to the staging repository
+     */
+    fun getStagingRepositoryPath(project: Project): String {
+        val stageDirectory = stagingDirectory.get()
+        val buildStageDirectory = project.layout.buildDirectory.dir(stageDirectory)
+        return buildStageDirectory.get().asFile.absolutePath
+    }
+
+    /**
      * Merges properties from the source PublishConfig into this PublishConfig.
      * Properties are only merged if the target property is not present and the source property is present.
      *

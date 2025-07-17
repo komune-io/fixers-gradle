@@ -63,7 +63,7 @@ object JReleaserDeployer {
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(false)
                             stagingRepository(
-                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
+                                fixersConfig.publish.getStagingRepositoryPath(project)
                             )
                             workAroundJarFileNotFound(project)
                         }
@@ -80,7 +80,7 @@ object JReleaserDeployer {
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(true)
                             stagingRepository(
-                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
+                                fixersConfig.publish.getStagingRepositoryPath(project)
                             )
                             workAroundJarFileNotFound(project)
                         }
@@ -97,7 +97,7 @@ object JReleaserDeployer {
                             closeRepository.set(true)
                             applyMavenCentralRules.set(true)
                             stagingRepository(
-                                project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()).get().asFile.absolutePath
+                                fixersConfig.publish.getStagingRepositoryPath(project)
                             )
                             workAroundJarFileNotFound(project)
                         }
