@@ -108,10 +108,6 @@ abstract class ConfigExtension(
 		configure.execute(publish)
 	}
 
-	val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
-		convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
-	}
-
 	override fun toString(): String {
 		return """
 			ConfigExtension(

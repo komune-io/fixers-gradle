@@ -230,6 +230,13 @@ open class PublishConfig(
     )
 
     /**
+     * GitHub Packages URL for publishing.
+     */
+    val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
+        convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
+    }
+
+    /**
      * Gets the staging repository path.
      *
      * @param project The Gradle project

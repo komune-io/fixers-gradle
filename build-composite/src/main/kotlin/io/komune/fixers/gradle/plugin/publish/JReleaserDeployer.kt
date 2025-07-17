@@ -76,7 +76,7 @@ object JReleaserDeployer {
                             })
                             username.set(fixersConfig.publish.pkgGithubUsername)
                             password.set(fixersConfig.publish.pkgGithubToken)
-                            url.set(fixersConfig.githubPackagesUrl)
+                            url.set(fixersConfig.publish.githubPackagesUrl)
                             applyMavenCentralRules.set(true)
                             snapshotSupported.set(true)
                             stagingRepository(
