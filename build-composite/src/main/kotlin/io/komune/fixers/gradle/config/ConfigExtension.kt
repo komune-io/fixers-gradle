@@ -12,7 +12,6 @@ import io.komune.fixers.gradle.config.model.sonarCloud
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.provider.Property
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -54,6 +53,8 @@ abstract class ConfigExtension(
 	companion object {
 		const val NAME: String = "fixers"
 	}
+
+	var properties: MutableMap<String, Any> = mutableMapOf()
 
 	var bundle: Bundle = Bundle(
 		project = project,

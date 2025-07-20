@@ -1,8 +1,6 @@
 [versions]
 detekt = "1.23.6"
 kotlin = "1.9.23"
-dokka = "1.9.20"
-java = "11"
 sonarQube = "5.1.0.4882"
 npmPublish = "3.4.2"
 gradlePublish = "1.2.1"
@@ -11,14 +9,9 @@ junit-jupiter = "5.10.2"
 assertj = "3.25.3"
 
 [libraries]
-detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
-detekt-rules-libraries = { module = "io.gitlab.arturbosch.detekt:detekt-rules-libraries", version.ref = "detekt" }
-detekt-rules-coroutines = { module = "io.gitlab.arturbosch.detekt:detekt-rules-coroutines", version.ref = "detekt" }
-
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.publish.gradle.plugin", version.ref = "npmPublish" }
 detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
-dokkaGradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
 jreleaserGradlePlugin = { module = "org.jreleaser:jreleaser-gradle-plugin", version.ref = "jreleaser" }
 
@@ -29,10 +22,6 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 test = [
     "junit-jupiter",
     "assertj-core",
-]
-detekt-rules = [
-    "detekt-rules-libraries",
-    "detekt-rules-coroutines",
 ]
 
 [plugins]
