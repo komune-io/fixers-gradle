@@ -32,14 +32,14 @@ inline fun <reified T> Project.property(
     return objects.property<T>().apply {
         if (envKey != null) {
             System.getenv(envKey)?.let { envValue ->
-                convention(envValue as T)
+                extractEnv<T>(envValue)
                 return@apply
             }
         }
 
         if (projectKey != null) {
             findProperty(projectKey)?.let { projValue ->
-                convention(projValue as T)
+                extractProperties<T>(projValue)
                 return@apply
             }
         }
@@ -48,6 +48,25 @@ inline fun <reified T> Project.property(
             convention(defaultValue)
         }
     }
+}
+
+inline fun <reified T> Property<T>.extractProperties(projValue: Any) where T : Any {
+    val value: T = when (T::class) {
+        Int::class -> projValue.toString().toInt() as T
+        Boolean::class -> projValue.toString().toBoolean() as T
+        else -> projValue as T
+    }
+    convention(value)
+}
+
+inline fun <reified T> Property<T>.extractEnv(envValue: String) where T : Any {
+    val value: T = when (T::class) {
+        Int::class -> envValue.toInt() as T
+        Boolean::class -> envValue.toBoolean() as T
+        else -> envValue as T
+    }
+    convention(value)
+    return
 }
 
 /**
