@@ -17,19 +17,19 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
 
 /**
- * Retrieves the [fixers][io.komune.fixers.gradle.fixers] extension.
+ * Retrieves the [fixers][io.komune.fixers.gradle.config.ConfigExtension.NAME] extension.
  */
 val ExtensionContainer.fixers: ConfigExtension?
 	get() = findByName(ConfigExtension.NAME) as? ConfigExtension
 
 /**
- * Configures the [fixers][io.komune.fixers.gradle.fixers] extension.
+ * Configures the [fixers][io.komune.fixers.gradle.config.ConfigExtension.NAME] extension.
  */
 fun Project.fixers(configure: Action<ConfigExtension>): Unit =
 	this.rootProject.extensions.configure(ConfigExtension.NAME, configure)
 
 /**
- * Configures the [fixers][io.komune.fixers.gradle.fixers] extension if exists.
+ * Configures the [fixers][io.komune.fixers.gradle.config.ConfigExtension.NAME] extension if exists.
  */
 fun ExtensionContainer.fixersIfExists(configure: Action<ConfigExtension>) {
 	if (fixers != null) {

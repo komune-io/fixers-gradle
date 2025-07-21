@@ -1,11 +1,9 @@
 package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
-import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify

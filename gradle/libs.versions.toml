@@ -4,9 +4,12 @@ kotlin = "1.9.23"
 sonarQube = "5.1.0.4882"
 npmPublish = "3.4.2"
 gradlePublish = "1.2.1"
-jreleaser = "1.18.0"
+jreleaser = "1.19.0"
 junit-jupiter = "5.10.2"
 assertj = "3.25.3"
+mockito = "5.3.1"
+mockito-kotlin = "5.0.0"
+commons-lang3 = "3.18.0"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -14,14 +17,28 @@ npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.pub
 detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
 jreleaserGradlePlugin = { module = "org.jreleaser:jreleaser-gradle-plugin", version.ref = "jreleaser" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version = "5.9.2" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version = "5.9.2" }
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+assertj-core-specific = { module = "org.assertj:assertj-core", version = "3.24.2" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 
 [bundles]
 test = [
     "junit-jupiter",
     "assertj-core",
+]
+
+test-specific = [
+    "junit-jupiter-engine",
+    "junit-jupiter-api",
+    "assertj-core-specific",
+    "mockito-core",
+    "mockito-kotlin",
 ]
 
 [plugins]

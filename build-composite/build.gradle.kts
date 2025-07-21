@@ -16,13 +16,17 @@ dependencies {
     implementation(libs.jreleaserGradlePlugin)
     implementation(libs.npmPublishGradlePlugin)
     implementation(libs.sonarqubeGradlePlugin)
+    
+    // Force specific version of commons-lang3 sub dep of npmPublishGradlePlugin
+    constraints {
+        implementation(libs.commons.lang3)
+    }
 
-    // Test dependencies
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
-    testImplementation("org.assertj:assertj-core:3.24.2")
-    testImplementation("org.mockito:mockito-core:5.3.1")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.0.0")
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.assertj.core.specific)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testRuntimeOnly(libs.junit.jupiter.engine)
 }
 
 tasks.test {

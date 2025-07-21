@@ -6,7 +6,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin

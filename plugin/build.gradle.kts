@@ -27,6 +27,11 @@ dependencies {
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.sonarqubeGradlePlugin)
 
+	// Force specific version of commons-lang3 sub dep of npmPublishGradlePlugin
+	constraints {
+		implementation(libs.commons.lang3)
+	}
+
 	api(project(":dependencies"))
 	api(project(":config"))
 
