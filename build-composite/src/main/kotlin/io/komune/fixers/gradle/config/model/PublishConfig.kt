@@ -22,7 +22,7 @@ enum class PkgDeployType {
     }
 
     /**
-     * Checks if the package deployment type is PUBLISH.
+     * Checks if the package deployment type is STAGE.
      */
     fun isPkgDeployTypePublish(): Boolean {
         return this == STAGE
@@ -143,7 +143,7 @@ open class PublishConfig(
     }
 
     /**
-     * Checks if the package deployment type is PUBLISH.
+     * Checks if the package deployment type is STAGE.
      */
     val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
         pkgDeployTypes.get().contains(PkgDeployType.STAGE)

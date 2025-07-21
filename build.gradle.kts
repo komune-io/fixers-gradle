@@ -45,7 +45,7 @@ tasks.register<Delete>("cleanConfigSources") {
 
 tasks.register<Copy>("copyDependenciesSources") {
 	group = "fixers"
-	description = "Copy configuration sources to the dependencies module"
+	description = "Copy dependencies sources to the dependencies module"
 	logger.lifecycle("Copying dependencies sources")
 	from("build-composite/src/main/kotlin/io/komune/fixers/gradle/dependencies")
 	into("dependencies/src/main/kotlin/io/komune/fixers/gradle/dependencies")
@@ -53,7 +53,7 @@ tasks.register<Copy>("copyDependenciesSources") {
 
 tasks.register<Delete>("cleanDependenciesSources") {
 	group = "fixers"
-	description = "Clean configuration sources from the dependencies module"
+	description = "Clean dependencies sources from the dependencies module"
 	delete("dependencies/src/main/kotlin/io/komune/fixers/gradle/dependencies")
 }
 

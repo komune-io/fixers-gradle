@@ -85,10 +85,9 @@ fixers {
     outputDirectory.set("build/generated/kt2ts")
     inputDirectory.set("build/js/packages/my-project")
   }
-  publication {
+  pom {
     name.set("My Project")
     description.set("My awesome project")
-
   }
   // Maven publication configuration
 
@@ -96,7 +95,7 @@ fixers {
   publish {
     mavenCentralUrl.set("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
     mavenSnapshotsUrl.set("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-    pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.PUBLISH)
+    pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.STAGE)
     pkgMavenRepo.set(io.komune.fixers.gradle.config.model.PkgMavenRepo.MAVEN_CENTRAL)
     pkgGithubUsername.set("github-username")
     pkgGithubToken.set("github-token")
@@ -117,7 +116,7 @@ fixers {
   }
 
   detekt {
-    enabled.set(true)
+    disable.set(false)
     baseline.set("detekt-baseline.xml")
     config.set("detekt-config.yml")
   }
@@ -133,7 +132,7 @@ The `fixers` extension provides several configuration methods:
 - `jdk(Action<Jdk>)`: Configure JDK settings
 - `npm(Action<Npm>)`: Configure NPM package publishing
 - `kt2Ts(Action<Kt2Ts>)`: Configure Kotlin to TypeScript generation
-- `publication(Action<MavenPom>)`: Configure Maven publication
+- `pom(Action<MavenPom>)`: Configure Maven publication
 - `publish(Action<PublishConfig>)`: Configure publishing settings
 - `sonar(Action<Sonar>)`: Configure Sonar analysis
 - `detekt(Action<Detekt>)`: Configure Detekt for code quality checks
@@ -262,9 +261,9 @@ fixers {
 }
 ```
 
-### Publication
+### Publication (configured via `pom`)
 
-The `Publication` class contains configuration for Maven publication.
+The `Publication` class contains configuration for Maven publication. Although the class is named `Publication`, it is configured using the `pom()` method in the fixers extension.
 
 #### Properties
 
@@ -276,7 +275,7 @@ The `Publication` class contains configuration for Maven publication.
 
 ```kotlin
 fixers {
-    publication {
+    pom {
         name.set("My Project")
         description.set("My awesome project")
     }
@@ -293,7 +292,7 @@ The `PublishConfig` class contains configuration for publishing settings.
 |----------|---------------------|------------------|---------------|-------------|
 | mavenCentralUrl | MAVEN_CENTRAL_URL | publish.mavenCentralUrl | "https://central.sonatype.com/api/v1/publisher" | The URL for Maven Central |
 | mavenSnapshotsUrl | MAVEN_SNAPSHOTS_URL | publish.mavenSnapshotsUrl | "https://central.sonatype.com/repository/maven-snapshots/" | The URL for Maven Snapshots |
-| pkgDeployType | PKG_DEPLOY_TYPE | publish.pkgDeployType | PkgDeployType.PUBLISH | The deployment type (PUBLISH or PROMOTE) |
+| pkgDeployType | PKG_DEPLOY_TYPE | publish.pkgDeployType | PkgDeployType.STAGE | The deployment type (STAGE or PROMOTE) |
 | pkgMavenRepo | PKG_MAVEN_REPO | publish.pkgMavenRepo | - | The Maven repository for package deployment |
 | pkgGithubUsername | PKG_GITHUB_USERNAME | publish.pkgGithubUsername | - | The GitHub username for package deployment |
 | pkgGithubToken | PKG_GITHUB_TOKEN | publish.pkgGithubToken | - | The GitHub token for package deployment |
@@ -308,7 +307,7 @@ fixers {
     publish {
         mavenCentralUrl.set("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
         mavenSnapshotsUrl.set("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-        pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.PUBLISH)
+        pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.STAGE)
         pkgMavenRepo.set(io.komune.fixers.gradle.config.model.PkgMavenRepo.MAVEN_CENTRAL)
         pkgGithubUsername.set("github-username")
         pkgGithubToken.set("github-token")
@@ -361,7 +360,6 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
 | disable | DETEKT_DISABLE | detekt.disable | false | Whether to disable Detekt |
-| enabled | DETEKT_ENABLED | detekt.enabled | true | Whether to enable Detekt |
 | baseline | DETEKT_BASELINE | detekt.baseline | - | The baseline file for Detekt |
 | config | DETEKT_CONFIG | detekt.config | - | The configuration file for Detekt |
 
@@ -370,7 +368,7 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 ```kotlin
 fixers {
     detekt {
-        enabled.set(true)
+        disable.set(false)
         baseline.set("detekt-baseline.xml")
         config.set("detekt-config.yml")
     }
@@ -418,13 +416,13 @@ fixers {
         description.set("My awesome project")
     }
 
-    publication { pom: org.gradle.api.publish.maven.MavenPom ->
+    pom { pom: org.gradle.api.publish.maven.MavenPom ->
         pom.name.set("My Project")
         pom.description.set("My awesome project")
     }
 
     publish {
-        pkgDeployType.set("PUBLISH")
+        pkgDeployType.set("STAGE")
         pkgMavenRepo.set("maven-central")
     }
 }
@@ -439,8 +437,8 @@ plugins {
 
 fixers {
     kt2Ts {
-        enabled.set(true)
-        output.set(file("build/generated/kt2ts"))
+        outputDirectory.set("build/generated/kt2ts")
+        inputDirectory.set("build/js/packages/my-project")
     }
 }
 ```
