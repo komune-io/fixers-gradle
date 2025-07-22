@@ -70,7 +70,7 @@ class Sonar(
      */
     val exclusions: Property<String> = project.property(
         envKey = "SONAR_EXCLUSIONS",
-        projectKey = "sonar.pullrequest.github.summary_comment",
+        projectKey = "sonar.exclusions",
         defaultValue = "**/*.java"
     )
 

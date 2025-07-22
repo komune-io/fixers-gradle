@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jreleaser.gradle.plugin.JReleaserExtension
 import org.jreleaser.gradle.plugin.JReleaserPlugin
+import org.jreleaser.gradle.plugin.dsl.deploy.maven.Maven
 import org.jreleaser.gradle.plugin.dsl.deploy.maven.MavenDeployer
 import org.jreleaser.model.Active
 import org.jreleaser.model.Signing
@@ -36,79 +37,121 @@ object JReleaserDeployer {
     /**
      * Configures the JReleaser extension with all necessary settings.
      */
-    @Suppress("LongMethod")
     private fun configureJReleaser(
         project: Project,
         fixersConfig: ConfigExtension
     ) {
         project.extensions.configure<JReleaserExtension> {
-            project {
-                version.set(fixersConfig.bundle.version)
-            }
-            signing {
-                active.set(Active.ALWAYS)
-                armored.set(true)
-                mode.set(Signing.Mode.COSIGN)
-            }
-
-            deploy {
-                maven {
-                    mavenCentral {
-                        create("MAVENCENTRAL") {
-                            // IMPORTANT: Use project.provider to defer the decision until execution time
-                            active.set(project.provider {
-                                if (fixersConfig.publish.isPromote.get()) Active.RELEASE else Active.NEVER
-                            })
-                            url.set(fixersConfig.publish.mavenCentralUrl)
-                            applyMavenCentralRules.set(true)
-                            snapshotSupported.set(false)
-                            stagingRepository(
-                                fixersConfig.publish.getStagingRepositoryPath(project)
-                            )
-                            workAroundJarFileNotFound(project)
-                        }
-                    }
-                    github {
-                        create("GITHUB") {
-                            // IMPORTANT: Use project.provider to defer the decision until execution time
-                            active.set(project.provider {
-                                if (fixersConfig.publish.isStage.get()) Active.ALWAYS else Active.NEVER
-                            })
-                            username.set(fixersConfig.publish.pkgGithubUsername)
-                            password.set(fixersConfig.publish.pkgGithubToken)
-                            url.set(fixersConfig.publish.githubPackagesUrl)
-                            applyMavenCentralRules.set(true)
-                            snapshotSupported.set(true)
-                            stagingRepository(
-                                fixersConfig.publish.getStagingRepositoryPath(project)
-                            )
-                            workAroundJarFileNotFound(project)
-                        }
-                    }
-                    nexus2 {
-                        create("SNAPSHOT") {
-                            // IMPORTANT: Use project.provider to defer the decision until execution time
-                            active.set(project.provider {
-                                if (fixersConfig.publish.isPromote.get()) Active.SNAPSHOT else Active.NEVER
-                            })
-                            url.set(fixersConfig.publish.mavenSnapshotsUrl)
-                            snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
-                            snapshotSupported.set(true)
-                            closeRepository.set(true)
-                            applyMavenCentralRules.set(true)
-                            stagingRepository(
-                                fixersConfig.publish.getStagingRepositoryPath(project)
-                            )
-                            workAroundJarFileNotFound(project)
-                        }
-                    }
-                }
-            }
+            configureProjectSettings(this, fixersConfig)
+            configureSigningSettings(this)
+            configureDeploymentSettings(this, project, fixersConfig)
+            configureReleaseSettings(this)
             gitRootSearch.set(true)
-            release {
-                github {
-                    skipRelease.set(true)
-                }
+        }
+    }
+    
+    private fun configureProjectSettings(
+        jReleaser: JReleaserExtension,
+        fixersConfig: ConfigExtension
+    ) {
+        jReleaser.project {
+            version.set(fixersConfig.bundle.version)
+        }
+    }
+    
+    private fun configureSigningSettings(jReleaser: JReleaserExtension) {
+        jReleaser.signing {
+            active.set(Active.ALWAYS)
+            armored.set(true)
+            mode.set(Signing.Mode.COSIGN)
+        }
+    }
+    
+    private fun configureDeploymentSettings(
+        jReleaser: JReleaserExtension,
+        project: Project,
+        fixersConfig: ConfigExtension
+    ) {
+        jReleaser.deploy {
+            maven {
+                mavenCentral(project, fixersConfig)
+                githubRepository(project, fixersConfig)
+                mavenCentralSnapShot(project, fixersConfig)
+            }
+        }
+    }
+
+    private fun Maven.mavenCentralSnapShot(
+        project: Project,
+        fixersConfig: ConfigExtension
+    ) {
+        nexus2 {
+            create("SNAPSHOT") {
+                // IMPORTANT: Use project.provider to defer the decision until execution time
+                active.set(project.provider {
+                    if (fixersConfig.publish.isPromote.get()) Active.SNAPSHOT else Active.NEVER
+                })
+                url.set(fixersConfig.publish.mavenSnapshotsUrl)
+                snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
+                snapshotSupported.set(true)
+                closeRepository.set(true)
+                applyMavenCentralRules.set(true)
+                stagingRepository(
+                    fixersConfig.publish.getStagingRepositoryPath(project)
+                )
+                workAroundJarFileNotFound(project)
+            }
+        }
+    }
+
+    private fun Maven.githubRepository(
+        project: Project,
+        fixersConfig: ConfigExtension
+    ) {
+        github {
+            create("GITHUB") {
+                // IMPORTANT: Use project.provider to defer the decision until execution time
+                active.set(project.provider {
+                    if (fixersConfig.publish.isStage.get()) Active.ALWAYS else Active.NEVER
+                })
+                username.set(fixersConfig.publish.pkgGithubUsername)
+                password.set(fixersConfig.publish.pkgGithubToken)
+                url.set(fixersConfig.publish.githubPackagesUrl)
+                applyMavenCentralRules.set(true)
+                snapshotSupported.set(true)
+                stagingRepository(
+                    fixersConfig.publish.getStagingRepositoryPath(project)
+                )
+                workAroundJarFileNotFound(project)
+            }
+        }
+    }
+
+    private fun Maven.mavenCentral(
+        project: Project,
+        fixersConfig: ConfigExtension
+    ) {
+        mavenCentral {
+            create("MAVENCENTRAL") {
+                // IMPORTANT: Use project.provider to defer the decision until execution time
+                active.set(project.provider {
+                    if (fixersConfig.publish.isPromote.get()) Active.RELEASE else Active.NEVER
+                })
+                url.set(fixersConfig.publish.mavenCentralUrl)
+                applyMavenCentralRules.set(true)
+                snapshotSupported.set(false)
+                stagingRepository(
+                    fixersConfig.publish.getStagingRepositoryPath(project)
+                )
+                workAroundJarFileNotFound(project)
+            }
+        }
+    }
+
+    private fun configureReleaseSettings(jReleaser: JReleaserExtension) {
+        jReleaser.release {
+            github {
+                skipRelease.set(true)
             }
         }
     }
