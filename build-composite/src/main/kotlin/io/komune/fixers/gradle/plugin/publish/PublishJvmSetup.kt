@@ -12,6 +12,7 @@ import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.get
+import org.gradle.kotlin.dsl.the
 
 object PublishJvmSetup {
 
@@ -73,7 +74,7 @@ object PublishJvmSetup {
 
 			tasks.register("sourcesJar", Jar::class.java) {
 				archiveClassifier.set("sources")
-				(properties["sourceSets"] as? SourceSetContainer)?.let { sourceSets ->
+				project.the<SourceSetContainer>().let { sourceSets ->
 					from(sourceSets["main"].allSource)
 				}
 			}
