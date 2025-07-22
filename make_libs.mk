@@ -1,6 +1,6 @@
 VERSION = $(shell cat VERSION)
 
-.PHONY: lint build test publish promote version
+.PHONY: lint build test stage promote version
 
 lint:
 	./gradlew detekt
@@ -12,11 +12,11 @@ test:
 	./gradlew test
 	cd sandbox && ./gradlew test
 
-publish:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=github ./gradlew publish --info
+stage:
+	VERSION=$(VERSION) ./gradlew stage
 
 promote:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
+	VERSION=$(VERSION) ./gradlew promote
 
 version:
 	@echo "$(VERSION)"

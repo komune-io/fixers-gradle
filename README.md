@@ -14,6 +14,7 @@ Gradle plugins to facilitate the configuration of Kotlin modules. These plugins 
   - [io.komune.fixers.gradle.check](#iokomune-fixers-gradle-check)
 - [Configuration Options](#configuration-options)
 - [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
 
 ## Installation
 
@@ -260,86 +261,13 @@ fixers {
 }
 ```
 
-### Maven Repositories
 
-```kotlin
-fixers {
-    repositories {
-        // The default repositories are Sonatype OSS and GitHub
-        // You can customize them or add new ones
-    }
-}
-```
+## Project Structure
 
-## Troubleshooting
+This project uses a composite build to facilitate the development and testing of the Gradle plugins. Here's a brief overview of the project structure:
 
-### Maven Publication Issues
+- **`build-composite`**: This directory contains the source code for all the plugins as "convention plugins". This allows for a better developer experience within this repository, including features like code completion and easy navigation in the IDE.
 
-If you encounter issues with Maven publication, check the following:
+- **`config`, `dependencies`, `plugin`**: These are standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite` directory during the build process.
 
-1. **Missing Signing Configuration**: If you see a warning like "No signing config provided, skip signing", make sure you have provided the GPG signing key and password:
-
-   ```kotlin
-   // In gradle.properties or as environment variables
-   GPG_SIGNING_KEY=your-key
-   GPG_SIGNING_PASSWORD=your-password
-   ```
-
-2. **Repository Authentication**: Ensure you have provided the correct credentials for the Maven repositories:
-
-   ```kotlin
-   // In gradle.properties or as environment variables
-   PKG_SONATYPE_OSS_USERNAME=your-username
-   PKG_SONATYPE_OSS_TOKEN=your-token
-   PKG_GITHUB_USERNAME=your-username
-   PKG_GITHUB_TOKEN=your-token
-   ```
-
-3. **Repository Selection**: You can specify which repository to use for publication:
-
-   ```kotlin
-   // In gradle.properties or as environment variables
-   PKG_MAVEN_REPO=sonatype_oss
-   ```
-
-### Kotlin Multiplatform Issues
-
-If you encounter issues with Kotlin Multiplatform configuration:
-
-1. **JDK Version**: Make sure you have the correct JDK version installed and configured:
-
-   ```kotlin
-   fixers {
-       jdk {
-           version = 17 // Must match your installed JDK
-       }
-   }
-   ```
-
-2. **JS Target**: The MPP plugin automatically configures the JS target. If you need custom configuration, you can apply the MppJsPlugin separately.
-
-### SonarQube Integration Issues
-
-If you encounter issues with SonarQube integration:
-
-1. **Missing Properties**: Ensure you have provided all required SonarQube properties:
-
-   ```kotlin
-   fixers {
-       sonar {
-           url = "https://sonarcloud.io"
-           organization = "my-org"
-           projectKey = "my-project"
-       }
-   }
-   ```
-
-2. **Detekt Integration**: The Check plugin automatically configures Detekt integration with SonarQube. If you want to disable it:
-
-   ```kotlin
-   fixers {
-       detekt {
-           disable = true
-       }
-   }
-   ```
+This setup allows for the local development and testing of the plugins in a streamlined way, while also enabling the publication of the plugins as standard, independent artifacts for other projects to use.

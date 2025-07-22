@@ -1,6 +1,6 @@
 VERSION = $(shell cat VERSION)
 
-.PHONY: lint build test publish promote
+.PHONY: lint build test stage promote
 
 ## New
 lint:
@@ -18,9 +18,9 @@ test:
 	@make -f libs.mk test
 	@make -f docs.mk test
 
-publish:
-	@make -f libs.mk publish
-	@make -f docs.mk publish
+stage:
+	@make -f libs.mk stage
+	@make -f docs.mk stage
 
 promote:
 	@make -f libs.mk promote

@@ -3,6 +3,10 @@
 !gradle/wrapper/gradle-wrapper.jar
 .env
 
+config/src/main/kotlin/io/komune/fixers/gradle/config
+dependencies/src/main/kotlin/io/komune/fixers/gradle/dependencies
+plugin/src/main/kotlin/io/komune/fixers/gradle/plugin
+
 ### STS ###
 .apt_generated
 .classpath

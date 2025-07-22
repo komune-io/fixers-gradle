@@ -36,15 +36,15 @@ jobs:
       pages: write
       id-token: write
     with:
-      on-tag: 'publish_promote'
+      on-tag: 'stage_promote'
       with-chromatic: false
       storybook-dir: storybook
       storybook-static-dir: storybook-static
     secrets:
       NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-      DOCKER_PUBLISH_USERNAME: ${{ github.actor }}
-      DOCKER_PUBLISH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      DOCKER_STAGE_USERNAME: ${{ github.actor }}
+      DOCKER_STAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
       DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_IO_USERNAME }}
       DOCKER_PROMOTE_PASSWORD: ${{ secrets.DOCKER_IO_PASSWORD }}
 

@@ -61,11 +61,18 @@ on:
         type: "string"
         default: "test"
 
+      # DEPRECATED
       make-publish-task:
         description: "The Make command to execute for publishing."
         required: false
         type: "string"
         default: "publish"
+
+      make-stage-task:
+        description: "The Make command to execute for staging."
+        required: false
+        type: "string"
+        default: "stage"
 
       make-promote-task:
         description: "The Make command to execute for promoting."
@@ -73,8 +80,15 @@ on:
         type: "string"
         default: "promote"
 
+      # DEPRECATED
       docker-publish-repository:
         description: "The Docker registry to which images should be published. Defaults to GitHub Container Registry (ghcr.io)."
+        required: false
+        type: "string"
+        default: "ghcr.io"
+
+      docker-stage-repository:
+        description: "The Docker registry to which images should be staged. Defaults to GitHub Container Registry (ghcr.io)."
         required: false
         type: "string"
         default: "ghcr.io"
@@ -101,15 +115,21 @@ on:
         type: "string"
 
       on-tag:
-        description: "Comma-separated list of task names that should be executed when a tag is pushed. For example, 'lint,test,publish,promote' will run these tasks on tag events. Set to 'false' to disable all tag-specific tasks."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed. For example, 'lint,test,stage,promote' will run these tasks on tag events. Set to 'false' to disable all tag-specific tasks."
         required: false
         type: "string"
         default: 'false'
 
     secrets:
+      # DEPRECATED
       DOCKER_PUBLISH_USERNAME:
         required: false
+      # DEPRECATED
       DOCKER_PUBLISH_PASSWORD:
+        required: false
+      DOCKER_STAGE_USERNAME:
+        required: false
+      DOCKER_STAGE_PASSWORD:
         required: false
       DOCKER_PROMOTE_USERNAME:
         required: false
@@ -186,6 +206,7 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
+      # DEPRECATED
       - if: (inputs.with-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))))
         name: Docker Registry Login to Publish
         uses: docker/login-action@v3
@@ -194,6 +215,7 @@ jobs:
           username: ${{ secrets.DOCKER_PUBLISH_USERNAME }}
           password: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
 
+      # DEPRECATED
       - name: Execute Make Publish Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
@@ -201,7 +223,22 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-publish-task }}
 
-      - if: (inputs.with-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ))
+      - if: (inputs.with-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))))
+        name: Docker Registry Login to Stage
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.docker-stage-repository }}
+          username: ${{ secrets.DOCKER_STAGE_USERNAME }}
+          password: ${{ secrets.DOCKER_STAGE_PASSWORD }}
+
+      - name: Execute Make Stage Task
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-stage-task }}
+
+      - if: (inputs.with-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))
         name: Docker Registry Login To Promote
         uses: docker/login-action@v3
         with:

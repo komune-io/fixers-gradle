@@ -1,0 +1,9 @@
+Classes are copied from build-composite module to config module during build.
+This ensures a single source of truth while making classes available for compilation.
+
+The copy is implemented in the root build.gradle.kts file as a Gradle task named "copyConfigSources".
+It runs automatically before compilation because the config module's "compileKotlin" task depends on it.
+
+When running "./gradlew clean build":
+1. The "clean" task triggers "cleanConfigSources" to remove any previously copied files
+2. The "build" task includes compilation, which triggers "copyConfigSources" to copy fresh files

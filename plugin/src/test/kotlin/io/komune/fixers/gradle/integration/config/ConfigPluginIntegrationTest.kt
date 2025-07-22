@@ -44,8 +44,8 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
                     println("Fixers extension found: ${'$'}{fixersExt}")
 
                     // Access the extension properties directly
-                    val config = fixersExt as io.komune.gradle.config.ConfigExtension
-                    println("Bundle ID: ${'$'}{config.bundle.id}")
+                    val config = fixersExt as io.komune.fixers.gradle.config.ConfigExtension
+                    println("Bundle ID: ${'$'}{config.bundle.id.get()}")
                 }
             }
         """.trimIndent())
@@ -104,11 +104,11 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
             tasks.register("verifyConfig") {
                 doLast {
                     // Access the extension properties directly
-                    val config = rootProject.extensions.getByName("fixers") as io.komune.gradle.config.ConfigExtension
-                    println("Bundle ID: ${'$'}{config.bundle.id}")
-                    println("Detekt disabled: ${'$'}{config.detekt.disable}")
-                    println("Sonar project key: ${'$'}{config.sonar.projectKey}")
-                    println("Kt2Ts output directory: ${'$'}{config.kt2Ts.outputDirectory}")
+                    val config = rootProject.extensions.getByName("fixers") as io.komune.fixers.gradle.config.ConfigExtension
+                    println("Bundle ID: ${'$'}{config.bundle.id.get()}")
+                    println("Detekt disabled: ${'$'}{config.detekt.disable.get()}")
+                    println("Sonar project key: ${'$'}{config.sonar.projectKey.get()}")
+                    println("Kt2Ts output directory: ${'$'}{config.kt2Ts.outputDirectory.get()}")
                 }
             }
         """.trimIndent())
