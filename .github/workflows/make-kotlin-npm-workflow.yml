@@ -85,6 +85,7 @@ on:
         required: false
       PKG_GITHUB_TOKEN:
         required: false
+      # DEPRECATED
       NPM_PKG_PUBLISH_TOKEN:
         required: false
       NPM_PKG_STAGE_TOKEN:

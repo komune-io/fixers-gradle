@@ -51,6 +51,13 @@ on:
         type: "string"
         default: "test"
 
+      # DEPRECATED
+      make-publish-task:
+        description: "The Make command to execute for publishing."
+        required: false
+        type: "string"
+        default: "stage"
+
       make-stage-task:
         description: "The Make command to execute for staging."
         required: false
