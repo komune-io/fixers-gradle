@@ -235,6 +235,20 @@ open class PublishConfig(
     val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
         convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
     }
+    
+    /**
+     * Searches for the version in the VERSION file or falls back to the project's version.
+     *
+     * @return A provider that resolves to the version string
+     */
+    val version: Provider<String> = project.provider {
+        val versionFile = project.rootProject.file("VERSION")
+        if (versionFile.exists()) {
+            versionFile.readText().trim()
+        } else {
+            project.version.toString()
+        }
+    }
 
     /**
      * Gets the staging repository path.
