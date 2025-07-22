@@ -56,7 +56,7 @@ on:
         description: "The Make command to execute for publishing."
         required: false
         type: "string"
-        default: "stage"
+        default: "publish"
 
       make-stage-task:
         description: "The Make command to execute for staging."
@@ -96,7 +96,7 @@ on:
 
       # DEPRECATED
       force-publish:
-        description: "Flag to force execute stage task."
+        description: "Flag to force execute publish task."
         required: false
         type: "string"
         default: "false"
