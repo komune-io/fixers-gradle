@@ -36,7 +36,9 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
 
                 val cleaning = config.buildCleaningRegex()
 
-                cleanSubProjects(cleaning)
+                doFirst {
+                    cleanSubProjects(cleaning)
+                }
                 eachFile {
                     file.cleanFile(cleaning)
                 }

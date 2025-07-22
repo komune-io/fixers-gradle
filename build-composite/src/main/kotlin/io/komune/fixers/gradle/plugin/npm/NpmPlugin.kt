@@ -30,7 +30,7 @@ class NpmPlugin : Plugin<Project> {
 			onlyIf { npm.clean.get() }
 		}
 		afterEvaluate {
-			logger.error("afterEvaluate - Apply NpmPlugin to ${this.name}")
+			logger.info("afterEvaluate - Apply NpmPlugin to ${this.name}")
 			tasks.withType(NpmPublishTask::class.java).forEach {
 				it.apply {
 					dependsOn(tasks.withType(NpmTsGenTask::class.java))
