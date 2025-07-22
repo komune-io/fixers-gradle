@@ -39,6 +39,13 @@ on:
         type: "string"
         default: "test"
 
+      # DEPRECATED
+      make-publish-task:
+        description: "The Make command to execute for publishing."
+        required: false
+        type: "string"
+        default: "publish"
+
       make-stage-task:
         description: "The Make command to execute for staging."
         required: false
@@ -77,6 +84,8 @@ on:
       PKG_GITHUB_USERNAME:
         required: false
       PKG_GITHUB_TOKEN:
+        required: false
+      NPM_PKG_PUBLISH_TOKEN:
         required: false
       NPM_PKG_STAGE_TOKEN:
         required: false
@@ -134,6 +143,17 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
+
+      # DEPRECATED
+      - name: Execute Make Publish Task
+        if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'publish'))
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        with:
+          make-file: ${{ inputs.make-file }}
+          make-step: ${{ inputs.make-publish-task }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_PKG_PUBLISH_TOKEN }}
+
 
       - name: Execute Make Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
