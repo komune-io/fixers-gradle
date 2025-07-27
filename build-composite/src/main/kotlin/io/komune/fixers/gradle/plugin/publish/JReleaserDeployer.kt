@@ -114,8 +114,6 @@ object JReleaserDeployer {
                 active.set(project.provider {
                     if (fixersConfig.publish.isStage.get()) Active.ALWAYS else Active.NEVER
                 })
-                username.set(fixersConfig.publish.pkgGithubUsername)
-                password.set(fixersConfig.publish.pkgGithubToken)
                 url.set(fixersConfig.publish.githubPackagesUrl)
                 applyMavenCentralRules.set(true)
                 snapshotSupported.set(true)
