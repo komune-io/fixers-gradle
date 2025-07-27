@@ -152,9 +152,9 @@ on:
         required: false
       DOCKER_PROMOTE_PASSWORD:
         required: false
-      PKG_SONATYPE_OSS_USERNAME:
+      JRELEASER_MAVENCENTRAL_USERNAME:
         required: false
-      PKG_SONATYPE_OSS_TOKEN:
+      JRELEASER_MAVENCENTRAL_PASSWORD:
         required: false
       SONAR_TOKEN:
         required: false
@@ -166,10 +166,11 @@ jobs:
     env:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
-      PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
-      PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
+      JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
+      JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
+      JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
+      JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
+      JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout Repository
@@ -243,7 +244,6 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
-
       - name: Execute Make Check Task
         if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
