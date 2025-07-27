@@ -23,10 +23,8 @@ jobs:
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-      #      PKG_GITHUB_USERNAME: ${{ github.actor }}
-  #     PKG_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
-#      PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
+      DOCKER_STAGE_USERNAME: ${{ github.actor }}
+      DOCKER_STAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
   docs:
     uses: ./.github/workflows/publish-storybook-workflow.yml
