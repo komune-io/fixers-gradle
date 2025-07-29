@@ -30,6 +30,7 @@ on:
         description: 'Flag to enable Docker login to the promote Docker registry.'
         required: false
         default: 'true'
+        type: "string"
 
       excluded-versioning-branch:
         description: "A single branch name prefix where the job should be excluded from running. For example, use 'versioning/' to skip running the job on any branch that starts with 'versioning/'."
