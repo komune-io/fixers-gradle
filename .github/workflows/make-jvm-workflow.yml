@@ -15,8 +15,27 @@ on:
         default: true
         type: "boolean"
 
+      with-publish-docker-registry-login:
+        description: 'Flag to enable Docker login to the publish Docker registry.'
+        required: false
+        default: 'false'
+        type: "string"
+        
+      with-stage-docker-registry-login:
+        description: 'Flag to enable Docker login to the stage Docker registry.'
+        required: false
+        default: 'false'
+        type: "string"
+        
+      with-promote-docker-registry-login:
+        description: 'Flag to enable Docker login to the promote Docker registry.'
+        required: false
+        default: 'false'
+        type: "string"
+        
+      # DEPRECATED
       with-docker-registry-login:
-        description: 'Flag to enable Docker login to the Docker registry.'
+        description: 'Flag to enable Docker login to the Docker registry. DEPRECATED: Use with-publish-docker-registry-login, with-stage-docker-registry-login, or with-promote-docker-registry-login instead.'
         required: false
         default: 'false'
         type: "string"
@@ -218,7 +237,7 @@ jobs:
 
       # DEPRECATED
       - name: Docker Registry Login to Publish
-        if: (inputs.force-publish == 'true' || (inputs.with-docker-registry-login == 'true' && secrets.DOCKER_PUBLISH_USERNAME != '' && secrets.DOCKER_PUBLISH_PASSWORD != '' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'publish') || startsWith(github.ref, 'refs/heads/versioning/'))))))
+        if: (inputs.force-publish == 'true' || ((inputs.with-publish-docker-registry-login == 'true' || inputs.with-docker-registry-login == 'true') && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'publish') || startsWith(github.ref, 'refs/heads/versioning/'))))))
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-publish-repository }}
@@ -233,7 +252,7 @@ jobs:
           make-step: ${{ inputs.make-publish-task }}
 
       - name: Docker Registry Login to Stage
-        if: (inputs.force-stage == 'true' || (inputs.with-docker-registry-login == 'true' && secrets.DOCKER_STAGE_USERNAME != '' && secrets.DOCKER_STAGE_PASSWORD != '' &&((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))))
+        if: (inputs.force-stage == 'true' || ((inputs.with-stage-docker-registry-login == 'true' || inputs.with-docker-registry-login == 'true') &&((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))))
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-stage-repository }}
@@ -254,7 +273,7 @@ jobs:
           make-step: ${{ inputs.make-check-task }}
 
       - name: Docker Registry Login To Promote
-        if: (inputs.with-docker-registry-login == 'true' && secrets.DOCKER_PROMOTE_USERNAME != '' && secrets.DOCKER_PROMOTE_PASSWORD != '' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))
+        if: ((inputs.with-promote-docker-registry-login == 'true' || inputs.with-docker-registry-login == 'true') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-promote-repository }}
