@@ -54,7 +54,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
       uses: actions/cache@v4
-      id: package-manager-modules-cache
+      id: yarn-modules-cache
       with:
         path: "**/node_modules"
         key: ${{ runner.os }}-yarn-modules-${{ hashFiles('**/yarn.lock') }}
@@ -63,7 +63,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
       uses: actions/cache@v4
-      id: package-manager-modules-cache
+      id: pnpm-modules-cache
       with:
         path: |
           ~/.pnpm-store
@@ -74,7 +74,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'npm'
       uses: actions/cache@v4
-      id: package-manager-modules-cache
+      id: npm-modules-cache
       with:
         path: "**/node_modules"
         key: ${{ runner.os }}-npm-modules-${{ hashFiles('**/package-lock.json') }}
@@ -83,7 +83,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
       uses: actions/cache@v4
-      id: package-manager-dist-cache
+      id: yarn-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
@@ -92,7 +92,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
       uses: actions/cache@v4
-      id: package-manager-dist-cache
+      id: pnpm-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-pnpm-dist-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -101,7 +101,7 @@ runs:
 
     - if: steps.detect-package-manager.outputs.package-manager == 'npm'
       uses: actions/cache@v4
-      id: package-manager-dist-cache
+      id: npm-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-npm-dist-${{ hashFiles('**/package-lock.json') }}
