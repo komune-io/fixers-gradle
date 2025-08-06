@@ -164,7 +164,7 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize Node.js Environment
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@7cfd6da9011be3c241632d32b56e4ea82bf201a4
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@ea5bf711da9bdb237d239a4c60916f2741bc0fb8
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
