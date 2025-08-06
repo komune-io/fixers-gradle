@@ -90,7 +90,7 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@beb8afdc4eb334c90cbada0a4a2571f17d02515d
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@bc5c7e881a6b50ca929cb8a100cea3bed77fbf6c
     with:
       make-file: ${{ inputs.make-file }}
       base-dir: ${{ inputs.storybook-dir }}
