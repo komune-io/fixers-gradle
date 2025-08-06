@@ -1,5 +1,5 @@
 name: "Node.js Environment Setup and Dependency Caching"
-description: "This workflow sets up a Node.js environment, caches dependencies, and configures authentication for private NPM packages."
+description: "This workflow sets up a Node.js environment with automatic package manager detection (yarn/pnpm/npm), caches dependencies, and configures authentication for private NPM packages."
 inputs:
   base-dir:
     description: "Base directory of the Node.js project, if applicable."
@@ -13,22 +13,47 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Detect package manager
+      id: detect-pm
+      shell: bash
+      run: |
+        if [[ "${{ inputs.base-dir }}" != "" ]]; then
+          base_dir="${{ inputs.base-dir }}"
+        else
+          base_dir="."
+        fi
+        
+        if [ -f "$base_dir/pnpm-lock.yaml" ]; then
+          echo "pm=pnpm" >> $GITHUB_OUTPUT
+          echo "lockfile=pnpm-lock.yaml" >> $GITHUB_OUTPUT
+        elif [ -f "$base_dir/yarn.lock" ]; then
+          echo "pm=yarn" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+        elif [ -f "$base_dir/package-lock.json" ]; then
+          echo "pm=npm" >> $GITHUB_OUTPUT
+          echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+        else
+          echo "pm=yarn" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+        fi
+
     - if: inputs.base-dir != ''
       name: Setup Node with base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: "yarn"
-        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/yarn.lock
+        cache: ${{ steps.detect-pm.outputs.pm }}
+        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/${{ steps.detect-pm.outputs.lockfile }}
 
     - if: inputs.base-dir == ''
       name: Setup Node without base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: "yarn"
+        cache: ${{ steps.detect-pm.outputs.pm }}
 
-    - uses: actions/cache@v4
+    - if: steps.detect-pm.outputs.pm == 'yarn'
+      uses: actions/cache@v4
       id: yarn-modules-cache
       with:
         path: "**/node_modules"
@@ -36,10 +61,49 @@ runs:
         restore-keys: |
           ${{ runner.os }}-yarn-modules-
 
-    - uses: actions/cache@v4
+    - if: steps.detect-pm.outputs.pm == 'pnpm'
+      uses: actions/cache@v4
+      id: pnpm-modules-cache
+      with:
+        path: |
+          ~/.pnpm-store
+          **/node_modules
+        key: ${{ runner.os }}-pnpm-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-modules-
+
+    - if: steps.detect-pm.outputs.pm == 'npm'
+      uses: actions/cache@v4
+      id: npm-modules-cache
+      with:
+        path: "**/node_modules"
+        key: ${{ runner.os }}-npm-modules-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-modules-
+
+    - if: steps.detect-pm.outputs.pm == 'yarn'
+      uses: actions/cache@v4
       id: yarn-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-dist-
+
+    - if: steps.detect-pm.outputs.pm == 'pnpm'
+      uses: actions/cache@v4
+      id: pnpm-dist-cache
+      with:
+        path: "**/dist"
+        key: ${{ runner.os }}-pnpm-dist-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-dist-
+
+    - if: steps.detect-pm.outputs.pm == 'npm'
+      uses: actions/cache@v4
+      id: npm-dist-cache
+      with:
+        path: "**/dist"
+        key: ${{ runner.os }}-npm-dist-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-dist-
