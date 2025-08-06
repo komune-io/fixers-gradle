@@ -123,7 +123,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@a8793d91302765c5dafd755d82bb0bcf9ad2b142
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@7cfd6da9011be3c241632d32b56e4ea82bf201a4
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
@@ -147,7 +147,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js for GitHub Pages
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@a8793d91302765c5dafd755d82bb0bcf9ad2b142
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@7cfd6da9011be3c241632d32b56e4ea82bf201a4
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
