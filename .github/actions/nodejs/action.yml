@@ -58,58 +58,10 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: ${{ steps.detect-package-manager.outputs.package-manager }}
 
-    - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
-      uses: actions/cache@v4
-      id: yarn-modules-cache
-      with:
-        path: "**/node_modules"
-        key: ${{ runner.os }}-yarn-modules-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-modules-
-
-    - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
-      uses: actions/cache@v4
-      id: pnpm-modules-cache
-      with:
-        path: |
-          ~/.pnpm-store
-          **/node_modules
-        key: ${{ runner.os }}-pnpm-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-modules-
-
-    - if: steps.detect-package-manager.outputs.package-manager == 'npm'
-      uses: actions/cache@v4
-      id: npm-modules-cache
-      with:
-        path: "**/node_modules"
-        key: ${{ runner.os }}-npm-modules-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-modules-
-
-    - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
-      uses: actions/cache@v4
-      id: yarn-dist-cache
+    - uses: actions/cache@v4
+      id: dist-cache
       with:
         path: "**/dist"
-        key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-dist-${{ hashFiles(format('**/{0}', steps.detect-package-manager.outputs.lockfile)) }}
         restore-keys: |
-          ${{ runner.os }}-yarn-dist-
-
-    - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
-      uses: actions/cache@v4
-      id: pnpm-dist-cache
-      with:
-        path: "**/dist"
-        key: ${{ runner.os }}-pnpm-dist-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-dist-
-
-    - if: steps.detect-package-manager.outputs.package-manager == 'npm'
-      uses: actions/cache@v4
-      id: npm-dist-cache
-      with:
-        path: "**/dist"
-        key: ${{ runner.os }}-npm-dist-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-dist-
+          ${{ runner.os }}-dist-
