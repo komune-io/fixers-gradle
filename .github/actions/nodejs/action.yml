@@ -14,7 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: Detect package manager
-      id: detect-pm
+      id: detect-package-manager
       shell: bash
       run: |
         if [[ "${{ inputs.base-dir }}" != "" ]]; then
@@ -24,16 +24,16 @@ runs:
         fi
         
         if [ -f "$base_dir/pnpm-lock.yaml" ]; then
-          echo "pm=pnpm" >> $GITHUB_OUTPUT
+          echo "package-manager=pnpm" >> $GITHUB_OUTPUT
           echo "lockfile=pnpm-lock.yaml" >> $GITHUB_OUTPUT
         elif [ -f "$base_dir/yarn.lock" ]; then
-          echo "pm=yarn" >> $GITHUB_OUTPUT
+          echo "package-manager=yarn" >> $GITHUB_OUTPUT
           echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
         elif [ -f "$base_dir/package-lock.json" ]; then
-          echo "pm=npm" >> $GITHUB_OUTPUT
+          echo "package-manager=npm" >> $GITHUB_OUTPUT
           echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
         else
-          echo "pm=yarn" >> $GITHUB_OUTPUT
+          echo "package-manager=yarn" >> $GITHUB_OUTPUT
           echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
         fi
 
@@ -42,28 +42,28 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ steps.detect-pm.outputs.pm }}
-        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/${{ steps.detect-pm.outputs.lockfile }}
+        cache: ${{ steps.detect-package-manager.outputs.package-manager }}
+        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/${{ steps.detect-package-manager.outputs.lockfile }}
 
     - if: inputs.base-dir == ''
       name: Setup Node without base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ steps.detect-pm.outputs.pm }}
+        cache: ${{ steps.detect-package-manager.outputs.package-manager }}
 
-    - if: steps.detect-pm.outputs.pm == 'yarn'
+    - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
       uses: actions/cache@v4
-      id: yarn-modules-cache
+      id: package-manager-modules-cache
       with:
         path: "**/node_modules"
         key: ${{ runner.os }}-yarn-modules-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-modules-
 
-    - if: steps.detect-pm.outputs.pm == 'pnpm'
+    - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
       uses: actions/cache@v4
-      id: pnpm-modules-cache
+      id: package-manager-modules-cache
       with:
         path: |
           ~/.pnpm-store
@@ -72,36 +72,36 @@ runs:
         restore-keys: |
           ${{ runner.os }}-pnpm-modules-
 
-    - if: steps.detect-pm.outputs.pm == 'npm'
+    - if: steps.detect-package-manager.outputs.package-manager == 'npm'
       uses: actions/cache@v4
-      id: npm-modules-cache
+      id: package-manager-modules-cache
       with:
         path: "**/node_modules"
         key: ${{ runner.os }}-npm-modules-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-npm-modules-
 
-    - if: steps.detect-pm.outputs.pm == 'yarn'
+    - if: steps.detect-package-manager.outputs.package-manager == 'yarn'
       uses: actions/cache@v4
-      id: yarn-dist-cache
+      id: package-manager-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-dist-
 
-    - if: steps.detect-pm.outputs.pm == 'pnpm'
+    - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
       uses: actions/cache@v4
-      id: pnpm-dist-cache
+      id: package-manager-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-pnpm-dist-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-dist-
 
-    - if: steps.detect-pm.outputs.pm == 'npm'
+    - if: steps.detect-package-manager.outputs.package-manager == 'npm'
       uses: actions/cache@v4
-      id: npm-dist-cache
+      id: package-manager-dist-cache
       with:
         path: "**/dist"
         key: ${{ runner.os }}-npm-dist-${{ hashFiles('**/package-lock.json') }}
