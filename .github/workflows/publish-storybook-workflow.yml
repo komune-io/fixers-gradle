@@ -90,7 +90,7 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@bc5c7e881a6b50ca929cb8a100cea3bed77fbf6c
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@5805c22d818c20b9b0077096a021c1161c1cf7f8
     with:
       make-file: ${{ inputs.make-file }}
       base-dir: ${{ inputs.storybook-dir }}
@@ -123,7 +123,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@beb8afdc4eb334c90cbada0a4a2571f17d02515d
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@5805c22d818c20b9b0077096a021c1161c1cf7f8
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
