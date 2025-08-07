@@ -4,7 +4,6 @@ inputs:
   storybook-dir:
     description: "Storybook base directory"
     required: false
-    default: "."
 
   storybook-static-dir:
     description: "Path to the storybook-static"

@@ -7,6 +7,7 @@ on:
         description: "The Node.js version to use for the workflow."
         required: false
         type: "string"
+
       with-chromatic:
         description: "Determines whether to publish the Storybook to Chromatic."
         required: false
@@ -17,6 +18,11 @@ on:
         description: 'Flag to enable Npm setup with GitHub Packages.'
         required: false
         default: 'true'
+        type: "string"
+
+      base-dir:
+        description: "The base directory of the Node.js project."
+        required: false
         type: "string"
 
       storybook-dir:
@@ -93,7 +99,7 @@ jobs:
     uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@5805c22d818c20b9b0077096a021c1161c1cf7f8
     with:
       make-file: ${{ inputs.make-file }}
-      base-dir: ${{ inputs.storybook-dir }}
+      base-dir: ${{ inputs.base-dir }}
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
       with-setup-npm-github-pkg: ${{ inputs.with-setup-npm-github-pkg }}
