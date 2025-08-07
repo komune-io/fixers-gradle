@@ -24,12 +24,13 @@ on:
         description: "The base directory of the Node.js project."
         required: false
         type: "string"
+        default: ""
 
       storybook-dir:
         description: "The base directory where the Storybook configuration resides."
         required: false
         type: "string"
-        default: "storybook"
+        default: "."
 
       # DEPRECATED
       docker-publish-repository:
@@ -138,6 +139,7 @@ jobs:
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
+          storybook-static-dir-separator: ${{ inputs.storybook-static-dir-separator }}
           project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 
   publish-github-page:
@@ -160,5 +162,5 @@ jobs:
       - name: Deploy Storybook to GitHub Pages
         uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
-          artifact-name: ${{ inputs.storybook-dir }}
-          artifact-path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
+          artifact-name: ${{ inputs.storybook-static-dir }}
+          artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}

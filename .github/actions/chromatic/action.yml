@@ -4,10 +4,16 @@ inputs:
   storybook-dir:
     description: "Storybook base directory"
     required: false
+    default: "."
 
   storybook-static-dir:
     description: "Path to the storybook-static"
     required: true
+
+  storybook-static-dir-separator:
+    description: "Path separator between storybook-dir and storybook-static-dir"
+    required: false
+    default: "/"
 
   project-token:
     description: "Path to the artifact to upload, leave empty if no artifact is needed"
@@ -23,7 +29,7 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: storybook-static
-        path: ${{ inputs.storybook-dir }}/${{ inputs.storybook-static-dir }}
+        path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
     - name: Publish to Chromatic
       id: chromatic
       uses: chromaui/action@latest
