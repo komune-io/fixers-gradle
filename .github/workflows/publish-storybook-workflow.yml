@@ -132,7 +132,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/nodejs@541f8c4e459f3e208cd531c1e97917ad19abde26
         with:
           node-version: ${{ inputs.node-version }}
-          base-dir: ${{ inputs.storybook-dir }}
+          base-dir: ${{ inputs.base-dir }}
       - name: Publish Storybook to Chromatic
         uses: komune-io/fixers-gradle/.github/actions/chromatic@541f8c4e459f3e208cd531c1e97917ad19abde26
         with:
@@ -156,7 +156,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/nodejs@541f8c4e459f3e208cd531c1e97917ad19abde26
         with:
           node-version: ${{ inputs.node-version }}
-          base-dir: ${{ inputs.storybook-dir }}
+          base-dir: ${{ inputs.base-dir }}
       - name: Deploy Storybook to GitHub Pages
         uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
