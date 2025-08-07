@@ -128,7 +128,7 @@ jobs:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.storybook-dir }}
       - name: Publish Storybook to Chromatic
-        uses: komune-io/fixers-gradle/.github/actions/chromatic@main
+        uses: komune-io/fixers-gradle/.github/actions/chromatic@0065aac54607100431891653e7fd0c4808d12dbb
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
