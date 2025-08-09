@@ -1,5 +1,5 @@
 name: "Node.js Environment Setup and Dependency Caching"
-description: "This workflow sets up a Node.js environment, caches dependencies, and configures authentication for private NPM packages."
+description: "This workflow sets up a Node.js environment with automatic package manager detection (yarn/pnpm/npm), caches dependencies, and configures authentication for private NPM packages."
 inputs:
   base-dir:
     description: "Base directory of the Node.js project, if applicable."
@@ -13,33 +13,55 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Detect package manager
+      id: detect-package-manager
+      shell: bash
+      run: |
+        if [[ "${{ inputs.base-dir }}" != "" ]]; then
+          base_dir="${{ inputs.base-dir }}"
+        else
+          base_dir="."
+        fi
+        
+        if [ -f "$base_dir/pnpm-lock.yaml" ]; then
+          echo "package-manager=pnpm" >> $GITHUB_OUTPUT
+          echo "lockfile=pnpm-lock.yaml" >> $GITHUB_OUTPUT
+        elif [ -f "$base_dir/yarn.lock" ]; then
+          echo "package-manager=yarn" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+        elif [ -f "$base_dir/package-lock.json" ]; then
+          echo "package-manager=npm" >> $GITHUB_OUTPUT
+          echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+        else
+          echo "package-manager=yarn" >> $GITHUB_OUTPUT
+          echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+        fi
+
+    - if: steps.detect-package-manager.outputs.package-manager == 'pnpm'
+      name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+
     - if: inputs.base-dir != ''
       name: Setup Node with base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: "yarn"
-        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/yarn.lock
+        cache: ${{ steps.detect-package-manager.outputs.package-manager }}
+        cache-dependency-path: ${{ github.workspace }}/${{ inputs.base-dir }}/${{ steps.detect-package-manager.outputs.lockfile }}
 
     - if: inputs.base-dir == ''
       name: Setup Node without base-dir ${{ inputs.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: "yarn"
+        cache: ${{ steps.detect-package-manager.outputs.package-manager }}
 
     - uses: actions/cache@v4
-      id: yarn-modules-cache
-      with:
-        path: "**/node_modules"
-        key: ${{ runner.os }}-yarn-modules-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-modules-
-
-    - uses: actions/cache@v4
-      id: yarn-dist-cache
+      id: dist-cache
       with:
         path: "**/dist"
-        key: ${{ runner.os }}-yarn-dist-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-dist-${{ hashFiles(format('**/{0}', steps.detect-package-manager.outputs.lockfile)) }}
         restore-keys: |
-          ${{ runner.os }}-yarn-dist-
+          ${{ runner.os }}-dist-
