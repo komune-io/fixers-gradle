@@ -25,6 +25,8 @@ jobs:
       GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
       DOCKER_STAGE_USERNAME: ${{ github.actor }}
       DOCKER_STAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
+      JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
 
   docs:
     uses: ./.github/workflows/publish-storybook-workflow.yml
@@ -34,10 +36,12 @@ jobs:
       pages: write
       id-token: write
     with:
-      on-tag: 'stage_promote'
+      on-tag: 'stage promote'
+      make-file: 'make_docs.mk'
       with-chromatic: false
-      storybook-dir: storybook
-      storybook-static-dir: storybook-static
+      base-dir: "storybook"
+      storybook-dir: "storybook"
+      storybook-static-dir: "storybook-static"
     secrets:
       NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
