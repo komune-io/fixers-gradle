@@ -13,7 +13,7 @@ runs:
         echo "settingsEvaluated {
             pluginManagement {
                 repositories {
-                    mavenLocal()
+                    mavenCentral()
                     gradlePluginPortal()
                     maven {
                         url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
@@ -27,7 +27,6 @@ runs:
         }
         allprojects {
             repositories {
-                mavenLocal()
                 mavenCentral()
                 maven {
                     url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
