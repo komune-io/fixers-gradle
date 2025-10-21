@@ -20,7 +20,7 @@ object FixersRepository {
 
 object FixersPluginVersions {
 	const val kotlin = "1.9.25"
-	const val springBoot = "3.5.4"
+	const val springBoot = "3.5.6"
 	const val npmPublish = "3.4.2"
 	/**
 	 * com.google.devtools.ksp
@@ -41,11 +41,11 @@ object FixersVersions {
 
 	object Spring {
 		const val boot = FixersPluginVersions.springBoot
-		const val data = "3.5.2"
-		const val framework = "6.1.13"
-		const val security = "6.5.2"
+		const val data = "3.5.5"
+		const val framework = "6.2.12"
+		const val security = "6.5.5"
 		const val jakartaPersistence = "3.2.0"
-		const val reactor = "3.7.8"
+		const val reactor = "3.7.12"
 	}
 
 	object Json {
