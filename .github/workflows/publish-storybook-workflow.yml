@@ -75,6 +75,12 @@ on:
         type: "string"
         default: "make_docs.mk"
 
+      build-path:
+        description: "Build output paths to cache (e.g., '**/storybook-static', '**/dist'). Leave empty to skip build cache."
+        required: false
+        type: "string"
+        default: "**/storybook-static"
+
     secrets:
       NPM_AUTH_TOKEN:
         required: false
@@ -104,6 +110,7 @@ jobs:
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
       with-setup-npm-github-pkg: ${{ inputs.with-setup-npm-github-pkg }}
+      build-path: ${{ inputs.build-path }}
       # DEPRECATED
       docker-publish-repository: ${{ inputs.docker-publish-repository }}
       docker-stage-repository: ${{ inputs.docker-stage-repository }}
@@ -134,6 +141,7 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.base-dir }}
+          build-cache-path: ${{ inputs.build-path }}
       - name: Publish Storybook to Chromatic
         uses: komune-io/fixers-gradle/.github/actions/chromatic@main
         with:
@@ -159,6 +167,7 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.base-dir }}
+          build-cache-path: ${{ inputs.build-path }}
       - name: Deploy Storybook to GitHub Pages
         uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:

@@ -132,6 +132,12 @@ on:
         type: "string"
         default: 'false'
 
+      build-path:
+        description: "Build output paths to cache (e.g., '**/dist', '**/build', '**/storybook-static'). Leave empty to skip build cache."
+        required: false
+        type: "string"
+        default: ""
+
     secrets:
       # DEPRECATED
       DOCKER_PUBLISH_USERNAME:
@@ -168,6 +174,7 @@ jobs:
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
+          build-cache-path: ${{ inputs.build-path }}
 
       - if: inputs.with-setup-npm-github-pkg == 'true'
         name: Setup Npm with GitHub Packages

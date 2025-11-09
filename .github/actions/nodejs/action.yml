@@ -9,6 +9,10 @@ inputs:
     description: "The version of Node.js to be installed."
     required: false
     default: "20"
+  build-cache-path:
+    description: "Additional build output paths to cache (e.g., '**/dist', '**/build', '**/storybook-static'). Leave empty to skip build cache."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -58,10 +62,12 @@ runs:
         node-version: ${{ inputs.node-version }}
         cache: ${{ steps.detect-package-manager.outputs.package-manager }}
 
-    - uses: actions/cache@v4
-      id: dist-cache
+    - if: inputs.build-cache-path != ''
+      name: Cache build output
+      uses: actions/cache@v4
+      id: build-cache
       with:
-        path: "**/dist"
-        key: ${{ runner.os }}-dist-${{ hashFiles(format('**/{0}', steps.detect-package-manager.outputs.lockfile)) }}
+        path: ${{ inputs.build-cache-path }}
+        key: ${{ runner.os }}-build-${{ hashFiles(format('**/{0}', steps.detect-package-manager.outputs.lockfile)) }}
         restore-keys: |
-          ${{ runner.os }}-dist-
+          ${{ runner.os }}-build-
