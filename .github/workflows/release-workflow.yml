@@ -4,12 +4,10 @@ on:
   workflow_call:
     inputs:
       version:
-        type: string
         description: 'Version to release (e.g., 1.0.0)'
         required: true
         type: string
       next_version:
-        type: string
         description: 'Next development version (e.g., 1.0.1-dev)'
         required: true
         type: string
