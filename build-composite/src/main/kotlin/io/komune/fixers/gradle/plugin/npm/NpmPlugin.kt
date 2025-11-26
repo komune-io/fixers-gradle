@@ -6,6 +6,7 @@ import dev.petuska.npm.publish.task.NpmPublishTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Npm
+import io.komune.fixers.gradle.plugin.config.buildCleaningRegex
 import io.komune.fixers.gradle.plugin.npm.task.NpmTsGenTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -25,8 +26,14 @@ class NpmPlugin : Plugin<Project> {
 	}
 
 	private fun Project.configurePackTsCleaning(npm: Npm) {
+		// Resolve values at configuration time for configuration cache compatibility
+		val projectBuildDir = "${layout.buildDirectory.asFile.get().absolutePath}/packages/js"
+		val cleaningRegex = rootProject.extensions.fixers?.kt2Ts?.buildCleaningRegex() ?: emptyMap()
+
 		tasks.register("npmTsGenTask", NpmTsGenTask::class.java) {
 			group = "build"
+			buildDir = projectBuildDir
+			cleaning = cleaningRegex
 			onlyIf { npm.clean.get() }
 		}
 		afterEvaluate {
