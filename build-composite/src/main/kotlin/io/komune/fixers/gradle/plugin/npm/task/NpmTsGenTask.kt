@@ -1,20 +1,22 @@
 package io.komune.fixers.gradle.plugin.npm.task
 
-import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.plugin.config.buildCleaningRegex
-import io.komune.fixers.gradle.plugin.config.cleanProject
+import io.komune.fixers.gradle.plugin.config.cleanProjectDir
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
 open class NpmTsGenTask: DefaultTask() {
+
+    @Input
+    var buildDir: String = ""
+
+    @Input
+    var cleaning: Map<String, List<Pair<Regex, String>>> = emptyMap()
+
     @TaskAction
     fun doAction() {
-        project.logger.info("[${project.name}]Run NpmTsGenTask...")
-        project.rootProject.extensions.fixers?.kt2Ts?.let { config ->
-            val cleaning = config.buildCleaningRegex()
-            project.logger.info("Cleaning: $cleaning")
-            project.cleanProject(cleaning)
-        }
-
+        logger.info("[${name}] Run NpmTsGenTask...")
+        logger.info("Cleaning: $cleaning")
+        cleanProjectDir(buildDir, cleaning)
     }
 }

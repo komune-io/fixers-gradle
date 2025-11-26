@@ -21,10 +21,11 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
             register<Copy>("tsGen") {
                 dependsOn("cleanTsGen")
 
+                // Resolve all Project-dependent values at configuration time for configuration cache compatibility
                 val inputDir = if(config.inputDirectory.isPresent) {
                     config.inputDirectory.get()
                 } else {
-                    "${this.project.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
+                    "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
                         target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
                     }
                 }
@@ -36,8 +37,13 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
 
                 val cleaning = config.buildCleaningRegex()
 
+                // Capture subproject paths at configuration time (not Project references)
+                val subprojectBuildDirs = target.subprojects.map { subproject ->
+                    "${subproject.layout.buildDirectory.asFile.get().absolutePath}/packages/js"
+                }
+
                 doFirst {
-                    cleanSubProjects(cleaning)
+                    cleanSubProjectDirs(subprojectBuildDirs, cleaning)
                 }
                 eachFile {
                     file.cleanFile(cleaning)
@@ -47,15 +53,13 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     }
 }
 
-fun Project.cleanSubProjects(cleaning: Map<String, List<Pair<Regex, String>>>) {
-    project.logger.info("----------------")
-    subprojects.forEach { project ->
-        project.cleanProject(cleaning)
+private fun cleanSubProjectDirs(buildDirs: List<String>, cleaning: Map<String, List<Pair<Regex, String>>>) {
+    buildDirs.forEach { folder ->
+        cleanProjectDir(folder, cleaning)
     }
 }
 
-fun Project.cleanProject(cleaning: Map<String, List<Pair<Regex, String>>>) {
-    val folder = "${project.layout.buildDirectory.asFile.get().absolutePath}/packages/js"
+fun cleanProjectDir(folder: String, cleaning: Map<String, List<Pair<Regex, String>>>) {
     File(folder).listFiles()?.forEach { file ->
         file.cleanFile(cleaning)
     }
