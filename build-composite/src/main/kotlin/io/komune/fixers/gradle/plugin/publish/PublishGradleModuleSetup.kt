@@ -15,14 +15,23 @@ class PublishGradleModuleSetup(
 ) {
 
     fun configurePluginPublications() {
+        // Configure main plugin publication
         publications.findByName("pluginMaven")?.let { publication ->
             (publication as MavenPublication).pom(getMavenCentralMetadata())
         }
 
+        // Configure explicitly listed marker publications
         val markerPublications = config.publish.gradlePlugin.get()
         markerPublications.forEach { publicationName ->
             publications.findByName(publicationName)?.let { publication ->
                 (publication as MavenPublication).pom(getPomMetadata())
+            }
+        }
+
+        // Also configure ALL PluginMarkerMaven publications to ensure they have required POM metadata
+        publications.withType(MavenPublication::class.java).configureEach {
+            if (name.endsWith("PluginMarkerMaven")) {
+                pom(getPomMetadata())
             }
         }
     }

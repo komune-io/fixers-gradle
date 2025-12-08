@@ -7,7 +7,7 @@ import org.gradle.kotlin.dsl.withType
 
 
 fun Project.setupJarInfo() {
-	tasks.withType<Jar> {
+	tasks.withType<Jar>().configureEach {
 		manifest {
 			attributes(
 				"Implementation-Title" to project.name,

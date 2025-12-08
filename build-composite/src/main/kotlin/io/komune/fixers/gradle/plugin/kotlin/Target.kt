@@ -25,7 +25,7 @@ enum class Target {
 		@JvmStatic
 		fun currentTarget(project: ExtensionAware): Target {
 			val value = project.find(PROPERTY).toString()
-			return values().find { it.name.equals(value, ignoreCase = true) } ?: ALL
+			return entries.find { it.name.equals(value, ignoreCase = true) } ?: ALL
 		}
 
         @JvmStatic

@@ -60,6 +60,82 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     /**
+     * Test that subproject can override root project configuration.
+     * Subproject values should be preserved, and missing values should inherit from root.
+     */
+    @Test
+    fun `should allow subproject to override root configuration`() {
+        // Set up multi-project build
+        settingsFile.writeText("""
+            rootProject.name = "integration-test-project"
+            include("subproject")
+        """.trimIndent())
+
+        // Root project configuration
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+
+            fixers {
+                bundle {
+                    name.set("root-project-name")
+                    description.set("Root project description")
+                    url.set("https://github.com/komune-io/root")
+                }
+                jdk {
+                    version.set(17)
+                }
+            }
+        """.trimIndent())
+
+        // Create subproject directory
+        val subprojectDir = testProjectDir.resolve("subproject").toFile()
+        subprojectDir.mkdirs()
+
+        // Subproject configuration - overrides name but inherits description and url
+        val subprojectBuildFile = subprojectDir.resolve("build.gradle.kts")
+        subprojectBuildFile.writeText("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+
+            // Get a reference to the config during configuration phase
+            val fixersConfig = extensions.findByName("fixers") as io.komune.fixers.gradle.config.ConfigExtension
+
+            fixers {
+                bundle {
+                    name.set("subproject-override-name")
+                    // description NOT set - should inherit from root
+                    // url NOT set - should inherit from root
+                }
+                // jdk NOT set - should inherit from root
+            }
+
+            // Task to verify the configuration inheritance
+            tasks.register("verifyOverride") {
+                doLast {
+                    // Use the config reference captured at configuration time
+                    println("Subproject bundle name: ${'$'}{fixersConfig.bundle.name.get()}")
+                    println("Subproject bundle description: ${'$'}{fixersConfig.bundle.description.orNull}")
+                    println("Subproject bundle url: ${'$'}{fixersConfig.bundle.url.orNull}")
+                    println("Subproject jdk version: ${'$'}{fixersConfig.jdk.version.orNull}")
+                }
+            }
+        """.trimIndent())
+
+        // Run the verification task on subproject
+        val result = runGradle(":subproject:verifyOverride")
+
+        // Verify that subproject override is preserved
+        assertThat(result.output).contains("Subproject bundle name: subproject-override-name")
+        // Verify that unset values inherit from root
+        assertThat(result.output).contains("Subproject bundle description: Root project description")
+        assertThat(result.output).contains("Subproject bundle url: https://github.com/komune-io/root")
+        assertThat(result.output).contains("Subproject jdk version: 17")
+    }
+
+    /**
      * Test that the ConfigPlugin correctly configures all extension properties.
      */
     @Test

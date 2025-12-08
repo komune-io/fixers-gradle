@@ -17,14 +17,12 @@ class MppJsPlugin : Plugin<Project> {
             js(IR) {
                 binaries.library()
                 browser {
-                    testTask (
-                        Action {
-                            useKarma {
-                                useFirefoxHeadless()
+                    testTask {
+                        useKarma {
+                            useFirefoxHeadless()
 //                                useChromeHeadless()
-                            }
                         }
-                    )
+                    }
                 }
                 generateTypeScriptDefinitions()
             }

@@ -4,20 +4,6 @@ plugins {
 	id("io.komune.fixers.gradle.publishing")
 }
 
-fixers {
-	publish {
-		gradlePlugin.set(listOf(
-			"io.komune.fixers.gradle.configPluginMarkerMaven",
-			"io.komune.fixers.gradle.dependenciesPluginMarkerMaven",
-			"io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven",
-			"io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven",
-			"io.komune.fixers.gradle.publishPluginMarkerMaven",
-			"io.komune.fixers.gradle.npmPluginMarkerMaven",
-			"io.komune.fixers.gradle.checkPluginMarkerMaven"
-		))
-	}
-}
-
 dependencies {
 
 	implementation(libs.kotlinGradlePlugin)
@@ -36,6 +22,7 @@ dependencies {
 	api(project(":config"))
 
 	implementation(libs.bundles.test)
+	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 gradlePlugin {

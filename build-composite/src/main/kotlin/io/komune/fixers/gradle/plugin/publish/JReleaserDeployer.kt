@@ -20,11 +20,19 @@ import org.jreleaser.model.Signing
 object JReleaserDeployer {
 
     /**
-     * Configures JReleaser plugin for the given project.
+     * Applies the JReleaser plugin to the project.
+     * IMPORTANT: This must be called OUTSIDE of afterEvaluate to allow JReleaser's
+     * internal afterEvaluate hooks to run and initialize fields like 'immutableRelease'.
+     */
+    fun applyPlugin(project: Project) {
+        project.plugins.apply(JReleaserPlugin::class.java)
+    }
+
+    /**
+     * Configures JReleaser extension for the given project.
+     * This should be called in afterEvaluate after the plugin has been applied.
      */
     fun configure(project: Project, fixersConfig: ConfigExtension) {
-        project.plugins.apply(JReleaserPlugin::class.java)
-
         val versionFromFile = fixersConfig.bundle.version.get()
         if (project.version.toString().isEmpty()) {
             project.version = versionFromFile
@@ -45,7 +53,6 @@ object JReleaserDeployer {
             configureProjectSettings(this, fixersConfig)
             configureSigningSettings(this)
             configureDeploymentSettings(this, project, fixersConfig)
-            configureReleaseSettings(this)
             gitRootSearch.set(true)
         }
     }
@@ -85,6 +92,7 @@ object JReleaserDeployer {
         project: Project,
         fixersConfig: ConfigExtension
     ) {
+
         nexus2 {
             create("SNAPSHOT") {
                 // IMPORTANT: Use project.provider to defer the decision until execution time
@@ -146,14 +154,6 @@ object JReleaserDeployer {
         }
     }
 
-    private fun configureReleaseSettings(jReleaser: JReleaserExtension) {
-        jReleaser.release {
-            github {
-                skipRelease.set(true)
-            }
-        }
-    }
-
     // workaround: https://github.com/jreleaser/jreleaser/issues/1784
     @Suppress("MaxLineLength")
     private fun MavenDeployer.workAroundJarFileNotFound(project: Project) {
@@ -177,7 +177,7 @@ object JReleaserDeployer {
     }
 
     /**
-     * Registers the deploy task that depends on publish and jreleaserDeploy.
+     * Registers the deployment task that depends on publication and jreleaserDeploy.
      */
     private fun registerDeployTask(project: Project, fixersConfig: ConfigExtension) {
         project.tasks.register("deploy") {
@@ -186,21 +186,30 @@ object JReleaserDeployer {
             dependsOn("publish", "jreleaserDeploy")
         }
 
-        registerDeployerTask(project, fixersConfig, "stage", PkgDeployType.STAGE)
-        registerDeployerTask(project, fixersConfig, "promote", PkgDeployType.PROMOTE)
+        // Get the ListProperty reference - this is configuration cache safe
+        val pkgDeployTypes = fixersConfig.publish.pkgDeployTypes
+
+        registerDeployerTask(project, pkgDeployTypes, "stage", PkgDeployType.STAGE)
+        registerDeployerTask(project, pkgDeployTypes, "promote", PkgDeployType.PROMOTE)
     }
 
     private fun registerDeployerTask(
         project: Project,
-        fixersConfig: ConfigExtension,
+        pkgDeployTypes: org.gradle.api.provider.ListProperty<PkgDeployType>,
         name: String,
         deployType: PkgDeployType
     ) {
         project.tasks.register(name) {
             group = "publishing"
             description = "Sets deployment type to ${deployType.name} and triggers the deploy task"
+
+            // Mark as not compatible with configuration cache
+            // JReleaser itself isn't configuration cache compatible (uses Task.project at execution time)
+            notCompatibleWithConfigurationCache("JReleaser tasks use Task.project at execution time")
+
+            // Use the ListProperty directly
             doFirst {
-                fixersConfig.publish.pkgDeployTypes.add(deployType)
+                pkgDeployTypes.add(deployType)
             }
             dependsOn("publish")
             finalizedBy("deploy")

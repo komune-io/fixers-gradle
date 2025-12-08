@@ -27,7 +27,7 @@ object PublishJvmSetup {
 	private fun Project.setupExistingPublication(config: ConfigExtension) {
 		val variantName = name
 		configure<PublishingExtension> {
-			publications.all {
+			publications.configureEach {
 				(this as? MavenPublication)?.let { mavenPublication ->
 					mavenPublication.artifactId = getArtifactId(variantName, name)
 					val publication = project.pom(config.bundle)
@@ -74,9 +74,8 @@ object PublishJvmSetup {
 
 			tasks.register("sourcesJar", Jar::class.java) {
 				archiveClassifier.set("sources")
-				project.the<SourceSetContainer>().let { sourceSets ->
-					from(sourceSets["main"].allSource)
-				}
+				val sourceSets = project.the<SourceSetContainer>()
+				from(sourceSets["main"].allSource)
 			}
 		}
 	}

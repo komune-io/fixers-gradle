@@ -20,7 +20,10 @@ class ConfigPlugin : Plugin<Project> {
         val extension = target.config()
         val root: Project = target.rootProject
         root.setVersion()
-        target.afterEvaluate {
+
+        // Use gradle.projectsEvaluated for configuration cache compatibility
+        // This runs once after all projects are evaluated, avoiding per-project afterEvaluate
+        target.gradle.projectsEvaluated {
             log(target, root, extension)
 
             if (target == root) {
@@ -43,7 +46,7 @@ class ConfigPlugin : Plugin<Project> {
         target.logger.info("=== Config Plugin ===")
         target.logger.info("Target project: ${target.name}")
         target.logger.info("Root project: ${root.name}")
-        target.logger.info("Fixers Config ${config}")
+        target.logger.info("Fixers Config $config")
         target.logger.info("====================")
     }
 

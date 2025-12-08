@@ -16,11 +16,13 @@ class NpmPlugin : Plugin<Project> {
 
 	override fun apply(target: Project) {
 		target.logger.info("Apply NpmPlugin to ${target.name}")
+		// Use afterEvaluate instead of projectsEvaluated because NpmPublishPlugin
+		// internally uses afterEvaluate which would fail if project is already evaluated
 		target.afterEvaluate {
-			 target.rootProject.extensions.fixers?.takeIf { it.npm.publish.get() }?.let {config ->
-				 target.logger.info("Apply NpmPlugin to ${target.name} - ${target.getVersion(config)}")
-				 target.configureNpmPublishPlugin(config)
-				 configurePackTsCleaning(config.npm)
+			target.rootProject.extensions.fixers?.takeIf { it.npm.publish.get() }?.let { config ->
+				target.logger.info("Apply NpmPlugin to ${target.name} - ${target.getVersion(config)}")
+				target.configureNpmPublishPlugin(config)
+				target.configurePackTsCleaning(config.npm)
 			}
 		}
 	}
@@ -36,30 +38,29 @@ class NpmPlugin : Plugin<Project> {
 			cleaning = cleaningRegex
 			onlyIf { npm.clean.get() }
 		}
-		afterEvaluate {
-			logger.info("afterEvaluate - Apply NpmPlugin to ${this.name}")
-			tasks.withType(NpmPublishTask::class.java).forEach {
-				it.apply {
-					dependsOn(tasks.withType(NpmTsGenTask::class.java))
-				}
-			}
+
+		// Use configureEach for lazy task configuration instead of forEach
+		tasks.withType(NpmPublishTask::class.java).configureEach {
+			dependsOn(tasks.withType(NpmTsGenTask::class.java))
 		}
 	}
 
 	private fun Project.configureNpmPublishPlugin(config: ConfigExtension) {
 		logger.info("Apply NpmPublishPlugin to ${this.name}")
 		project.pluginManager.apply(NpmPublishPlugin::class.java)
+		// Use providers.environmentVariable() for configuration cache compatibility
+		val npmToken = providers.environmentVariable("NPM_TOKEN")
 		project.the<NpmPublishExtension>().apply {
 			organization.set(config.npm.organization.get())
 			version.set(getVersion(config))
 			registries {
-                register("npmjs") {
-                    uri.set(uri("https://registry.npmjs.org"))
-                    authToken.set(System.getenv("NPM_TOKEN"))
-                }
+				register("npmjs") {
+					uri.set(uri("https://registry.npmjs.org"))
+					authToken.set(npmToken)
+				}
 				register("github") {
 					uri.set(uri("https://npm.pkg.github.com"))
-					authToken.set(System.getenv("NPM_TOKEN"))
+					authToken.set(npmToken)
 				}
 			}
 		}
@@ -68,11 +69,12 @@ class NpmPlugin : Plugin<Project> {
 	private fun Project.getVersion(config: ConfigExtension): String? {
 		if (!config.npm.version.isPresent) return null
 		val npmVersion = config.npm.version.get()
+		val buildTimeValue = config.buildTime.get()
 		val projectVersion = project.version.toString().let { projectVersion ->
 			if(projectVersion == "next-SNAPSHOT" || projectVersion == "experimental-SNAPSHOT") {
-				projectVersion.replace("-SNAPSHOT", ".${config.buildTime}")
+				projectVersion.replace("-SNAPSHOT", ".$buildTimeValue")
 			} else {
-				"next.${config.buildTime}"
+				"next.$buildTimeValue"
 			}
 		}
 		return npmVersion.replace("-SNAPSHOT", projectVersion).also {

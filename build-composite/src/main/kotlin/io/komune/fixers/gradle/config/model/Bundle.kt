@@ -53,23 +53,6 @@ class Bundle(
         projectKey = "bundle.url"
     )
 
-    // Signing properties
-    /**
-     * The signing key for artifacts.
-     */
-    val signingKey: Property<String> = project.property(
-        envKey = "GPG_SIGNING_KEY",
-        projectKey = "signing.key"
-    )
-
-    /**
-     * The signing password for artifacts.
-     */
-    val signingPassword: Property<String> = project.property(
-        envKey = "GPG_SIGNING_PASSWORD",
-        projectKey = "signing.password"
-    )
-
     // License properties
     /**
      * The name of the license.
@@ -161,9 +144,7 @@ class Bundle(
                 id=${id.orNull}, 
                 description=${description.orNull}, 
                 version=${version.orNull}, 
-                url=${url.orNull}, 
-                signingKey=******, 
-                signingPassword=******, 
+                url=${url.orNull},
                 licenseName=${licenseName.orNull}, 
                 licenseUrl=${licenseUrl.orNull}, 
                 licenseDistribution=${licenseDistribution.orNull}, 

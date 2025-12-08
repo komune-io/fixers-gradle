@@ -1,0 +1,129 @@
+[metadata]
+format.version = "1.1"
+
+[versions]
+# Plugin versions
+kotlin = "1.9.25"
+spring-boot = "3.5.4"
+npm-publish = "3.4.2"
+ksp = "1.9.25-1.0.20"
+graalvm = "0.10.3"
+
+# Logging
+slf4j = "2.0.16"
+
+# Spring ecosystem
+spring-data = "3.5.2"
+spring-framework = "6.1.13"
+spring-security = "6.5.2"
+jakarta-persistence = "3.2.0"
+reactor = "3.7.8"
+
+# JSON processing
+jackson = "2.19.2"
+
+# Testing
+cucumber = "7.19.0"
+junit = "5.13.4"
+junit-platform = "1.13.4"
+assertj = "3.27.3"
+testcontainers = "1.21.3"
+
+# Kotlin ecosystem
+coroutines = "1.8.1"
+serialization = "1.6.3"
+datetime = "0.6.1"
+ktor = "2.3.13"
+
+[libraries]
+# Logging
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+
+# Spring Framework
+spring-web = { module = "org.springframework:spring-web", version.ref = "spring-framework" }
+spring-context = { module = "org.springframework:spring-context", version.ref = "spring-framework" }
+spring-data-commons = { module = "org.springframework.data:spring-data-commons", version.ref = "spring-data" }
+jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version.ref = "jakarta-persistence" }
+
+# Spring Boot Framework
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-starter-data-redis-reactive = { module = "org.springframework.boot:spring-boot-starter-data-redis-reactive", version.ref = "spring-boot" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot" }
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "spring-boot" }
+
+# JSON processing
+jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+
+# Kotlin ecosystem
+kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlin-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "coroutines" }
+kotlin-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "coroutines" }
+kotlin-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlin-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "serialization" }
+kotlin-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+kotlin-test-common = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
+kotlin-test-annotations-common = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }
+
+# Testing
+cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber" }
+cucumber-java8 = { module = "io.cucumber:cucumber-java8", version.ref = "cucumber" }
+cucumber-junit-platform-engine = { module = "io.cucumber:cucumber-junit-platform-engine", version.ref = "cucumber" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-platform-suite = { module = "org.junit.platform:junit-platform-suite", version.ref = "junit-platform" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+
+[bundles]
+# Spring data commons bundle
+spring-data-commons = [
+    "jakarta-persistence-api",
+    "spring-context", 
+    "spring-data-commons"
+]
+
+# Kotlin coroutines bundle for JVM
+kotlin-coroutines-jvm = [
+    "kotlin-coroutines-core",
+    "kotlin-coroutines-reactor", 
+    "kotlin-coroutines-reactive"
+]
+
+# Kotlin serialization bundle
+kotlin-serialization = [
+    "kotlin-serialization-core",
+    "kotlin-serialization-json"
+]
+
+# Common test bundle
+test-common = [
+    "kotlin-test-common",
+    "kotlin-test-annotations-common",
+    "kotlin-coroutines-test"
+]
+
+# JUnit test bundle
+test-junit = [
+    "junit-jupiter",
+    "junit-jupiter-api",
+    "junit-platform-suite",
+    "assertj-core",
+    "kotlin-coroutines-test"
+]
+
+# Cucumber test bundle
+test-cucumber = [
+    "cucumber-java",
+    "cucumber-java8",
+    "cucumber-junit-platform-engine"
+]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+graalvm-native = { id = "org.graalvm.buildtools.native", version.ref = "graalvm" }
+npm-publish = { id = "dev.petuska.npm.publish", version.ref = "npm-publish" }
