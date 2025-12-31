@@ -57,11 +57,21 @@ class CheckPlugin : Plugin<Project> {
 				fixers?.sonar?.let { sonar ->
 
 					property("sonar.sources", "**/src/*Main/kotlin")
-					property("sonar.projectKey", sonar.projectKey.get())
-					property("sonar.organization", sonar.organization.get())
-					property("sonar.host.url", sonar.url.get())
-					property("sonar.language", sonar.language.get())
-					property("sonar.exclusions", sonar.exclusions.get())
+					if (sonar.projectKey.isPresent) {
+						property("sonar.projectKey", sonar.projectKey.get())
+					}
+					if (sonar.organization.isPresent) {
+						property("sonar.organization", sonar.organization.get())
+					}
+					if (sonar.url.isPresent) {
+						property("sonar.host.url", sonar.url.get())
+					}
+					if (sonar.language.isPresent) {
+						property("sonar.language", sonar.language.get())
+					}
+					if (sonar.exclusions.isPresent) {
+						property("sonar.exclusions", sonar.exclusions.get())
+					}
 
 					if (sonar.detekt.isPresent) {
 						property("sonar.kotlin.detekt.reportPaths", sonar.detekt.get())
