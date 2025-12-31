@@ -44,13 +44,13 @@ object FixersRepository {
 }
 
 object FixersPluginVersions {
-	const val kotlin = "2.2.20"
+	const val kotlin = "2.2.21"
 	const val springBoot = "4.0.0"
 	const val npmPublish = "3.5.2"
 	/**
 	 * com.google.devtools.ksp
 	 */
-	const val ksp = "2.2.20-2.0.4"
+	const val ksp = "2.2.21-2.0.4"
 	/**
 	 * org.graalvm.buildtools.native.gradle.plugin
 	 */

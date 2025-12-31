@@ -54,7 +54,7 @@ class PublishPlugin : Plugin<Project> {
 
 	private fun Project.setupSign(fixersConfig: ConfigExtension) {
 		if (!fixersConfig.publish.signingKey.isPresent || !fixersConfig.publish.signingPassword.isPresent) {
-			logger.warn("No signing config provided, skip signing")
+//			logger.warn("No signing config provided, skip signing")
 			disableSigningTasks()
 			return
 		}
