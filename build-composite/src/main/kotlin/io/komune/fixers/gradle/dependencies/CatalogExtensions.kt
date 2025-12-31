@@ -14,13 +14,10 @@ val Project.fixersCatalog: VersionCatalog
 /**
  * Extension to check if fixers catalog is available
  */
-@Suppress("SwallowedException")
 fun Project.hasFixersCatalog(): Boolean {
-    return try {
-        extensions.getByType<VersionCatalogsExtension>().find("fixers").isPresent
-    } catch (e: Exception) {
-        false
-    }
+    return extensions.findByType(VersionCatalogsExtension::class.java)
+        ?.find("fixers")?.isPresent
+        ?: false
 }
 
 /**

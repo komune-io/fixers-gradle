@@ -3,37 +3,37 @@ format.version = "1.1"
 
 [versions]
 # Plugin versions
-kotlin = "1.9.25"
-spring-boot = "3.5.4"
-npm-publish = "3.4.2"
-ksp = "1.9.25-1.0.20"
-graalvm = "0.10.3"
+kotlin = "2.2.21"
+spring-boot = "4.0.0"
+npm-publish = "3.5.2"
+ksp = "2.2.21-2.0.4"
+graalvm = "0.11.3"
 
 # Logging
-slf4j = "2.0.16"
+slf4j = "2.0.17"
 
 # Spring ecosystem
-spring-data = "3.5.2"
-spring-framework = "6.1.13"
-spring-security = "6.5.2"
+spring-data = "4.0.0"
+spring-framework = "7.0.1"
+spring-security = "7.0.0"
 jakarta-persistence = "3.2.0"
-reactor = "3.7.8"
+reactor = "3.8.0"
 
 # JSON processing
-jackson = "2.19.2"
+jackson = "3.0.3"
 
 # Testing
-cucumber = "7.19.0"
-junit = "5.13.4"
-junit-platform = "1.13.4"
-assertj = "3.27.3"
-testcontainers = "1.21.3"
+cucumber = "7.32.0"
+junit = "6.0.1"
+junit-platform = "6.0.1"
+assertj = "3.27.6"
+testcontainers = "2.0.2"
 
 # Kotlin ecosystem
-coroutines = "1.8.1"
-serialization = "1.6.3"
-datetime = "0.6.1"
-ktor = "2.3.13"
+coroutines = "1.10.2"
+serialization = "1.9.0"
+datetime = "0.7.1"
+ktor = "3.3.3"
 
 [libraries]
 # Logging
@@ -54,7 +54,7 @@ spring-boot-configuration-processor = { module = "org.springframework.boot:sprin
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "spring-boot" }
 
 # JSON processing
-jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 
 # Kotlin ecosystem
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -79,14 +79,14 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 # Spring data commons bundle
 spring-data-commons = [
     "jakarta-persistence-api",
-    "spring-context", 
+    "spring-context",
     "spring-data-commons"
 ]
 
 # Kotlin coroutines bundle for JVM
 kotlin-coroutines-jvm = [
     "kotlin-coroutines-core",
-    "kotlin-coroutines-reactor", 
+    "kotlin-coroutines-reactor",
     "kotlin-coroutines-reactive"
 ]
 
