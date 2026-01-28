@@ -134,7 +134,7 @@ The project includes comprehensive documentation:
 You can build the Storybook documentation using:
 
 ```bash
-make -f make_docs.mk build-storybook
+make -f infra/script/make_docs.mk build-storybook
 ```
 
 ### Code Style

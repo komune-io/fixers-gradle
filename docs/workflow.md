@@ -183,7 +183,7 @@ A reusable workflow for publishing Storybook. It uses the `make-nodejs-workflow.
 | `storybook-static-dir-separator` | The directory path where the static Storybook build will be placed. | `/` |
 | `storybook-static-dir`           | The directory path where the static Storybook build will be placed. | `storybook-static` |
 | `on-tag`                         | The path to the artifact to upload, if needed. | `false` |
-| `make-file`                      | The Makefile to execute. | `make_docs.mk` |
+| `make-file`                      | The Makefile to execute. | `infra/script/make_docs.mk` |
 
 **Jobs:**
 

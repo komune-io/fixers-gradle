@@ -73,7 +73,7 @@ on:
         description: "The Makefile to execute."
         required: false
         type: "string"
-        default: "make_docs.mk"
+        default: "infra/script/make_docs.mk"
 
     secrets:
       NPM_AUTH_TOKEN:

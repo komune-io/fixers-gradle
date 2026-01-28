@@ -21,7 +21,7 @@ jobs:
       contents: read
       packages: write
     with:
-      make-file: 'make_libs.mk'
+      make-file: 'infra/script/make_libs.mk'
       on-tag: 'promote'
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
@@ -44,7 +44,7 @@ jobs:
       id-token: write
     with:
       on-tag: 'stage promote'
-      make-file: 'make_docs.mk'
+      make-file: 'infra/script/make_docs.mk'
       with-chromatic: false
       base-dir: "storybook"
       storybook-dir: "storybook"

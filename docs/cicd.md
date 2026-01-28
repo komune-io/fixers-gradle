@@ -9,8 +9,8 @@ This document provides an overview of how to use the CI/CD workflows.
   - [sec.yml](#secyml)
 - [Makefiles](#makefiles)
   - [Makefile](#makefile)
-  - [make_libs.mk](#make_libs.mk)
-  - [make_docs.mk](#make_docs.mk)
+  - [make_libs.mk](#make_libsmk)
+  - [make_docs.mk](#make_docsmk)
 
 ## Usage
 
@@ -50,7 +50,7 @@ This project uses Makefiles to automate common tasks. The main `Makefile` delega
 
 ### [Makefile](./Makefile)
 
-The main entry point for the build system. It defines the following high-level targets that call targets in `make_libs.mk` and `make_docs.mk`:
+The main entry point for the build system. It defines the following high-level targets that call targets in `infra/script/make_libs.mk` and `infra/script/make_docs.mk`:
 
 *   `lint`: Lints the libraries and documentation.
 *   `build`: Builds the libraries and documentation.
@@ -58,7 +58,7 @@ The main entry point for the build system. It defines the following high-level t
 *   `stage`: Stage the libraries and documentation.
 *   `promote`: Promotes the libraries and documentation to a production environment.
 
-### [make_libs.mk](./make_libs.mk)
+### [make_libs.mk](./infra/script/make_libs.mk)
 
 This file contains the logic for building, testing, and publishing the Gradle libraries.
 
@@ -68,7 +68,7 @@ This file contains the logic for building, testing, and publishing the Gradle li
 *   `stage`: Publishes the artifacts to GitHub Packages.
 *   `promote`: Publishes the artifacts to Sonatype OSS.
 
-### [make_docs.mk](./make_docs.mk)
+### [make_docs.mk](./infra/script/make_docs.mk)
 
 This file contains the logic for building and publishing the Storybook documentation.
 

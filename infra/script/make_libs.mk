@@ -3,7 +3,7 @@ VERSION = $(shell cat VERSION)
 .PHONY: lint build test stage promote version
 
 lint:
-	./gradlew detekt
+	./gradlew check
 
 build:
 	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
