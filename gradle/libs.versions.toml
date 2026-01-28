@@ -1,5 +1,5 @@
 [versions]
-detekt = "1.23.8"
+detekt = "2.0.0-alpha.2"
 kotlin = "2.2.20"
 sonarQube = "7.1.0.6387"
 npmPublish = "3.5.3"
@@ -14,7 +14,7 @@ commons-lang3 = "3.20.0"
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.publish.gradle.plugin", version.ref = "npmPublish" }
-detektGradlePlugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+detektGradlePlugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
 jreleaserGradlePlugin = { module = "org.jreleaser:jreleaser-gradle-plugin", version.ref = "jreleaser" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }

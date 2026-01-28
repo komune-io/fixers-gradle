@@ -17,6 +17,7 @@ import org.jreleaser.model.Signing
 /**
  * Configures JReleaser for publishing artifacts.
  */
+@Suppress("TooManyFunctions")
 object JReleaserDeployer {
 
     /**

@@ -18,14 +18,15 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `should apply CheckPlugin and run Detekt successfully`() {
         // Create a simple Kotlin source file with no issues
-        val sourceDir = testProjectDir.resolve("src/main/kotlin").toFile()
+        val sourceDir = testProjectDir.resolve("src/main/kotlin/com/example").toFile()
         sourceDir.mkdirs()
         File(sourceDir, "Sample.kt").writeText("""
             package com.example
 
             class Sample {
-                fun hello() = "Hello, World!"
+                fun hello(name: String): String = "Hello, ${'$'}name!"
             }
+
         """.trimIndent())
 
         // Create a detekt config file
@@ -33,7 +34,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             complexity:
               LongParameterList:
                 active: true
-                threshold: 5
+                allowedFunctionParameters: 5
             style:
               MagicNumber:
                 active: true
