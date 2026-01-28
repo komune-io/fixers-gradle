@@ -44,7 +44,7 @@ object FixersRepository {
 }
 
 object FixersPluginVersions {
-	const val kotlin = "2.2.21"
+	const val kotlin = "2.3.0"
 	const val springBoot = "4.0.1"
 	const val npmPublish = "3.5.3"
 	/**
@@ -92,9 +92,9 @@ object FixersVersions {
 
 	object Kotlin {
 		const val coroutines = "1.10.2"
-		const val serialization = "1.9.0"
+		const val serialization = "1.10.0"
 		const val datetime = "0.7.1"
-		const val ktor = "3.3.3"
+		const val ktor = "3.4.0"
 	}
 }
 
