@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: '0 0 * * *'
   pull_request:
-    types: [opened, synchronize, labeled]
+    types: [opened, synchronize, labeled, ready_for_review]
   push:
     branches:
       - main
@@ -15,6 +15,7 @@ on:
 
 jobs:
   dev:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     uses: ./.github/workflows/make-jvm-workflow.yml
     permissions:
       contents: read
@@ -34,6 +35,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   docs:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     uses: ./.github/workflows/publish-storybook-workflow.yml
     permissions:
       contents: read
