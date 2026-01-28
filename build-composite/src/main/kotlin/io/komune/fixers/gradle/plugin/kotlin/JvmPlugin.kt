@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
+import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import io.komune.fixers.gradle.dependencies.FixersDependencies
 import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
@@ -10,7 +11,6 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.dependencies
@@ -71,9 +71,6 @@ class JvmPlugin : Plugin<Project> {
 			}
 		}
 
-		tasks.withType<Test>().configureEach {
-			logger.info("Configuring test task: $name in project ${project.name}")
-			useJUnitPlatform()
-		}
+		configureJUnitPlatform()
 	}
 }

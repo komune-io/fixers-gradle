@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.config
 
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Detekt
+import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.model.Kt2Ts
 import io.komune.fixers.gradle.config.model.Npm
@@ -80,6 +81,8 @@ abstract class ConfigExtension(
 
 	var detekt: Detekt = Detekt(project)
 
+	var jacoco: Jacoco = Jacoco(project)
+
 	var sonar: Sonar = Sonar.sonarCloud(project)
 
 	var publish: PublishConfig = PublishConfig(project)
@@ -112,6 +115,10 @@ abstract class ConfigExtension(
 		configure.execute(detekt)
 	}
 
+	fun jacoco(configure: Action<Jacoco>) {
+		configure.execute(jacoco)
+	}
+
 	fun publish(configure: Action<PublishConfig>) {
 		configure.execute(publish)
 	}
@@ -119,14 +126,15 @@ abstract class ConfigExtension(
 	override fun toString(): String {
 		return """
 			ConfigExtension(
-			bundle=$bundle, 
-			kt2Ts=$kt2Ts, 
-			jdk=$jdk, 
-			buildTime=$buildTime, 
-			publication=$pom, 
-			npm=$npm, 
-			detekt=$detekt, 
-			sonar=$sonar, 
+			bundle=$bundle,
+			kt2Ts=$kt2Ts,
+			jdk=$jdk,
+			buildTime=$buildTime,
+			publication=$pom,
+			npm=$npm,
+			detekt=$detekt,
+			jacoco=$jacoco,
+			sonar=$sonar,
 			publish=$publish)
 			""".trimIndent()
 	}

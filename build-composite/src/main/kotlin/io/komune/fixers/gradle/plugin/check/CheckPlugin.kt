@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.check
 
 import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -33,7 +34,7 @@ class CheckPlugin : Plugin<Project> {
 				fixers?.bundle?.let { property("sonar.projectName", it.name) }
 
 				fixers?.sonar?.let { sonar ->
-					property("sonar.sources", "**/src/*Main/kotlin")
+					property("sonar.sources", sonar.sources.get())
 					property("sonar.projectKey", sonar.projectKey.get())
 					property("sonar.organization", sonar.organization.get())
 					property("sonar.host.url", sonar.url.get())
@@ -42,30 +43,29 @@ class CheckPlugin : Plugin<Project> {
 					property("sonar.kotlin.detekt.reportPaths", sonar.detekt.get())
 					property("sonar.pullrequest.github.summary_comment", sonar.githubSummaryComment.get())
 					property("sonar.coverage.jacoco.xmlReportPaths", sonar.jacoco.get())
+					property("detekt.sonar.kotlin.config.path", "${target.rootDir}/${sonar.detektConfigPath.get()}")
+					property("sonar.verbose", sonar.verbose.get())
 				}
-
-				property("detekt.sonar.kotlin.config.path", "${target.rootDir}/detekt.yml")
-				property("sonar.verbose", true)
 			}
 		}
 	}
 
 	private fun Project.configureJacoco() {
+		val jacocoConfig = rootProject.extensions.fixers?.jacoco
 		plugins.withType(JavaPlugin::class.java).whenPluginAdded {
 			plugins.apply("jacoco")
 			extensions.configure(JacocoPluginExtension::class.java) {
 				toolVersion = FixersPluginVersions.jacoco
 			}
 			tasks.withType<JacocoReport>().configureEach {
-				isEnabled = true
+				isEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
 				reports {
-					html.required.set(true)
-					xml.required.set(true)
+					html.required.set(jacocoConfig?.htmlReport?.getOrElse(true) ?: true)
+					xml.required.set(jacocoConfig?.xmlReport?.getOrElse(true) ?: true)
 				}
 				dependsOn(tasks.named("test"))
 			}
 			tasks.withType<Test>().configureEach {
-				useJUnitPlatform()
 				finalizedBy(tasks.named("jacocoTestReport"))
 			}
 		}

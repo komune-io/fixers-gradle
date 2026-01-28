@@ -2,15 +2,14 @@ package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
+import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import io.komune.fixers.gradle.dependencies.FixersDependencies
 import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.invoke
-import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -80,10 +79,7 @@ class MppPlugin : Plugin<Project> {
 			}
 		}
 
-		tasks.withType<Test>().configureEach {
-			logger.info("Configuring test task: $name in project ${project.name}")
-			useJUnitPlatform()
-		}
+		configureJUnitPlatform()
 	}
 
 	private fun Project.setupJsTarget() {
