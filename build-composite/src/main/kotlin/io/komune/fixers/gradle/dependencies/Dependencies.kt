@@ -45,8 +45,8 @@ object FixersRepository {
 
 object FixersPluginVersions {
 	const val kotlin = "2.2.21"
-	const val springBoot = "4.0.0"
-	const val npmPublish = "3.5.2"
+	const val springBoot = "4.0.1"
+	const val npmPublish = "3.5.3"
 	/**
 	 * com.google.devtools.ksp
 	 */
@@ -58,7 +58,7 @@ object FixersPluginVersions {
 	/**
 	 * org.jacoco:jacoco
 	 */
-	const val jacoco = "0.8.12"
+	const val jacoco = "0.8.14"
 
 	val fixers = FixersPluginVersions::class.java.`package`.implementationVersion!!
 }
@@ -83,11 +83,11 @@ object FixersVersions {
 	}
 
 	object Test {
-		const val cucumber = "7.32.0"
-		const val junit = "6.0.1"
-		const val junitPlatform = "6.0.1"
-		const val assertj = "3.27.6"
-		const val testcontainers = "2.0.2"
+		const val cucumber = "7.33.0"
+		const val junit = "6.0.2"
+		const val junitPlatform = "6.0.2"
+		const val assertj = "3.27.7"
+		const val testcontainers = "2.0.3"
 	}
 
 	object Kotlin {

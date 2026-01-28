@@ -28,7 +28,8 @@ private val KOTLIN_VERSION_MAP = mapOf(
     "9.0" to "2.1.0",
     "9.1" to "2.1.10",
     "9.2" to "2.2.20",
-    "default" to "2.2.20"
+    "9.3" to "2.3.0",
+    "default" to "2.3.0"
 )
 
 /**
