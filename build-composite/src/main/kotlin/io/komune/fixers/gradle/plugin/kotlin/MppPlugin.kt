@@ -7,8 +7,10 @@ import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -76,6 +78,11 @@ class MppPlugin : Plugin<Project> {
 					FixersDependencies.Jvm.Test.junit(::implementation)
 				}
 			}
+		}
+
+		tasks.withType<Test>().configureEach {
+			logger.info("Configuring test task: $name in project ${project.name}")
+			useJUnitPlatform()
 		}
 	}
 
