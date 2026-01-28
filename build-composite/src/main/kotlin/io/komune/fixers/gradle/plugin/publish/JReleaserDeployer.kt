@@ -12,7 +12,6 @@ import org.jreleaser.gradle.plugin.JReleaserPlugin
 import org.jreleaser.gradle.plugin.dsl.deploy.maven.Maven
 import org.jreleaser.gradle.plugin.dsl.deploy.maven.MavenDeployer
 import org.jreleaser.model.Active
-import org.jreleaser.model.Signing
 
 /**
  * Configures JReleaser for publishing artifacts.
@@ -70,8 +69,9 @@ object JReleaserDeployer {
     private fun configureSigningSettings(jReleaser: JReleaserExtension) {
         jReleaser.signing {
             active.set(Active.ALWAYS)
-            armored.set(true)
-            mode.set(Signing.Mode.COSIGN)
+            cosign {
+                active.set(Active.ALWAYS)
+            }
         }
     }
     

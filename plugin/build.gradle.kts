@@ -13,10 +13,11 @@ dependencies {
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.sonarqubeGradlePlugin)
 
-	// Force specific version of commons-lang3 sub dep of npmPublishGradlePlugin
-	constraints {
-		implementation(libs.commons.lang3)
-	}
+	// TODO: Remove if build works without - constraint may no longer be needed
+	// Force specific version of commons-lang3 (was for npmPublishGradlePlugin, now comes from jreleaser)
+	// constraints {
+	// 	implementation(libs.commons.lang3)
+	// }
 
 	api(project(":dependencies"))
 	api(project(":config"))
