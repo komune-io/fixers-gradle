@@ -21,7 +21,7 @@ jobs:
       contents: read
       packages: write
     with:
-      make-file: 'infra/script/make_libs.mk'
+      make-file: 'infra/make/libs.mk'
       on-tag: 'promote'
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
