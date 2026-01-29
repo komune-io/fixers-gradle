@@ -55,4 +55,3 @@ plugin/src/main/kotlin/io/komune/fixers/gradle/plugin
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-storybook-static/

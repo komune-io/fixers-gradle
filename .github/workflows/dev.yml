@@ -34,30 +34,3 @@ jobs:
       PKG_GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  docs:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    uses: ./.github/workflows/publish-storybook-workflow.yml
-    permissions:
-      contents: read
-      packages: write
-      pages: write
-      id-token: write
-    with:
-      on-tag: 'stage promote'
-      make-file: 'infra/script/make_docs.mk'
-      with-chromatic: false
-      base-dir: "storybook"
-      storybook-dir: "storybook"
-      storybook-static-dir: "storybook-static"
-    secrets:
-      NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-      # DEPRECATED
-      DOCKER_PUBLISH_USERNAME: ${{ github.actor }}
-      # DEPRECATED
-      DOCKER_PUBLISH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-      DOCKER_STAGE_USERNAME: ${{ github.actor }}
-      DOCKER_STAGE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-      DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_IO_USERNAME }}
-      DOCKER_PROMOTE_PASSWORD: ${{ secrets.DOCKER_IO_PASSWORD }}
-
