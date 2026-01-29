@@ -33,7 +33,54 @@ class Detekt(
 	 */
 	val config: Property<String> = project.property(
 		envKey = "DETEKT_CONFIG",
-		projectKey = "detekt.config"
+		projectKey = "detekt.config",
+		defaultValue = "detekt.yml"
+	)
+
+	/**
+	 * Whether to build upon the default Detekt configuration.
+	 * When true, custom config extends the default rather than replacing it.
+	 */
+	val buildUponDefaultConfig: Property<Boolean> = project.property(
+		envKey = "DETEKT_BUILD_UPON_DEFAULT_CONFIG",
+		projectKey = "detekt.buildUponDefaultConfig",
+		defaultValue = true
+	)
+
+	/**
+	 * Whether to enable the checkstyle (XML) report.
+	 */
+	val checkstyleReport: Property<Boolean> = project.property(
+		envKey = "DETEKT_REPORT_CHECKSTYLE",
+		projectKey = "detekt.report.checkstyle",
+		defaultValue = true
+	)
+
+	/**
+	 * Whether to enable the HTML report.
+	 */
+	val htmlReport: Property<Boolean> = project.property(
+		envKey = "DETEKT_REPORT_HTML",
+		projectKey = "detekt.report.html",
+		defaultValue = true
+	)
+
+	/**
+	 * Whether to enable the SARIF report.
+	 */
+	val sarifReport: Property<Boolean> = project.property(
+		envKey = "DETEKT_REPORT_SARIF",
+		projectKey = "detekt.report.sarif",
+		defaultValue = true
+	)
+
+	/**
+	 * Whether to enable the Markdown report.
+	 */
+	val markdownReport: Property<Boolean> = project.property(
+		envKey = "DETEKT_REPORT_MARKDOWN",
+		projectKey = "detekt.report.markdown",
+		defaultValue = true
 	)
 
 	/**
@@ -47,6 +94,11 @@ class Detekt(
 		disable.mergeIfNotPresent(source.disable)
 		baseline.mergeIfNotPresent(source.baseline)
 		config.mergeIfNotPresent(source.config)
+		buildUponDefaultConfig.mergeIfNotPresent(source.buildUponDefaultConfig)
+		checkstyleReport.mergeIfNotPresent(source.checkstyleReport)
+		htmlReport.mergeIfNotPresent(source.htmlReport)
+		sarifReport.mergeIfNotPresent(source.sarifReport)
+		markdownReport.mergeIfNotPresent(source.markdownReport)
 
 		return this
 	}

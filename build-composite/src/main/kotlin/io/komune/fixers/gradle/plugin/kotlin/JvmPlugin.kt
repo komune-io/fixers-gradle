@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
+import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import io.komune.fixers.gradle.dependencies.FixersDependencies
 import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
@@ -10,14 +11,14 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.kotlin
 import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 @Suppress("UnstableApiUsage")
 class JvmPlugin : Plugin<Project> {
@@ -31,25 +32,26 @@ class JvmPlugin : Plugin<Project> {
 	}
 
 	private fun Project.configureJvmCompilation() {
-		logger.info("Configuring JVM compilation for project: ${name}")
+		logger.info("Configuring JVM compilation for project: $name")
 		plugins.apply(ConfigPlugin::class.java)
 		val fixersConfig = rootProject.extensions.fixers
 		val jdkVersion = fixersConfig?.jdk?.version?.orNull ?: Jdk.VERSION_DEFAULT
 
 		logger.info("Using JDK version: $jdkVersion")
 
-		kotlinExtension.jvmToolchain(jdkVersion)
-		tasks.withType<KotlinCompile>().configureEach {
-			logger.info("Configuring Kotlin compile task: $name in project ${project.name}")
-			kotlinOptions {
-				freeCompilerArgs = listOf("-Xjsr305=strict")
-				jvmTarget = jdkVersion.toString()
-				languageVersion = FixersPluginVersions.kotlin.substringBeforeLast(".")
+		// Configure compiler options at extension level (recommended approach for Kotlin 2.x)
+		extensions.configure(KotlinJvmProjectExtension::class.java) {
+			jvmToolchain(jdkVersion)
+			compilerOptions {
+				freeCompilerArgs.add("-Xjsr305=strict")
+				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
+				val kotlinLangVersion = FixersPluginVersions.kotlin.substringBeforeLast(".")
+				languageVersion.set(KotlinVersion.fromVersion(kotlinLangVersion))
 			}
 		}
 
 		plugins.withType(JavaPlugin::class.java).whenPluginAdded {
-			tasks.withType(JavaCompile::class) {
+			tasks.withType(JavaCompile::class).configureEach {
 				logger.info("Configuring Java compile task: $name in project ${project.name}")
 				options.release.set(jdkVersion)
 			}
@@ -69,9 +71,6 @@ class JvmPlugin : Plugin<Project> {
 			}
 		}
 
-		tasks.withType<Test> {
-			logger.info("Configuring test task: $name in project ${project.name}")
-			useJUnitPlatform()
-		}
+		configureJUnitPlatform()
 	}
 }

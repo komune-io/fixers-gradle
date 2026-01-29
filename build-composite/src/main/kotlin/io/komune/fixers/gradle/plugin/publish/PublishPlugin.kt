@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.plugin.config.config
+import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -15,8 +15,21 @@ class PublishPlugin : Plugin<Project> {
 	override fun apply(project: Project) {
 		project.plugins.apply(MavenPublishPlugin::class.java)
 		project.plugins.apply(SigningPlugin::class.java)
-		val fixersConfig = project.config()
+
+		// IMPORTANT: Apply JReleaser plugin OUTSIDE afterEvaluate
+		// JReleaser has internal afterEvaluate hooks that initialize fields like 'immutableRelease'
+		// If we apply the plugin inside afterEvaluate, these hooks never run, causing NPE
+		JReleaserDeployer.applyPlugin(project)
+
+		// Keep afterEvaluate for configuration as some values need to be resolved
 		project.afterEvaluate {
+			// Use root project's config - this is where fixers { bundle { ... } } is typically configured
+			// Using rootProject ensures we get the config even before projectsEvaluated merges it to subprojects
+			val fixersConfig = rootProject.extensions.fixers
+			if (fixersConfig == null) {
+				logger.warn("No fixers config found on root project, skipping publish configuration")
+				return@afterEvaluate
+			}
 			setupPublishing(fixersConfig)
 			setupSign(fixersConfig)
 			JReleaserDeployer.configure(project, fixersConfig)
@@ -41,14 +54,16 @@ class PublishPlugin : Plugin<Project> {
 
 	private fun Project.setupSign(fixersConfig: ConfigExtension) {
 		if (!fixersConfig.publish.signingKey.isPresent || !fixersConfig.publish.signingPassword.isPresent) {
-			logger.warn("No signing config provided, skip signing")
+			logger.info("No signing config provided, skip signing")
+			disableSigningTasks()
 			return
 		}
 
 		val inMemoryKey = fixersConfig.publish.signingKey.get()
 		val password = fixersConfig.publish.signingPassword.get()
 		if (inMemoryKey.isEmpty()) {
-			logger.warn("Empty signing key provided, skip signing")
+			logger.info("Empty signing key provided, skip signing")
+			disableSigningTasks()
 			return
 		}
 
@@ -68,6 +83,12 @@ class PublishPlugin : Plugin<Project> {
 					sign(it)
 				}
 			}
+		}
+	}
+
+	private fun Project.disableSigningTasks() {
+		tasks.withType(org.gradle.plugins.signing.Sign::class.java).configureEach {
+			enabled = false
 		}
 	}
 }

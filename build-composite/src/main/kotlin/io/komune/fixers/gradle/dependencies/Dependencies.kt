@@ -3,8 +3,33 @@ package io.komune.fixers.gradle.dependencies
 import java.net.URI
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.dsl.RepositoryHandler
+import org.gradle.api.provider.ProviderFactory
 
 object FixersRepository {
+	/**
+	 * Configures default repositories with configuration cache compatible environment variable access.
+	 * @param repositoryHandler The repository handler to configure
+	 * @param providers The provider factory for lazy environment variable access
+	 */
+	fun defaultRepo(repositoryHandler: RepositoryHandler, providers: ProviderFactory) {
+		repositoryHandler.mavenCentral()
+		repositoryHandler.maven {
+			url = URI("https://maven.pkg.github.com/komune-io/fixers")
+			credentials {
+				// Use providers.environmentVariable() for configuration cache compatibility
+				username = providers.environmentVariable("GITHUB_PKG_MAVEN_USERNAME").orNull
+				password = providers.environmentVariable("GITHUB_PKG_MAVEN_TOKEN").orNull
+			}
+		}
+	}
+
+	/**
+	 * @deprecated Use defaultRepo(repositoryHandler, providers) instead for configuration cache compatibility
+	 */
+	@Deprecated(
+		message = "Use defaultRepo(repositoryHandler, providers) for configuration cache compatibility",
+		replaceWith = ReplaceWith("defaultRepo(repositoryHandler, providers)")
+	)
 	fun defaultRepo(repositoryHandler: RepositoryHandler) {
 		repositoryHandler.mavenCentral()
 		repositoryHandler.maven {
@@ -19,17 +44,21 @@ object FixersRepository {
 }
 
 object FixersPluginVersions {
-	const val kotlin = "1.9.25"
-	const val springBoot = "3.5.8"
-	const val npmPublish = "3.4.2"
+	const val kotlin = "2.3.0"
+	const val springBoot = "4.0.1"
+	const val npmPublish = "3.5.3"
 	/**
 	 * com.google.devtools.ksp
 	 */
-	const val ksp = "1.9.25-1.0.20"
+	const val ksp = "2.3.4"
 	/**
 	 * org.graalvm.buildtools.native.gradle.plugin
 	 */
-	const val graalvm = "0.10.3"
+	const val graalvm = "0.11.3"
+	/**
+	 * org.jacoco:jacoco
+	 */
+	const val jacoco = "0.8.14"
 
 	val fixers = FixersPluginVersions::class.java.`package`.implementationVersion!!
 }
@@ -41,31 +70,31 @@ object FixersVersions {
 
 	object Spring {
 		const val boot = FixersPluginVersions.springBoot
-		const val data = "3.5.6"
-		const val framework = "6.2.14"
-		const val security = "6.5.7"
+		const val data = "4.0.0"
+		const val framework = "7.0.1"
+		const val security = "7.0.0"
 		const val jakartaPersistence = "3.2.0"
-		const val reactor = "3.7.13"
+		const val reactor = "3.8.0"
 	}
 
 	object Json {
-		const val jackson = "2.19.4"
+		const val jackson = "3.0.3"
 		const val jacksonKotlin = jackson
 	}
 
 	object Test {
-		const val cucumber = "7.32.0"
-		const val junit = "5.14.1"
-		const val junitPlatform = "1.14.1"
-		const val assertj = "3.27.6"
-		const val testcontainers = "1.21.3"
+		const val cucumber = "7.33.0"
+		const val junit = "6.0.2"
+		const val junitPlatform = "6.0.2"
+		const val assertj = "3.27.7"
+		const val testcontainers = "2.0.3"
 	}
 
 	object Kotlin {
-		const val coroutines = "1.8.1"
-		const val serialization = "1.6.3"
-		const val datetime = "0.6.1"
-		const val ktor = "2.3.13"
+		const val coroutines = "1.10.2"
+		const val serialization = "1.10.0"
+		const val datetime = "0.7.1"
+		const val ktor = "3.4.0"
 	}
 }
 
@@ -73,7 +102,7 @@ object FixersDependencies {
 	object Jvm {
 		object Json {
 			fun jackson(scope: Scope) = scope.add(
-					"com.fasterxml.jackson.module:jackson-module-kotlin:${FixersVersions.Json.jacksonKotlin}"
+					"tools.jackson.module:jackson-module-kotlin:${FixersVersions.Json.jacksonKotlin}"
 			)
 			fun kSerialization(scope: Scope) = Common.Kotlin.serialization(scope)
 		}

@@ -31,7 +31,7 @@ object PublishMppSetup {
 			mustRunAfter(signingTasks)
 		}
 		configure<PublishingExtension> {
-			publications.withType<MavenPublication> {
+			publications.withType<MavenPublication>().configureEach {
 				val mavenPublication = this
 				mavenPublication.artifactId = getArtifactId(projectName, mavenPublication.name)
 				val publication = project.pom(config.bundle)

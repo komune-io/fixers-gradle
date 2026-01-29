@@ -30,7 +30,7 @@ fixers {
     url = "https://github.com/komune-io/fixers-gradle/tree/main/sandbox"
   }
   kt2Ts {
-    outputDirectory = "storybook/d2/"
+    outputDirectory = "build/d2/"
     inputDirectory = "ef"
   }
 }

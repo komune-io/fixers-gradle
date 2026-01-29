@@ -4,20 +4,6 @@ plugins {
 	id("io.komune.fixers.gradle.publishing")
 }
 
-fixers {
-	publish {
-		gradlePlugin.set(listOf(
-			"io.komune.fixers.gradle.configPluginMarkerMaven",
-			"io.komune.fixers.gradle.dependenciesPluginMarkerMaven",
-			"io.komune.fixers.gradle.kotlin.jvmPluginMarkerMaven",
-			"io.komune.fixers.gradle.kotlin.mppPluginMarkerMaven",
-			"io.komune.fixers.gradle.publishPluginMarkerMaven",
-			"io.komune.fixers.gradle.npmPluginMarkerMaven",
-			"io.komune.fixers.gradle.checkPluginMarkerMaven"
-		))
-	}
-}
-
 dependencies {
 
 	implementation(libs.kotlinGradlePlugin)
@@ -27,15 +13,17 @@ dependencies {
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.sonarqubeGradlePlugin)
 
-	// Force specific version of commons-lang3 sub dep of npmPublishGradlePlugin
-	constraints {
-		implementation(libs.commons.lang3)
-	}
+	// TODO: Remove if build works without - constraint may no longer be needed
+	// Force specific version of commons-lang3 (was for npmPublishGradlePlugin, now comes from jreleaser)
+	// constraints {
+	// 	implementation(libs.commons.lang3)
+	// }
 
 	api(project(":dependencies"))
 	api(project(":config"))
 
 	implementation(libs.bundles.test)
+	testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 gradlePlugin {

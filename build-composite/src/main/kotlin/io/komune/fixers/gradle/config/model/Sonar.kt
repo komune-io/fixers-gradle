@@ -84,6 +84,33 @@ class Sonar(
     )
 
     /**
+     * The sources pattern for SonarQube/SonarCloud analysis.
+     */
+    val sources: Property<String> = project.property(
+        envKey = "SONAR_SOURCES",
+        projectKey = "sonar.sources",
+        defaultValue = "**/src/*Main/kotlin"
+    )
+
+    /**
+     * Whether to enable verbose output for SonarQube/SonarCloud analysis.
+     */
+    val verbose: Property<Boolean> = project.property(
+        envKey = "SONAR_VERBOSE",
+        projectKey = "sonar.verbose",
+        defaultValue = true
+    )
+
+    /**
+     * The path to the Detekt configuration file for Sonar Kotlin plugin.
+     */
+    val detektConfigPath: Property<String> = project.property(
+        envKey = "SONAR_DETEKT_CONFIG_PATH",
+        projectKey = "sonar.detektConfigPath",
+        defaultValue = "detekt.yml"
+    )
+
+    /**
      * Merges properties from the source Sonar into this Sonar.
      * Properties are only merged if the target property is not present and the source property is present.
      *
@@ -99,6 +126,9 @@ class Sonar(
         detekt.mergeIfNotPresent(source.detekt)
         exclusions.mergeIfNotPresent(source.exclusions)
         githubSummaryComment.mergeIfNotPresent(source.githubSummaryComment)
+        sources.mergeIfNotPresent(source.sources)
+        verbose.mergeIfNotPresent(source.verbose)
+        detektConfigPath.mergeIfNotPresent(source.detektConfigPath)
 
         return this
     }

@@ -19,6 +19,8 @@ import org.gradle.kotlin.dsl.property
  *          3. Project properties
  *          4. Default value
  *
+ * Uses providers.environmentVariable() for configuration cache compatibility.
+ *
  * @param envKey The environment variable key to check for a value
  * @param projectKey The project property key to check for a value
  * @param defaultValue The default value to use if no other value is found
@@ -31,7 +33,7 @@ inline fun <reified T> Project.property(
 ): Property<T> where T : Any {
     return objects.property<T>().apply {
         if (envKey != null) {
-            System.getenv(envKey)?.let { envValue ->
+            providers.environmentVariable(envKey).orNull?.let { envValue ->
                 extractEnv<T>(envValue)
                 return@apply
             }
@@ -76,6 +78,8 @@ inline fun <reified T> Property<T>.extractEnv(envValue: String) where T : Any {
  *          3. Project properties (comma-separated values)
  *          4. Default value
  *
+ * Uses providers.environmentVariable() for configuration cache compatibility.
+ *
  * @param envKey The environment variable key to check for a value
  * @param projectKey The project property key to check for a value
  * @param defaultValue The default value to use if no other value is found
@@ -88,7 +92,7 @@ inline fun <reified T> Project.initListProperty(
 ): ListProperty<T> where T : Any {
     return objects.listProperty<T>().apply {
         if (envKey != null) {
-            System.getenv(envKey)?.let { envValue ->
+            providers.environmentVariable(envKey).orNull?.let { envValue ->
                 val list = envValue.split(",").map { it.trim() as T }
                 convention(list)
                 return@apply
@@ -115,7 +119,7 @@ inline fun <reified T> Project.initListProperty(
  * @param sourceProp The source property to merge from
  * @return The target property (this) after merging
  */
-fun <T> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
+fun <T : Any> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
@@ -128,7 +132,7 @@ fun <T> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
  * @param sourceProp The source list property to merge from
  * @return The target list property (this) after merging
  */
-fun <T> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProperty<T> {
+fun <T : Any> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProperty<T> {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
@@ -141,7 +145,7 @@ fun <T> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProp
  * @param sourceProp The source map property to merge from
  * @return The target map property (this) after merging
  */
-fun <K, V> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>): MapProperty<K, V> {
+fun <K : Any, V : Any> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>): MapProperty<K, V> {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
