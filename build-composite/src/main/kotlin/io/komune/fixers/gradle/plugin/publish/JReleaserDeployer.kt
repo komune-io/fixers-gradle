@@ -51,7 +51,7 @@ object JReleaserDeployer {
     ) {
         project.extensions.configure<JReleaserExtension> {
             configureProjectSettings(this, fixersConfig)
-            configureSigningSettings(this)
+//            configureSigningSettings(this)
             configureDeploymentSettings(this, project, fixersConfig)
             gitRootSearch.set(true)
         }
@@ -68,9 +68,10 @@ object JReleaserDeployer {
     
     private fun configureSigningSettings(jReleaser: JReleaserExtension) {
         jReleaser.signing {
-            active.set(Active.ALWAYS)
-            cosign {
+            pgp {
                 active.set(Active.ALWAYS)
+                armored.set(true)
+                verify.set(false)
             }
         }
     }
@@ -100,6 +101,7 @@ object JReleaserDeployer {
                 active.set(project.provider {
                     if (fixersConfig.publish.isPromote.get()) Active.SNAPSHOT else Active.NEVER
                 })
+                sign.set(false)
                 url.set(fixersConfig.publish.mavenSnapshotsUrl)
                 snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
                 snapshotSupported.set(true)
@@ -123,6 +125,7 @@ object JReleaserDeployer {
                 active.set(project.provider {
                     if (fixersConfig.publish.isStage.get()) Active.ALWAYS else Active.NEVER
                 })
+                sign.set(false)
                 url.set(fixersConfig.publish.githubPackagesUrl)
                 applyMavenCentralRules.set(true)
                 snapshotSupported.set(true)
@@ -144,6 +147,7 @@ object JReleaserDeployer {
                 active.set(project.provider {
                     if (fixersConfig.publish.isPromote.get()) Active.RELEASE else Active.NEVER
                 })
+                sign.set(false)
                 url.set(fixersConfig.publish.mavenCentralUrl)
                 applyMavenCentralRules.set(true)
                 snapshotSupported.set(false)
