@@ -40,11 +40,12 @@ class Sonar(
 
     /**
      * The path to the JaCoCo XML report.
+     * Includes paths for both standard JVM projects (test/) and Kotlin Multiplatform projects (jvmTest/).
      */
     val jacoco: Property<String> = project.property(
         envKey = "SONAR_JACOCO",
         projectKey = "sonar.jacoco",
-        defaultValue = "${project.rootDir}/**/build/reports/jacoco/test/jacocoTestReport.xml"
+        defaultValue = "${project.rootDir}/**/build/reports/jacoco/**/${Jacoco.DEFAULT_XML_REPORT_FILENAME}"
     )
 
     /**
@@ -58,11 +59,12 @@ class Sonar(
 
     /**
      * The path to the Detekt XML report.
+     * Uses the merged report from the root project.
      */
     val detekt: Property<String> = project.property(
         envKey = "SONAR_KOTLIN_DETEKT_REPORT_PATHS",
         projectKey = "sonar.kotlin.detekt.reportPaths",
-        defaultValue = "build/reports/detekt/detekt.xml"
+        defaultValue = "${project.rootDir}/build/reports/detekt/merge.xml"
     )
 
     /**
@@ -71,7 +73,7 @@ class Sonar(
     val exclusions: Property<String> = project.property(
         envKey = "SONAR_EXCLUSIONS",
         projectKey = "sonar.exclusions",
-        defaultValue = "**/*.java"
+        defaultValue = "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java"
     )
 
     /**
@@ -89,7 +91,16 @@ class Sonar(
     val sources: Property<String> = project.property(
         envKey = "SONAR_SOURCES",
         projectKey = "sonar.sources",
-        defaultValue = "**/src/*Main/kotlin"
+        defaultValue = "."
+    )
+
+    /**
+     * The inclusions pattern for SonarQube/SonarCloud analysis.
+     */
+    val inclusions: Property<String> = project.property(
+        envKey = "SONAR_INCLUSIONS",
+        projectKey = "sonar.inclusions",
+        defaultValue = "**/src/*main*/kotlin/**/*.kt"
     )
 
     /**
@@ -125,6 +136,7 @@ class Sonar(
         language.mergeIfNotPresent(source.language)
         detekt.mergeIfNotPresent(source.detekt)
         exclusions.mergeIfNotPresent(source.exclusions)
+        inclusions.mergeIfNotPresent(source.inclusions)
         githubSummaryComment.mergeIfNotPresent(source.githubSummaryComment)
         sources.mergeIfNotPresent(source.sources)
         verbose.mergeIfNotPresent(source.verbose)

@@ -1,16 +1,23 @@
 name: Security Analysis Workflow
 
 on:
+  # Run after JVM workflow completes on main/release
+  workflow_run:
+    workflows: ["Reusable JVM Development Workflow"]
+    types: [completed]
+    branches: [main, 'release/*']
+
+  # Keep PR trigger for independent analysis
   pull_request:
     types: [opened, synchronize, labeled]
-  push:
-    branches:
-      - main
-      - 'release/*'
 
 jobs:
   sec:
+    # Skip if triggered by workflow_run and the run failed
+    if: github.event.workflow_run.conclusion != 'failure'
     uses: ./.github/workflows/sec-workflow.yml
+    with:
+      workflow-run-id: ${{ github.event.workflow_run.id }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     permissions:
