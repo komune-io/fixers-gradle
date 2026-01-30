@@ -34,3 +34,12 @@ jobs:
       PKG_GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  sec:
+    needs: dev
+    uses: ./.github/workflows/sec-workflow.yml
+    permissions:
+      contents: write
+      pull-requests: read
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+

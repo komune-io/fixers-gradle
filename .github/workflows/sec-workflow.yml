@@ -78,15 +78,13 @@ jobs:
           with-setup-gradle-github-pkg: true
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
-      - name: Download Analysis Reports from Workflow Run
-        if: inputs.workflow-run-id != ''
+      - name: Download Analysis Reports
         uses: actions/download-artifact@v4
         with:
           name: analysis-reports
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ inputs.workflow-run-id }}
+          run-id: ${{ inputs.workflow-run-id || github.run_id }}
       - name: Setup Sonar Properties
-        if: inputs.workflow-run-id != ''
         run: |
           if [ -f "build/sonar-project.properties" ]; then
             cp build/sonar-project.properties sonar-project.properties
