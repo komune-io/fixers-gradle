@@ -28,19 +28,21 @@ runs:
     - name: Print footer
       shell: bash
       run: |
-        echo "## Analysis Reports Uploaded" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Artifact: **${{ inputs.artifact-name }}**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "<details>" >> $GITHUB_STEP_SUMMARY
-        echo "<summary>Files uploaded (click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        find . -path "*/build/reports/detekt/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
-        find . -path "*/build/reports/jacoco/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
-        if [ -f "build/sonar-project.properties" ]; then
-          echo "./build/sonar-project.properties" >> $GITHUB_STEP_SUMMARY
-        fi
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "</details>" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## Analysis Reports Uploaded"
+          echo ""
+          echo "Artifact: **${{ inputs.artifact-name }}**"
+          echo ""
+          echo "<details>"
+          echo "<summary>Files uploaded (click to expand)</summary>"
+          echo ""
+          echo '```'
+          find . -path "*/build/reports/detekt/*" -type f 2>/dev/null | head -20 || true
+          find . -path "*/build/reports/jacoco/*" -type f 2>/dev/null | head -20 || true
+          if [ -f "build/sonar-project.properties" ]; then
+            echo "./build/sonar-project.properties"
+          fi
+          echo '```'
+          echo ""
+          echo "</details>"
+        } >> $GITHUB_STEP_SUMMARY
