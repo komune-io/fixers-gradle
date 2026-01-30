@@ -235,6 +235,9 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
+      - name: Upload Analysis Reports
+        uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
+
       # DEPRECATED
       - name: Docker Registry Login to Publish
         if: (inputs.force-publish == 'true' || (inputs.with-publish-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'publish') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'publish') || startsWith(github.ref, 'refs/heads/versioning/'))))))

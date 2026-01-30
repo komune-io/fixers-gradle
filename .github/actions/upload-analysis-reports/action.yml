@@ -1,0 +1,42 @@
+name: "Upload Analysis Reports"
+description: "Upload Detekt, JaCoCo, and Sonar reports as artifacts for downstream workflows"
+inputs:
+  artifact-name:
+    description: "Name for the uploaded artifact"
+    required: false
+    default: "analysis-reports"
+  retention-days:
+    description: "Number of days to retain the artifact"
+    required: false
+    default: "1"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload Analysis Reports
+      id: upload-analysis-reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          **/build/reports/detekt/
+          **/build/reports/jacoco/
+          build/sonar-project.properties
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: ignore
+
+    - name: Print footer
+      shell: bash
+      run: |
+        echo "## Analysis Reports Uploaded" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Artifact: **${{ inputs.artifact-name }}**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Files uploaded:" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        find . -path "*/build/reports/detekt/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
+        find . -path "*/build/reports/jacoco/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
+        if [ -f "build/sonar-project.properties" ]; then
+          echo "./build/sonar-project.properties" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -20,6 +20,11 @@ on:
         default: true
         type: "boolean"
 
+      workflow-run-id:
+        description: "Run ID of the workflow to download artifacts from (for workflow_run trigger)"
+        required: false
+        type: "string"
+
     secrets:
       SONAR_TOKEN:
         required: true
@@ -58,21 +63,42 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    env:
+      PKG_GITHUB_USERNAME: ${{ github.actor }}
+      PKG_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup Gradle for SonarCloud Analysis
-        uses: gradle/actions/setup-gradle@v3
-      - name: Setup Gradle with GitHub Package Registry for SonarCloud
-        uses: komune-io/fixers-gradle/.github/actions/setup-gradle-github-pkg@main
-      - name: Run SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@v2
+      - name: Initialize Java and Gradle Environment
+        id: jvm
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
+        with:
+          with-gradle: true
+          with-setup-gradle-github-pkg: true
+          java-distribution: ${{ inputs.java-distribution }}
+          java-version: ${{ inputs.java-version }}
+      - name: Download Analysis Reports from Workflow Run
+        if: inputs.workflow-run-id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: analysis-reports
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.workflow-run-id }}
+      - name: Setup Sonar Properties
+        if: inputs.workflow-run-id != ''
+        run: |
+          if [ -f "build/sonar-project.properties" ]; then
+            cp build/sonar-project.properties sonar-project.properties
+            echo "Using sonar-project.properties from artifacts"
+            cat sonar-project.properties
+          fi
+      - name: Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check SonarQube Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

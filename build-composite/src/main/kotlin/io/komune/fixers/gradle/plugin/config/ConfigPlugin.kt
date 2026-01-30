@@ -17,6 +17,11 @@ import org.gradle.api.Project
  */
 class ConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
+        // Apply base plugin to get lifecycle tasks (assemble, build, check) if not already present
+        if (!target.plugins.hasPlugin("base")) {
+            target.plugins.apply("base")
+        }
+
         val extension = target.config()
         val root: Project = target.rootProject
         root.setVersion()

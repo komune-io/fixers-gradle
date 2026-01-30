@@ -39,6 +39,15 @@ class Jacoco(
     )
 
     /**
+     * The filename for the JaCoCo XML report.
+     */
+    val xmlReportFilename: Property<String> = project.property(
+        envKey = "JACOCO_REPORT_XML_FILENAME",
+        projectKey = "jacoco.report.xml.filename",
+        defaultValue = DEFAULT_XML_REPORT_FILENAME
+    )
+
+    /**
      * Merges properties from the source Jacoco into this Jacoco.
      * Properties are only merged if the target property is not present and the source property is present.
      *
@@ -49,7 +58,12 @@ class Jacoco(
         enabled.mergeIfNotPresent(source.enabled)
         htmlReport.mergeIfNotPresent(source.htmlReport)
         xmlReport.mergeIfNotPresent(source.xmlReport)
+        xmlReportFilename.mergeIfNotPresent(source.xmlReportFilename)
 
         return this
+    }
+
+    companion object {
+        const val DEFAULT_XML_REPORT_FILENAME = "jacocoTestReport.xml"
     }
 }
