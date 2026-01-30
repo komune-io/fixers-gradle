@@ -1,9 +1,9 @@
 name: Security Analysis Workflow
 
 on:
-  # Run after JVM workflow completes on main/release
+  # Run after Dev workflow completes on main/release
   workflow_run:
-    workflows: ["Reusable JVM Development Workflow"]
+    workflows: ["Dev"]
     types: [completed]
     branches: [main, 'release/*']
 
