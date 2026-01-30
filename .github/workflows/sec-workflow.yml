@@ -32,6 +32,8 @@ on:
 jobs:
   gradle-dependency-analysis:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for dependency-submission action
     env:
       PKG_GITHUB_USERNAME: ${{ github.actor }}
       PKG_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,9 +51,9 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
-      - name: Submit Dependency Graph to Gradle Enterprise
-        uses: gradle/actions/dependency-submission@v3
+        uses: gradle/actions/wrapper-validation@v5
+      - name: Submit Dependency Graph
+        uses: gradle/actions/dependency-submission@v5
         with:
           additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
           build-scan-publish: true
