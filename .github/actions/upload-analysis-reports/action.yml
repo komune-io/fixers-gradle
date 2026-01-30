@@ -32,7 +32,9 @@ runs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "Artifact: **${{ inputs.artifact-name }}**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Files uploaded:" >> $GITHUB_STEP_SUMMARY
+        echo "<details>" >> $GITHUB_STEP_SUMMARY
+        echo "<summary>Files uploaded (click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         find . -path "*/build/reports/detekt/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
         find . -path "*/build/reports/jacoco/*" -type f 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || true
@@ -40,3 +42,5 @@ runs:
           echo "./build/sonar-project.properties" >> $GITHUB_STEP_SUMMARY
         fi
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "</details>" >> $GITHUB_STEP_SUMMARY
