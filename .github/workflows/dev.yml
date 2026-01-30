@@ -38,8 +38,8 @@ jobs:
     needs: dev
     uses: ./.github/workflows/sec-workflow.yml
     permissions:
-      contents: write
-      pull-requests: read
+      contents: write  # Required for gradle dependency-submission
+      pull-requests: read  # Required for sonarcloud PR analysis
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
