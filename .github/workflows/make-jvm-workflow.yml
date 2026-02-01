@@ -237,6 +237,8 @@ jobs:
 
       - name: Upload Analysis Reports
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
+        with:
+          make-file: ${{ inputs.make-file }}
 
       # DEPRECATED
       - name: Docker Registry Login to Publish

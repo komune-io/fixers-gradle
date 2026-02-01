@@ -2,9 +2,13 @@ name: "Upload Analysis Reports"
 description: "Upload Detekt, JaCoCo, and Sonar reports as artifacts for downstream workflows"
 inputs:
   artifact-name:
-    description: "Name for the uploaded artifact"
+    description: "Base name for the uploaded artifact"
     required: false
     default: "analysis-reports"
+  make-file:
+    description: "Path to the Makefile. If provided, a unique suffix is derived from it to avoid artifact name conflicts when calling this action multiple times in the same workflow run."
+    required: false
+    default: ""
   retention-days:
     description: "Number of days to retain the artifact"
     required: false
@@ -13,11 +17,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Compute Artifact Name
+      id: artifact-name
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.make-file }}" ]; then
+          # Convert make-file path to a valid artifact name suffix
+          # e.g., "infra/make/libs.mk" -> "infra-make-libs"
+          SUFFIX=$(echo "${{ inputs.make-file }}" | sed 's|[/.]|-|g' | sed 's|-mk$||' | sed 's|^-||')
+          echo "name=${{ inputs.artifact-name }}-${SUFFIX}" >> $GITHUB_OUTPUT
+        else
+          echo "name=${{ inputs.artifact-name }}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Upload Analysis Reports
       id: upload-analysis-reports
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.artifact-name }}
+        name: ${{ steps.artifact-name.outputs.name }}
         path: |
           **/build/reports/detekt/
           **/build/reports/jacoco/
@@ -31,7 +48,7 @@ runs:
         {
           echo "## Analysis Reports Uploaded"
           echo ""
-          echo "Artifact: **${{ inputs.artifact-name }}**"
+          echo "Artifact: **${{ steps.artifact-name.outputs.name }}**"
           echo ""
           echo "<details>"
           echo "<summary>Files uploaded (click to expand)</summary>"
