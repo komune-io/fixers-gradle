@@ -235,19 +235,10 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
-      - name: Compute Analysis Reports Artifact Name
-        id: analysis-artifact
-        shell: bash
-        run: |
-          # Convert make-file path to a valid artifact name suffix
-          # e.g., "infra/make/libs.mk" -> "infra-make-libs"
-          SUFFIX=$(echo "${{ inputs.make-file }}" | sed 's|[/.]|-|g' | sed 's|-mk$||' | sed 's|^-||')
-          echo "name=analysis-reports-${SUFFIX}" >> $GITHUB_OUTPUT
-
       - name: Upload Analysis Reports
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
         with:
-          artifact-name: ${{ steps.analysis-artifact.outputs.name }}
+          make-file: ${{ inputs.make-file }}
 
       # DEPRECATED
       - name: Docker Registry Login to Publish
