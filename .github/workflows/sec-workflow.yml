@@ -83,7 +83,8 @@ jobs:
       - name: Download Analysis Reports
         uses: actions/download-artifact@v4
         with:
-          name: analysis-reports
+          pattern: analysis-reports*
+          merge-multiple: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.workflow-run-id || github.run_id }}
       - name: Setup Sonar Properties
