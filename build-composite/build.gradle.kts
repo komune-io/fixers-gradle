@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    jacoco
 }
 
 repositories {
@@ -23,6 +24,7 @@ dependencies {
     //     implementation(libs.commons.lang3)
     // }
 
+    testImplementation(gradleTestKit())
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.assertj.core.specific)
     testImplementation(libs.mockito.core)
@@ -35,5 +37,14 @@ tasks.test {
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
+    }
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
