@@ -8,6 +8,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.testing.Test
@@ -53,6 +54,11 @@ class CheckPlugin : Plugin<Project> {
 					property("sonar.coverage.jacoco.xmlReportPaths", sonar.jacoco.get())
 					property("detekt.sonar.kotlin.config.path", "${target.rootDir}/${sonar.detektConfigPath.get()}")
 					property("sonar.verbose", sonar.verbose.get())
+
+					// Apply custom properties
+					sonar.customProperties.forEach { (key, value) ->
+						property(key, value)
+					}
 				}
 			}
 		}
@@ -71,6 +77,7 @@ class CheckPlugin : Plugin<Project> {
 				exclusions.set(sonar.exclusions)
 				jacoco.set(sonar.jacoco)
 				detekt.set(sonar.detekt)
+				customProperties.set(sonar.customProperties)
 			}
 		}
 
@@ -197,6 +204,10 @@ abstract class GenerateSonarPropertiesTask : DefaultTask() {
 	@get:org.gradle.api.tasks.Optional
 	abstract val detekt: Property<String>
 
+	@get:org.gradle.api.tasks.Input
+	@get:org.gradle.api.tasks.Optional
+	abstract val customProperties: MapProperty<String, String>
+
 	@get:org.gradle.api.tasks.OutputFile
 	abstract val outputFile: RegularFileProperty
 
@@ -221,6 +232,16 @@ abstract class GenerateSonarPropertiesTask : DefaultTask() {
 				appendLine()
 				appendLine("# Detekt report (merged from all modules)")
 				appendLine("sonar.kotlin.detekt.reportPaths=${detekt.getOrElse("")}")
+
+				// Add custom properties
+				val custom = customProperties.getOrElse(emptyMap())
+				if (custom.isNotEmpty()) {
+					appendLine()
+					appendLine("# Custom properties")
+					custom.forEach { (key, value) ->
+						appendLine("$key=$value")
+					}
+				}
 			} else {
 				appendLine("# No fixers sonar configuration found")
 				appendLine("# Configure sonar in your build.gradle.kts:")

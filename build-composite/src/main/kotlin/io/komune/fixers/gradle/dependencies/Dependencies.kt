@@ -1,9 +1,9 @@
 package io.komune.fixers.gradle.dependencies
 
-import java.net.URI
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.provider.ProviderFactory
+import java.net.URI
 
 object FixersRepository {
 	/**

@@ -1,11 +1,11 @@
 package io.komune.fixers.gradle.integration.check
 
 import io.komune.fixers.gradle.integration.BaseIntegrationTest
-import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.io.File
 
 /**
  * Integration tests for the CheckPlugin.
@@ -738,6 +738,98 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             assertThat(content).contains("sonar.exclusions=")
             assertThat(content).contains("sonar.coverage.jacoco.xmlReportPaths=")
             assertThat(content).contains("sonar.kotlin.detekt.reportPaths=")
+        }
+
+        /**
+         * Test that custom properties are included in the generated sonar-project.properties file.
+         */
+        @Test
+        fun `should include custom properties in generated sonar-project properties file`() {
+            writeBuildFile("""
+                plugins {
+                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    id("io.komune.fixers.gradle.config")
+                    id("io.komune.fixers.gradle.check")
+                }
+
+                repositories {
+                    mavenCentral()
+                }
+
+                fixers {
+                    sonar {
+                        projectKey = "test-project-key"
+                        organization = "test-organization"
+                        properties {
+                            property("sonar.coverage.exclusions", "src/generated/**/*,**/models/*.kt")
+                            property("sonar.cpd.exclusions", "**/generated/**")
+                        }
+                    }
+                }
+            """.trimIndent())
+
+            val result = runGradle("generateSonarProperties")
+
+            assertThat(result.task(":generateSonarProperties")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            // Verify the file was created with custom properties
+            val propsFile = testProjectDir.resolve("build/sonar-project.properties").toFile()
+            assertThat(propsFile.exists()).isTrue()
+
+            val content = propsFile.readText()
+            assertThat(content).contains("sonar.organization=test-organization")
+            assertThat(content).contains("sonar.projectKey=test-project-key")
+            assertThat(content).contains("# Custom properties")
+            assertThat(content).contains("sonar.coverage.exclusions=src/generated/**/*,**/models/*.kt")
+            assertThat(content).contains("sonar.cpd.exclusions=**/generated/**")
+        }
+
+        /**
+         * Test that custom properties can be accessed programmatically.
+         */
+        @Test
+        fun `should allow accessing custom properties programmatically`() {
+            writeBuildFile("""
+                plugins {
+                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    id("io.komune.fixers.gradle.config")
+                    id("io.komune.fixers.gradle.check")
+                }
+
+                repositories {
+                    mavenCentral()
+                }
+
+                fixers {
+                    sonar {
+                        projectKey = "test-project"
+                        organization = "test-org"
+                        properties {
+                            property("sonar.coverage.exclusions", "src/generated/**/*")
+                            property("sonar.test.inclusions", "**/*Test.kt")
+                        }
+                    }
+                }
+
+                tasks.register("verifyCustomProperties") {
+                    doLast {
+                        val config = rootProject.extensions.getByName("fixers")
+                            as io.komune.fixers.gradle.config.ConfigExtension
+                        val customProps = config.sonar.customProperties
+                        println("Custom properties count: ${'$'}{customProps.size}")
+                        customProps.forEach { (key, value) ->
+                            println("Property: ${'$'}key = ${'$'}value")
+                        }
+                    }
+                }
+            """.trimIndent())
+
+            val result = runGradle("verifyCustomProperties")
+
+            assertThat(result.task(":verifyCustomProperties")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.output).contains("Custom properties count: 2")
+            assertThat(result.output).contains("Property: sonar.coverage.exclusions = src/generated/**/*")
+            assertThat(result.output).contains("Property: sonar.test.inclusions = **/*Test.kt")
         }
     }
 }
