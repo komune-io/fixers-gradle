@@ -24,6 +24,9 @@ fixers {
 	sonar {
 		organization = "komune-io"
 		projectKey = "komune-io_fixers-gradle"
+		properties {
+			property("sonar.coverage.exclusions", "config/**,dependencies/**,plugin/**")
+		}
 	}
 }
 
