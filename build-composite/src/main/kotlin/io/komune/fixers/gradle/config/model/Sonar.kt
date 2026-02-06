@@ -46,7 +46,7 @@ class Sonar(
     val jacoco: Property<String> = project.property(
         envKey = "SONAR_JACOCO",
         projectKey = "sonar.jacoco",
-        defaultValue = "${project.rootDir}/**/build/reports/jacoco/**/${Jacoco.DEFAULT_XML_REPORT_FILENAME}"
+        defaultValue = "**/build/reports/jacoco/**/${Jacoco.DEFAULT_XML_REPORT_FILENAME}"
     )
 
     /**
@@ -65,7 +65,7 @@ class Sonar(
     val detekt: Property<String> = project.property(
         envKey = "SONAR_KOTLIN_DETEKT_REPORT_PATHS",
         projectKey = "sonar.kotlin.detekt.reportPaths",
-        defaultValue = "${project.rootDir}/build/reports/detekt/merge.xml"
+        defaultValue = "build/reports/detekt/merge.xml"
     )
 
     /**

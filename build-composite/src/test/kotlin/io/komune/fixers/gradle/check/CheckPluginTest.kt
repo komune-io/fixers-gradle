@@ -5,6 +5,7 @@ import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.config.model.Sonar
 import io.komune.fixers.gradle.plugin.check.CheckPlugin
 import io.komune.fixers.gradle.plugin.check.GenerateSonarPropertiesTask
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import java.io.File
 
 /**
  * Unit tests for CheckPlugin and related classes.

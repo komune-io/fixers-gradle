@@ -2,12 +2,12 @@ package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
+import java.io.File
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
-import java.io.File
 
 
 fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {

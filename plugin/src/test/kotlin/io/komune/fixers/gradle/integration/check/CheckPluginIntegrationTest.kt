@@ -1,11 +1,11 @@
 package io.komune.fixers.gradle.integration.check
 
 import io.komune.fixers.gradle.integration.BaseIntegrationTest
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Integration tests for the CheckPlugin.

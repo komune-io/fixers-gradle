@@ -1,7 +1,6 @@
 package io.komune.fixers.gradle.plugin.check
 
 import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.config.model.Jacoco
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -9,7 +8,6 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.TaskAction
-import org.gradle.kotlin.dsl.register
 
 class CheckPlugin : Plugin<Project> {
     override fun apply(target: Project) {
