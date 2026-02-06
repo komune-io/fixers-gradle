@@ -26,31 +26,30 @@ class JacocoConfigurator(
      */
     fun configure(jacocoConfig: Jacoco?) {
         val jacocoEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
+        if (!jacocoEnabled) {
+            return
+        }
 
         // Configure JaCoCo for standard JVM projects (with JavaPlugin)
         project.plugins.withType(JavaPlugin::class.java) {
-            if (jacocoEnabled) {
-                applyJacocoPlugin(jacocoConfig)
-                configureJacocoReportTasks(jacocoConfig)
-                project.tasks.withType<Test>().configureEach {
-                    finalizedBy(project.tasks.named("jacocoTestReport"))
-                }
+            applyJacocoPlugin()
+            configureJacocoReportTasks(jacocoConfig)
+            project.tasks.withType<Test>().configureEach {
+                finalizedBy(project.tasks.named("jacocoTestReport"))
             }
         }
 
         // Configure JaCoCo for Kotlin Multiplatform projects (JVM target)
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
-            if (jacocoEnabled) {
-                applyJacocoPlugin(jacocoConfig)
-                configureJacocoForMultiplatform(jacocoConfig)
-            }
+            applyJacocoPlugin()
+            configureJacocoForMultiplatform(jacocoConfig)
         }
     }
 
     /**
      * Applies the JaCoCo plugin to the project.
      */
-    fun applyJacocoPlugin(jacocoConfig: Jacoco?) {
+    fun applyJacocoPlugin() {
         project.plugins.apply("jacoco")
         project.extensions.configure(JacocoPluginExtension::class.java) {
             toolVersion = FixersPluginVersions.jacoco
@@ -86,7 +85,9 @@ class JacocoConfigurator(
             }
         }
 
-        // Register JaCoCo report task for JVM tests
+        // Register JaCoCo report task for JVM tests.
+        // Note: findByName is safe here because this runs inside CheckPlugin's projectsEvaluated callback,
+        // meaning all project configuration (including KMP task registration) has already completed.
         (project.tasks.findByName("jvmTest") as? Test)?.let { jvmTestTask ->
             project.tasks.register<JacocoReport>("jacocoJvmTestReport") {
                 dependsOn(jvmTestTask)
@@ -94,16 +95,23 @@ class JacocoConfigurator(
 
                 val jvmCompilation = jvmTarget.compilations.getByName("main")
                 classDirectories.setFrom(jvmCompilation.output.classesDirs)
-                sourceDirectories.setFrom(jvmCompilation.allKotlinSourceSets.map { it.kotlin.sourceDirectories })
+                sourceDirectories.setFrom(
+                    jvmCompilation.allKotlinSourceSets.map { it.kotlin.sourceDirectories }
+                )
                 executionData.setFrom(project.layout.buildDirectory.file("jacoco/jvmTest.exec"))
 
-                val xmlFilename = jacocoConfig?.xmlReportFilename?.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME)
+                val xmlFilename = jacocoConfig?.xmlReportFilename
+                    ?.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME)
                     ?: Jacoco.DEFAULT_XML_REPORT_FILENAME
                 reports {
                     html.required.set(jacocoConfig?.htmlReport?.getOrElse(true) ?: true)
                     xml.required.set(jacocoConfig?.xmlReport?.getOrElse(true) ?: true)
-                    html.outputLocation.set(project.layout.buildDirectory.dir("reports/jacoco/jvmTest/html"))
-                    xml.outputLocation.set(project.layout.buildDirectory.file("reports/jacoco/jvmTest/$xmlFilename"))
+                    html.outputLocation.set(
+                        project.layout.buildDirectory.dir("reports/jacoco/jvmTest/html")
+                    )
+                    xml.outputLocation.set(
+                        project.layout.buildDirectory.file("reports/jacoco/jvmTest/$xmlFilename")
+                    )
                 }
             }
 
@@ -120,7 +128,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if JaCoCo should be enabled
      */
-    fun isEnabled(jacocoConfig: Jacoco?): Boolean {
+    internal fun isEnabled(jacocoConfig: Jacoco?): Boolean {
         return jacocoConfig?.enabled?.getOrElse(true) ?: true
     }
 
@@ -130,7 +138,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if HTML reports should be generated
      */
-    fun isHtmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
+    internal fun isHtmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
         return jacocoConfig?.htmlReport?.getOrElse(true) ?: true
     }
 
@@ -140,7 +148,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if XML reports should be generated
      */
-    fun isXmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
+    internal fun isXmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
         return jacocoConfig?.xmlReport?.getOrElse(true) ?: true
     }
 
@@ -150,7 +158,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return The XML report filename
      */
-    fun getXmlReportFilename(jacocoConfig: Jacoco?): String {
+    internal fun getXmlReportFilename(jacocoConfig: Jacoco?): String {
         return jacocoConfig?.xmlReportFilename?.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME)
             ?: Jacoco.DEFAULT_XML_REPORT_FILENAME
     }

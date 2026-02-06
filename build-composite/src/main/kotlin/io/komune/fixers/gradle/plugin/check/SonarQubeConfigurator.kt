@@ -3,9 +3,6 @@ package io.komune.fixers.gradle.plugin.check
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Sonar
 import org.gradle.api.Project
-import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.provider.MapProperty
-import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.register
 import org.sonarqube.gradle.SonarExtension
 
@@ -35,26 +32,12 @@ class SonarQubeConfigurator(
     fun configureSonarExtension(sonar: Sonar?, bundle: Bundle?) {
         project.extensions.configure(SonarExtension::class.java) {
             properties {
-                bundle?.let { property("sonar.projectName", it.name) }
-
-                sonar?.let { s ->
-                    property("sonar.sources", s.sources.get())
-                    property("sonar.projectKey", s.projectKey.get())
-                    property("sonar.organization", s.organization.get())
-                    property("sonar.host.url", s.url.get())
-                    property("sonar.language", s.language.get())
-                    property("sonar.exclusions", s.exclusions.get())
-                    property("sonar.inclusions", s.inclusions.get())
-                    property("sonar.kotlin.detekt.reportPaths", s.detekt.get())
-                    property("sonar.pullrequest.github.summary_comment", s.githubSummaryComment.get())
-                    property("sonar.coverage.jacoco.xmlReportPaths", s.jacoco.get())
-                    property("detekt.sonar.kotlin.config.path", "${project.rootDir}/${s.detektConfigPath.get()}")
-                    property("sonar.verbose", s.verbose.get())
-
-                    // Apply custom properties
-                    s.customProperties.forEach { (key, value) ->
+                if (sonar != null) {
+                    buildSonarProperties(sonar, bundle).forEach { (key, value) ->
                         property(key, value)
                     }
+                } else {
+                    bundle?.name?.orNull?.let { property("sonar.projectName", it) }
                 }
             }
         }

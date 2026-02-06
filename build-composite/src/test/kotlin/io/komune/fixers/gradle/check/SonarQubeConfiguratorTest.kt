@@ -166,4 +166,49 @@ class SonarQubeConfiguratorTest {
             assertThat(project.tasks.findByName("generateSonarProperties")).isNotNull
         }
     }
+
+    @Nested
+    inner class ConfigureSonarExtensionTest {
+
+        @Test
+        fun `should configure extension with sonar properties via buildSonarProperties`() {
+            project.plugins.apply("org.sonarqube")
+            val sonar = Sonar(project).apply {
+                organization.set("test-org")
+                projectKey.set("test-project")
+            }
+
+            configurator.configureSonarExtension(sonar, null)
+
+            // Verify properties were set via the delegated buildSonarProperties
+            val properties = configurator.buildSonarProperties(sonar, null)
+            assertThat(properties["sonar.organization"]).isEqualTo("test-org")
+            assertThat(properties["sonar.projectKey"]).isEqualTo("test-project")
+        }
+
+        @Test
+        fun `should configure extension with bundle only when sonar is null`() {
+            project.plugins.apply("org.sonarqube")
+            val bundle = Bundle(project, "My Project")
+
+            // Should not throw - only sets projectName from bundle
+            configurator.configureSonarExtension(null, bundle)
+        }
+
+        @Test
+        fun `should configure extension with sonar and bundle`() {
+            project.plugins.apply("org.sonarqube")
+            val sonar = Sonar(project).apply {
+                organization.set("test-org")
+                projectKey.set("test-project")
+            }
+            val bundle = Bundle(project, "My Project")
+
+            configurator.configureSonarExtension(sonar, bundle)
+
+            val properties = configurator.buildSonarProperties(sonar, bundle)
+            assertThat(properties["sonar.organization"]).isEqualTo("test-org")
+            assertThat(properties["sonar.projectName"]).isEqualTo("My Project")
+        }
+    }
 }

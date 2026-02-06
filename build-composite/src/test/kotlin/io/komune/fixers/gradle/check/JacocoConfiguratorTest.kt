@@ -147,15 +147,7 @@ class JacocoConfiguratorTest {
 
         @Test
         fun `should apply jacoco plugin`() {
-            configurator.applyJacocoPlugin(null)
-
-            assertThat(project.plugins.hasPlugin("jacoco")).isTrue()
-        }
-
-        @Test
-        fun `should apply jacoco plugin with config`() {
-            val jacoco = Jacoco(project)
-            configurator.applyJacocoPlugin(jacoco)
+            configurator.applyJacocoPlugin()
 
             assertThat(project.plugins.hasPlugin("jacoco")).isTrue()
         }
@@ -188,6 +180,16 @@ class JacocoConfiguratorTest {
             // JaCoCo plugin should not be applied when disabled
             assertThat(project.plugins.hasPlugin("jacoco")).isFalse()
         }
+
+        @Test
+        fun `should configure jacoco with null config and default enabled`() {
+            project.plugins.apply("java")
+
+            configurator.configure(null)
+
+            // null config defaults to enabled=true, so JaCoCo should be applied
+            assertThat(project.plugins.hasPlugin("jacoco")).isTrue()
+        }
     }
 
     @Nested
@@ -196,7 +198,7 @@ class JacocoConfiguratorTest {
         @Test
         fun `should configure report tasks with default settings`() {
             project.plugins.apply("java")
-            configurator.applyJacocoPlugin(null)
+            configurator.applyJacocoPlugin()
 
             // This should not throw
             configurator.configureJacocoReportTasks(null)
@@ -209,7 +211,7 @@ class JacocoConfiguratorTest {
                 htmlReport.set(false)
                 xmlReport.set(true)
             }
-            configurator.applyJacocoPlugin(jacoco)
+            configurator.applyJacocoPlugin()
 
             // This should not throw
             configurator.configureJacocoReportTasks(jacoco)

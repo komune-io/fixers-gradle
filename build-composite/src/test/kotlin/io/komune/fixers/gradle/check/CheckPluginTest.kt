@@ -97,14 +97,14 @@ class CheckPluginTest {
         }
 
         @Test
-        fun `should merge properties from another Sonar instance when target has no value`() {
+        fun `should not merge string properties with empty default values due to isPresent behavior`() {
             // Create source with explicit values
             val source = Sonar(project).apply {
                 organization.set("source-org")
                 projectKey.set("source-project")
             }
 
-            // Create target - organization and projectKey have no default (empty string convention)
+            // Create target - organization and projectKey have empty string convention
             val target = Sonar(project)
 
             // Verify target starts with empty defaults
@@ -113,10 +113,10 @@ class CheckPluginTest {
 
             target.mergeFrom(source)
 
-            // After merge, target should have source values
-            // Note: mergeIfNotPresent only works when target.isPresent is false
-            // Since empty string convention makes isPresent true, merge won't happen
-            // This is the expected behavior per the implementation
+            // mergeIfNotPresent only works when target.isPresent is false.
+            // Since empty string convention makes isPresent true, merge won't happen.
+            assertThat(target.organization.get()).isEmpty()
+            assertThat(target.projectKey.get()).isEmpty()
         }
 
         @Test
