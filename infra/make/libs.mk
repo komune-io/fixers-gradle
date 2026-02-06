@@ -9,7 +9,7 @@ build:
 	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
 
 test:
-	./gradlew test
+	./gradlew test :build-composite:test
 	cd sandbox && ./gradlew test
 
 stage:
