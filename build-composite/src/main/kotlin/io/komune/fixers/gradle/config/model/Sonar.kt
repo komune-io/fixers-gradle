@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 
@@ -122,6 +123,42 @@ class Sonar(
     )
 
     /**
+     * Custom Sonar properties that will be added to the configuration.
+     */
+    val customProperties: MutableMap<String, String> = mutableMapOf()
+
+    /**
+     * Configures custom Sonar properties.
+     *
+     * Example:
+     * ```kotlin
+     * sonar {
+     *     properties {
+     *         property("sonar.coverage.exclusions", "src/generated/**/*")
+     *     }
+     * }
+     * ```
+     */
+    fun properties(configure: Action<SonarProperties>) {
+        configure.execute(SonarProperties(customProperties))
+    }
+
+    /**
+     * DSL helper class for configuring custom Sonar properties.
+     */
+    class SonarProperties(private val properties: MutableMap<String, String>) {
+        /**
+         * Sets a custom Sonar property.
+         *
+         * @param key The property key (e.g., "sonar.coverage.exclusions")
+         * @param value The property value
+         */
+        fun property(key: String, value: String) {
+            properties[key] = value
+        }
+    }
+
+    /**
      * Merges properties from the source Sonar into this Sonar.
      * Properties are only merged if the target property is not present and the source property is present.
      *
@@ -141,6 +178,11 @@ class Sonar(
         sources.mergeIfNotPresent(source.sources)
         verbose.mergeIfNotPresent(source.verbose)
         detektConfigPath.mergeIfNotPresent(source.detektConfigPath)
+
+        // Merge custom properties (source properties are added only if not already present)
+        source.customProperties.forEach { (key, value) ->
+            customProperties.putIfAbsent(key, value)
+        }
 
         return this
     }

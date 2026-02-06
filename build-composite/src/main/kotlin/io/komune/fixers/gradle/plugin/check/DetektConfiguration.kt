@@ -1,8 +1,8 @@
 package io.komune.fixers.gradle.plugin.check
 
+import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
-import dev.detekt.gradle.Detekt
 import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile

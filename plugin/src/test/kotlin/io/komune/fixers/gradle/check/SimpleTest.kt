@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.check
 
-import org.junit.jupiter.api.Test
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 
 /**
  * A simple test class to demonstrate the testing process.
