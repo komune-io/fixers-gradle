@@ -191,6 +191,14 @@ object JReleaserDeployer {
             dependsOn("publish", "jreleaserDeploy")
         }
 
+        // Force jreleaserDeploy to never be UP-TO-DATE.
+        // This is a deployment task with external side effects (pushes to remote repos).
+        // Without this, Gradle caches the result between stage and promote runs in the same CI job,
+        // causing promote to skip the actual deployment.
+        project.tasks.named("jreleaserDeploy") {
+            outputs.upToDateWhen { false }
+        }
+
         // Get the ListProperty reference - this is configuration cache safe
         val pkgDeployTypes = fixersConfig.publish.pkgDeployTypes
 
