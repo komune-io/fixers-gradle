@@ -199,6 +199,19 @@ object JReleaserDeployer {
             outputs.upToDateWhen { false }
         }
 
+        // Serialize jreleaserDeploy tasks across subprojects to prevent a race condition
+        // where parallel tasks download pomchecker to the same shared cache directory.
+        // Only add ordering when this project sorts after the other (by path) to form a linear chain.
+        project.rootProject.subprojects.forEach { otherProject ->
+            if (otherProject.path < project.path) {
+                otherProject.plugins.withType(JReleaserPlugin::class.java) {
+                    project.tasks.named("jreleaserDeploy") {
+                        mustRunAfter(otherProject.tasks.named("jreleaserDeploy"))
+                    }
+                }
+            }
+        }
+
         // Get the ListProperty reference - this is configuration cache safe
         val pkgDeployTypes = fixersConfig.publish.pkgDeployTypes
 
