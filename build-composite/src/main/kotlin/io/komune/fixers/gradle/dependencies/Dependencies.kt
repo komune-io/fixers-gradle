@@ -87,7 +87,12 @@ object FixersVersions {
 		const val junit = "6.0.2"
 		const val junitPlatform = "6.0.2"
 		const val assertj = "3.27.7"
+		@Deprecated("Use FixersVersions.Test.TestContainers.core instead")
 		const val testcontainers = "2.0.3"
+		object TestContainers {
+			val core = "2.0.3"
+			val deps = "1.21.4"
+		}
 	}
 
 	object Kotlin {
