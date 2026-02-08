@@ -87,7 +87,10 @@ object FixersVersions {
 		const val junit = "6.0.2"
 		const val junitPlatform = "6.0.2"
 		const val assertj = "3.27.7"
-		const val testcontainers = "2.0.3"
+		object TestContainers {
+			const val core = "2.0.3"
+			const val deps = "1.21.4"
+		}
 	}
 
 	object Kotlin {
