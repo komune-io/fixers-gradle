@@ -1,8 +1,11 @@
 VERSION = $(shell cat VERSION)
 
-.PHONY: lint build test stage promote
+.PHONY: clean lint build test stage promote
 
 LIBS_MK = infra/make/libs.mk
+
+clean:
+	@make -f $(LIBS_MK) clean
 
 lint:
 	@make -f $(LIBS_MK) lint
