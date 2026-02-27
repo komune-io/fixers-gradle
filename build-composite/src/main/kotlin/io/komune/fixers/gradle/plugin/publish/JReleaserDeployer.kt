@@ -52,6 +52,7 @@ object JReleaserDeployer {
         project.extensions.configure<JReleaserExtension> {
             configureProjectSettings(this, fixersConfig)
 //            configureSigningSettings(this)
+            configureReleaseSettings(this, fixersConfig)
             configureDeploymentSettings(this, project, fixersConfig)
             gitRootSearch.set(true)
         }
@@ -64,6 +65,56 @@ object JReleaserDeployer {
         jReleaser.project {
             version.set(fixersConfig.bundle.version)
         }
+    }
+
+    /**
+     * Explicitly configures the GitHub release service so JReleaser does not need
+     * to auto-detect it from git.
+     *
+     * Workaround for a JGit bug (fixed in JGit 7.0.0, but JReleaser 1.22.0 uses 5.13.3):
+     * In git submodules, `.git` is a file (gitdir reference) instead of a directory.
+     * JGit's `RepositoryCache.FileKey.resolve()` doesn't handle `.git` files, so it
+     * falls back to using the working tree as the git directory. This causes
+     * `loadConfig()` to resolve the git "config" file as `<repo>/config`, which
+     * collides with the `config` Gradle subproject directory, throwing:
+     *   FileNotFoundException: .../fixers-gradle/config (Is a directory)
+     *
+     * By explicitly providing the release service info, JReleaser skips git
+     * auto-detection entirely. We only deploy artifacts (skipRelease + skipTag),
+     * so no actual GitHub release is created.
+     *
+     * Can be removed once JReleaser upgrades to JGit >= 7.0.0.
+     */
+    private fun configureReleaseSettings(
+        jReleaser: JReleaserExtension,
+        fixersConfig: ConfigExtension
+    ) {
+        jReleaser.release {
+            github {
+                repoOwner.set(fixersConfig.bundle.url.map { parseRepoOwner(it) })
+                name.set(fixersConfig.bundle.url.map { parseRepoName(it) })
+                tagName.set("{{projectVersion}}")
+                skipRelease.set(true)
+                skipTag.set(true)
+            }
+        }
+    }
+
+    /**
+     * Extracts the repository owner from a GitHub URL.
+     * E.g. "https://github.com/komune-io/fixers-gradle" → "komune-io"
+     */
+    internal fun parseRepoOwner(url: String): String {
+        val segments = url.trimEnd('/').removeSuffix(".git").split("/")
+        return segments[segments.size - 2]
+    }
+
+    /**
+     * Extracts the repository name from a GitHub URL.
+     * E.g. "https://github.com/komune-io/fixers-gradle" → "fixers-gradle"
+     */
+    internal fun parseRepoName(url: String): String {
+        return url.trimEnd('/').removeSuffix(".git").split("/").last()
     }
     
     private fun configureSigningSettings(jReleaser: JReleaserExtension) {
