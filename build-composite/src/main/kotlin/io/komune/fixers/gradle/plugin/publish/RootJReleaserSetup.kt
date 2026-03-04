@@ -171,7 +171,7 @@ object RootJReleaserSetup {
             group = "publishing"
             description = "Cleans the staging directory before publishing"
             doLast {
-                root.file("build/staging-deploy").deleteRecursively()
+                root.file(fixersConfig.publish.getStagingRepositoryPath(root)).deleteRecursively()
             }
         }
 
