@@ -8,15 +8,38 @@ import org.junit.jupiter.api.Test
 
 /**
  * Integration tests for the PublishPlugin.
- * Tests the plugin in a real project with different configurations.
+ * Tests use multi-project builds to match real-world usage where PublishPlugin
+ * is applied on subprojects (not the root project).
  */
 class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
     /**
-     * Creates a simple Kotlin source file for testing.
+     * Sets up a multi-project build with a "lib" subproject.
+     * The root applies the config plugin; the subproject applies publish + kotlin.
+     */
+    private fun setupMultiProject(subprojectBuildContent: String, rootBuildExtra: String = "") {
+        settingsFile.writeText("""
+            rootProject.name = "integration-test-project"
+            include("lib")
+        """.trimIndent())
+
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+            $rootBuildExtra
+        """.trimIndent())
+
+        val libDir = testProjectDir.resolve("lib").toFile()
+        libDir.mkdirs()
+        File(libDir, "build.gradle.kts").writeText(subprojectBuildContent)
+    }
+
+    /**
+     * Creates a simple Kotlin source file for testing in the lib subproject.
      */
     private fun createSimpleKotlinSourceFile() {
-        val sourceDir = testProjectDir.resolve("src/main/kotlin").toFile()
+        val sourceDir = testProjectDir.resolve("lib/src/main/kotlin").toFile()
         sourceDir.mkdirs()
         File(sourceDir, "Sample.kt").writeText("""
             package com.example
@@ -28,12 +51,11 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     /**
-     * Creates a build file with the PublishPlugin for JVM projects.
+     * Creates a JVM subproject build file with the PublishPlugin.
      */
-    private fun createJvmPublishBuildFile() {
-        writeBuildFile("""
+    private fun createJvmPublishProject() {
+        setupMultiProject("""
             plugins {
-                id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.kotlin.jvm")
                 id("io.komune.fixers.gradle.publish")
             }
@@ -86,7 +108,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      * Verifies that Maven publishing is correctly configured.
      */
     private fun verifyMavenPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
-        assertThat(result.task(":verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":lib:verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
         assertThat(result.output).contains("Has publications:")
         assertThat(result.output).contains("Has repositories:")
@@ -97,36 +119,19 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      */
     @Test
     fun `should apply PublishPlugin and configure Maven publishing`() {
-        // Set up the test project
         createSimpleKotlinSourceFile()
-        createJvmPublishBuildFile()
+        createJvmPublishProject()
 
-        // Run the verification task
-        val result = runGradle("verifyConfig")
+        val result = runGradle(":lib:verifyConfig")
 
-        // Verify that Maven publishing is configured
         verifyMavenPublishingConfig(result)
     }
 
     /**
-     * Creates Kotlin source files for multiplatform project.
+     * Creates Kotlin source files for multiplatform project in the lib subproject.
      */
     private fun createMultiplatformSourceFiles() {
-        // Create a simple Kotlin source file for common code
-        createCommonSourceFile()
-
-        // Create a simple Kotlin source file for JVM code
-        createJvmImplementationFile()
-
-        // Create a simple Kotlin source file for JS code
-        createJsImplementationFile()
-    }
-
-    /**
-     * Creates a common source file for Kotlin Multiplatform.
-     */
-    private fun createCommonSourceFile() {
-        val commonSourceDir = testProjectDir.resolve("src/commonMain/kotlin").toFile()
+        val commonSourceDir = testProjectDir.resolve("lib/src/commonMain/kotlin").toFile()
         commonSourceDir.mkdirs()
         File(commonSourceDir, "Sample.kt").writeText("""
             package com.example
@@ -135,13 +140,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 fun hello(): String
             }
         """.trimIndent())
-    }
 
-    /**
-     * Creates a JVM implementation file for Kotlin Multiplatform.
-     */
-    private fun createJvmImplementationFile() {
-        val jvmSourceDir = testProjectDir.resolve("src/jvmMain/kotlin").toFile()
+        val jvmSourceDir = testProjectDir.resolve("lib/src/jvmMain/kotlin").toFile()
         jvmSourceDir.mkdirs()
         File(jvmSourceDir, "SampleJvm.kt").writeText("""
             package com.example
@@ -150,13 +150,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 actual fun hello() = "Hello from JVM!"
             }
         """.trimIndent())
-    }
 
-    /**
-     * Creates a JS implementation file for Kotlin Multiplatform.
-     */
-    private fun createJsImplementationFile() {
-        val jsSourceDir = testProjectDir.resolve("src/jsMain/kotlin").toFile()
+        val jsSourceDir = testProjectDir.resolve("lib/src/jsMain/kotlin").toFile()
         jsSourceDir.mkdirs()
         File(jsSourceDir, "SampleJs.kt").writeText("""
             package com.example
@@ -168,12 +163,22 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     /**
-     * Creates a build file for Kotlin Multiplatform project with publishing.
+     * Creates a Kotlin Multiplatform subproject with publishing.
      */
-    private fun createMppPublishBuildFile() {
-        writeBuildFile("""
+    private fun createMppPublishProject() {
+        val rootExtra = """
+            fixers {
+                bundle {
+                    id = "test-bundle"
+                    name = "Test Bundle"
+                    description = "A test bundle for integration testing"
+                    url = "https://github.com/komune-io/fixers-gradle"
+                }
+            }
+        """.trimIndent()
+
+        setupMultiProject("""
             plugins {
-                id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.kotlin.mpp")
                 id("io.komune.fixers.gradle.publish")
             }
@@ -184,15 +189,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             group = "com.example"
             version = "1.0.0"
-
-            fixers {
-                bundle {
-                    id = "test-bundle"
-                    name = "Test Bundle"
-                    description = "A test bundle for integration testing"
-                    url = "https://github.com/komune-io/fixers-gradle"
-                }
-            }
 
             kotlin {
                 jvm()
@@ -211,14 +207,14 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                     println("Has js publication: ${'$'}{publishing.publications.findByName("js") != null}")
                 }
             }
-        """.trimIndent())
+        """.trimIndent(), rootExtra)
     }
 
     /**
      * Verifies that MPP publishing is correctly configured.
      */
     private fun verifyMppPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
-        assertThat(result.task(":verifyMppPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":lib:verifyMppPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
         assertThat(result.output).contains("Has kotlinMultiplatform publication: true")
         assertThat(result.output).contains("Has jvm publication: true")
@@ -230,30 +226,21 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      */
     @Test
     fun `should configure publishing for Kotlin Multiplatform project`() {
-        // Set up the test project
         createMultiplatformSourceFiles()
-        createMppPublishBuildFile()
+        createMppPublishProject()
 
-        // Run the verification task
-        val result = runGradle("verifyMppPublishing")
+        val result = runGradle(":lib:verifyMppPublishing")
 
-        // Verify that MPP publishing is configured
         verifyMppPublishingConfig(result)
     }
 
     /**
      * Creates a build file for a Gradle plugin project with publishing.
+     * This remains a single-project build since com.gradle.plugin-publish
+     * internally applies maven-publish, making the publishing DSL available.
      */
     private fun createGradlePluginPublishBuildFile() {
-        writeBuildFile(getGradlePluginBuildFileContent())
-        createTestPluginImplementation()
-    }
-
-    /**
-     * Generates the content for the Gradle plugin build file.
-     */
-    private fun getGradlePluginBuildFileContent(): String {
-        return """
+        writeBuildFile("""
             plugins {
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.kotlin.jvm")
@@ -306,13 +293,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                     println("Has testPluginPluginMarkerMaven publication: ${'$'}{publishing.publications.findByName("testPluginPluginMarkerMaven") != null}")
                 }
             }
-        """.trimIndent()
-    }
+        """.trimIndent())
 
-    /**
-     * Creates the TestPlugin implementation class file.
-     */
-    private fun createTestPluginImplementation() {
         val sourceDir = testProjectDir.resolve("src/main/kotlin/com/example").toFile()
         sourceDir.mkdirs()
         File(sourceDir, "TestPlugin.kt").writeText("""
@@ -349,13 +331,10 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      */
     @Test
     fun `should configure publishing for Gradle plugin project`() {
-        // Set up the test project
         createGradlePluginPublishBuildFile()
 
-        // Run the verification task
         val result = runGradle("verifyGradlePluginPublishing")
 
-        // Verify that Gradle plugin publishing is configured
         verifyGradlePluginPublishingConfig(result)
     }
 }
