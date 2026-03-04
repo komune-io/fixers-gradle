@@ -25,6 +25,9 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	private fun applyToRoot(root: Project) {
+		root.plugins.apply(MavenPublishPlugin::class.java)
+		root.plugins.apply(SigningPlugin::class.java)
+
 		// Apply JReleaser plugin eagerly (must be before afterEvaluate)
 		// so JReleaser's internal afterEvaluate hooks can initialize
 		JReleaserDeployer.applyPlugin(root)
