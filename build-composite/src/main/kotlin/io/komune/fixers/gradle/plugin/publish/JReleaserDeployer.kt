@@ -104,7 +104,7 @@ object JReleaserDeployer {
      * Extracts the repository owner from a GitHub URL.
      * E.g. "https://github.com/komune-io/fixers-gradle" → "komune-io"
      */
-    fun parseRepoOwner(url: String): String {
+    internal fun parseRepoOwner(url: String): String {
         val segments = url.trimEnd('/').removeSuffix(".git").split("/")
         return segments[segments.size - 2]
     }
@@ -113,7 +113,7 @@ object JReleaserDeployer {
      * Extracts the repository name from a GitHub URL.
      * E.g. "https://github.com/komune-io/fixers-gradle" → "fixers-gradle"
      */
-    fun parseRepoName(url: String): String {
+    internal fun parseRepoName(url: String): String {
         return url.trimEnd('/').removeSuffix(".git").split("/").last()
     }
     
