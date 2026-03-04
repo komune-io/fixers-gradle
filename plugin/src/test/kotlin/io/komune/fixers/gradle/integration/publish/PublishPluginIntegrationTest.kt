@@ -276,14 +276,12 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 }
             }
 
-            // Configure the publishing extension
             fixers {
                 publish {
                     gradlePlugin.set(listOf("testPluginPluginMarkerMaven"))
                 }
             }
 
-            // Task to verify the configuration
             tasks.register("verifyGradlePluginPublishing") {
                 doLast {
                     println("Has maven-publish plugin: ${'$'}{plugins.hasPlugin("maven-publish")}")
@@ -294,7 +292,10 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 }
             }
         """.trimIndent())
+        createTestPluginSource()
+    }
 
+    private fun createTestPluginSource() {
         val sourceDir = testProjectDir.resolve("src/main/kotlin/com/example").toFile()
         sourceDir.mkdirs()
         File(sourceDir, "TestPlugin.kt").writeText("""
