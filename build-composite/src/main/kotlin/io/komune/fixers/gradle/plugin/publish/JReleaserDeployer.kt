@@ -157,7 +157,7 @@ object JReleaserDeployer {
                 snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
                 snapshotSupported.set(true)
                 closeRepository.set(true)
-                applyMavenCentralRules.set(true)
+                applyMavenCentralRules.set(false)
                 stagingRepository(
                     fixersConfig.publish.getStagingRepositoryPath(project)
                 )
@@ -178,7 +178,7 @@ object JReleaserDeployer {
                 })
                 sign.set(false)
                 url.set(fixersConfig.publish.githubPackagesUrl)
-                applyMavenCentralRules.set(true)
+                applyMavenCentralRules.set(false)
                 snapshotSupported.set(true)
                 stagingRepository(
                     fixersConfig.publish.getStagingRepositoryPath(project)
