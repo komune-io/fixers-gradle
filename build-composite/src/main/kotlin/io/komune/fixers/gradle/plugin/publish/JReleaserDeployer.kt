@@ -104,7 +104,7 @@ object JReleaserDeployer {
      * Extracts the repository owner from a GitHub URL.
      * E.g. "https://github.com/komune-io/fixers-gradle" → "komune-io"
      */
-    internal fun parseRepoOwner(url: String): String {
+    fun parseRepoOwner(url: String): String {
         val segments = url.trimEnd('/').removeSuffix(".git").split("/")
         return segments[segments.size - 2]
     }
@@ -113,7 +113,7 @@ object JReleaserDeployer {
      * Extracts the repository name from a GitHub URL.
      * E.g. "https://github.com/komune-io/fixers-gradle" → "fixers-gradle"
      */
-    internal fun parseRepoName(url: String): String {
+    fun parseRepoName(url: String): String {
         return url.trimEnd('/').removeSuffix(".git").split("/").last()
     }
     
@@ -157,7 +157,7 @@ object JReleaserDeployer {
                 snapshotUrl.set(fixersConfig.publish.mavenSnapshotsUrl)
                 snapshotSupported.set(true)
                 closeRepository.set(true)
-                applyMavenCentralRules.set(true)
+                applyMavenCentralRules.set(false)
                 stagingRepository(
                     fixersConfig.publish.getStagingRepositoryPath(project)
                 )
@@ -178,7 +178,7 @@ object JReleaserDeployer {
                 })
                 sign.set(false)
                 url.set(fixersConfig.publish.githubPackagesUrl)
-                applyMavenCentralRules.set(true)
+                applyMavenCentralRules.set(false)
                 snapshotSupported.set(true)
                 stagingRepository(
                     fixersConfig.publish.getStagingRepositoryPath(project)

@@ -12,35 +12,72 @@ import org.gradle.plugins.signing.SigningPlugin
 
 class PublishPlugin : Plugin<Project> {
 
+	companion object {
+		const val PLUGIN_ID = "io.komune.fixers.gradle.publish"
+	}
+
 	override fun apply(project: Project) {
+		if (project == project.rootProject) {
+			applyToRoot(project)
+		} else {
+			applyToSubproject(project)
+		}
+	}
+
+	private fun applyToRoot(root: Project) {
+		// Apply JReleaser plugin eagerly (must be before afterEvaluate)
+		// so JReleaser's internal afterEvaluate hooks can initialize
+		JReleaserDeployer.applyPlugin(root)
+
+		// Configure after all projects are evaluated, so we can discover
+		// which subprojects also have PublishPlugin applied.
+		// Uses plugin ID (not class reference) to avoid classloader identity mismatches
+		// between the root project and subproject classloaders.
+		root.gradle.projectsEvaluated {
+			val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
+			val publishSubprojects = root.subprojects.filter {
+				it.pluginManager.hasPlugin(PLUGIN_ID)
+			}
+			if (publishSubprojects.isNotEmpty()) {
+				RootJReleaserSetup.configure(root, fixersConfig, publishSubprojects)
+			}
+		}
+	}
+
+	private fun applyToSubproject(project: Project) {
 		project.plugins.apply(MavenPublishPlugin::class.java)
 		project.plugins.apply(SigningPlugin::class.java)
 
-		// IMPORTANT: Apply JReleaser plugin OUTSIDE afterEvaluate
-		// JReleaser has internal afterEvaluate hooks that initialize fields like 'immutableRelease'
-		// If we apply the plugin inside afterEvaluate, these hooks never run, causing NPE
-		JReleaserDeployer.applyPlugin(project)
+		// Use plugin ID instead of class reference to avoid classloader identity mismatches
+		val rootHandlesJReleaser = project.rootProject.pluginManager.hasPlugin(PLUGIN_ID)
 
-		// Keep afterEvaluate for configuration as some values need to be resolved
+		if (!rootHandlesJReleaser) {
+			// Legacy: per-subproject JReleaser when root does not have PublishPlugin
+			JReleaserDeployer.applyPlugin(project)
+		}
+
 		project.afterEvaluate {
-			// Use root project's config - this is where fixers { bundle { ... } } is typically configured
-			// Using rootProject ensures we get the config even before projectsEvaluated merges it to subprojects
 			val fixersConfig = rootProject.extensions.fixers
 			if (fixersConfig == null) {
 				logger.warn("No fixers config found on root project, skipping publish configuration")
 				return@afterEvaluate
 			}
-			setupPublishing(fixersConfig)
+			setupPublishing(fixersConfig, rootHandlesJReleaser)
 			setupSign(fixersConfig)
-			JReleaserDeployer.configure(project, fixersConfig)
+			if (!rootHandlesJReleaser) {
+				JReleaserDeployer.configure(project, fixersConfig)
+			}
 		}
 	}
 
-	private fun Project.setupPublishing(fixersConfig: ConfigExtension) {
+	private fun Project.setupPublishing(fixersConfig: ConfigExtension, rootHandlesJReleaser: Boolean = false) {
 		val publishing = extensions.getByType(PublishingExtension::class.java)
+		// When root handles JReleaser, all subprojects stage to the root's build directory
+		// so JReleaser finds all artifacts in a single staging directory
+		val stagingProject = if (rootHandlesJReleaser) rootProject else project
 		publishing.repositories {
 			maven {
-				url = project.uri(project.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()))
+				url = project.uri(stagingProject.layout.buildDirectory.dir(fixersConfig.publish.stagingDirectory.get()))
 			}
 		}
 		val currentProject = this
