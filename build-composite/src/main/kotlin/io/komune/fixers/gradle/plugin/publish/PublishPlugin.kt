@@ -83,6 +83,7 @@ class PublishPlugin : Plugin<Project> {
 		val currentProject = this
 		PublishMppSetup.setupMppPublish(currentProject, fixersConfig)
 		PublishJvmSetup.setupJVMPublish(currentProject, fixersConfig)
+		PublishPlatformSetup.setupPlatformPublish(currentProject, fixersConfig)
 
 		publishing.publications {
 			configureMavenPublications(currentProject, fixersConfig)
