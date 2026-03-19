@@ -1,7 +1,7 @@
 plugins {
 	`kotlin-dsl`
 	id("com.gradle.plugin-publish")
-	id("io.komune.fixers.gradle.publishing")
+	id("io.komune.fixers.gradle.publish")
 }
 
 dependencies {
@@ -9,15 +9,10 @@ dependencies {
 	implementation(libs.kotlinGradlePlugin)
 
 	implementation(libs.detektGradlePlugin)
-	implementation(libs.jreleaserGradlePlugin)
+	implementation(libs.mavenPublishGradlePlugin)
 	implementation(libs.npmPublishGradlePlugin)
 	implementation(libs.sonarqubeGradlePlugin)
-
-	// TODO: Remove if build works without - constraint may no longer be needed
-	// Force specific version of commons-lang3 (was for npmPublishGradlePlugin, now comes from jreleaser)
-	// constraints {
-	// 	implementation(libs.commons.lang3)
-	// }
+	implementation(libs.kotlinx.coroutines.core)
 
 	api(project(":dependencies"))
 	api(project(":config"))

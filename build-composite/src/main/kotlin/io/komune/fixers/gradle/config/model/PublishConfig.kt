@@ -1,6 +1,5 @@
 package io.komune.fixers.gradle.config.model
 
-import io.komune.fixers.gradle.config.utils.initListProperty
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
@@ -9,54 +8,24 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 
 /**
- * Enum representing the deployment type
- */
-enum class PkgDeployType {
-    STAGE, PROMOTE;
-
-    /**
-     * Checks if the package deployment type is PROMOTE.
-     */
-    fun isPkgDeployTypePromote(): Boolean {
-        return this == PROMOTE
-    }
-
-    /**
-     * Checks if the package deployment type is STAGE.
-     */
-    fun isPkgDeployTypePublish(): Boolean {
-        return this == STAGE
-    }
-
-    companion object {
-        private fun fromString(value: String?): PkgDeployType? {
-            return when (value?.uppercase()) {
-                "PROMOTE" -> PROMOTE
-                "PUBLISH" -> STAGE
-                else -> null
-            }
-        }
-        fun fromStrings(value: String?): List<PkgDeployType> {
-            return value?.split(",")?.mapNotNull { fromString(it.trim()) } ?: emptyList()
-        }
-    }
-}
-
-/**
  * Configuration for publishing artifacts.
  */
 open class PublishConfig(
     private val project: Project
 ) {
+    companion object {
+        private const val USERNAME_PREVIEW_LENGTH = 3
+    }
+
     override fun toString(): String {
         return """
             PublishConfig(
-                mavenCentralUrl=${mavenCentralUrl.orNull}, 
-                mavenSnapshotsUrl=${mavenSnapshotsUrl.orNull}, 
-                pkgDeployTypes=${pkgDeployTypes.orNull}, 
-                pkgGithubUsername=${pkgGithubUsername.orNull}, 
-                pkgGithubToken=******, 
-                signingKey=******, 
+                mavenCentralUrl=${mavenCentralUrl.orNull},
+                mavenSnapshotsUrl=${mavenSnapshotsUrl.orNull},
+                mavenCentralUsername=${mavenCentralUsername.orNull?.take(USERNAME_PREVIEW_LENGTH)}***,
+                pkgGithubUsername=${pkgGithubUsername.orNull},
+                pkgGithubToken=******,
+                signingKey=******,
                 signingPassword=******,
                 gradlePlugin=${gradlePlugin.orNull},
                 stagingDirectory=${stagingDirectory.orNull}
@@ -82,54 +51,26 @@ open class PublishConfig(
     )
 
     /**
-     * Gets the package deployment type from environment variables or project properties.
-     * @return The package deployment type, defaulting to PUBLISH if not specified.
+     * Maven Central username for publishing via Central Portal API.
      */
-    val pkgDeployTypes: ListProperty<PkgDeployType> = project.objects.listProperty(PkgDeployType::class.java).apply {
-        convention(project.provider {
-            val deployTypeStr = project.property<String>(
-                envKey = "PKG_DEPLOY_TYPE",
-                projectKey = "PKG_DEPLOY_TYPE"
-            ).orNull
-            PkgDeployType.fromStrings(deployTypeStr)
-        })
-    }
+    val mavenCentralUsername: Property<String> = project.property(
+        envKey = "JRELEASER_MAVENCENTRAL_USERNAME",
+        projectKey = "maven.central.username"
+    )
 
     /**
-     * Checks if the package deployment type is PROMOTE.
+     * Maven Central password for publishing via Central Portal API.
      */
-    val isPkgDeployTypePromote: Provider<Boolean> = project.provider {
-        pkgDeployTypes.get().any { it.isPkgDeployTypePromote() }
-    }
-
-    /**
-     * Checks if the package deployment type is STAGE.
-     */
-    val isPkgDeployTypePublish: Provider<Boolean> = project.provider {
-        pkgDeployTypes.get().any { it.isPkgDeployTypePublish() }
-    }
-
-    /**
-     * Determines if artifacts should be published.
-     * Artifacts are published if the deployment type is PUBLISH or if the repository is GitHub.
-     */
-    val isStage: Provider<Boolean> = project.provider {
-        isPkgDeployTypePublish.orNull ?: false
-    }
-
-    /**
-     * Determines if artifacts should be promoted.
-     * Artifacts are promoted if the deployment type is PROMOTE or if the repository is not GitHub.
-     */
-    val isPromote: Provider<Boolean> = project.provider {
-        isPkgDeployTypePromote.orNull ?: false
-    }
+    val mavenCentralPassword: Property<String> = project.property(
+        envKey = "JRELEASER_MAVENCENTRAL_PASSWORD",
+        projectKey = "maven.central.password"
+    )
 
     /**
      * GitHub username for package publishing.
      */
     val pkgGithubUsername: Property<String> = project.property(
-        envKey = "PKG_GITHUB_USERNAME",
+        envKey = "JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_USERNAME",
         projectKey = "pkg.github.username"
     )
 
@@ -137,7 +78,7 @@ open class PublishConfig(
      * GitHub token for package publishing.
      */
     val pkgGithubToken: Property<String> = project.property(
-        envKey = "PKG_GITHUB_TOKEN",
+        envKey = "JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN",
         projectKey = "pkg.github.token"
     )
 
@@ -160,11 +101,9 @@ open class PublishConfig(
     /**
      * List of marker publications for Gradle plugins.
      */
-    val gradlePlugin: ListProperty<String> = project.initListProperty<String>(
-        envKey = "GRADLE_PLUGIN",
-        projectKey = "gradle.plugin",
-        defaultValue = emptyList()
-    )
+    val gradlePlugin: ListProperty<String> = project.objects.listProperty(String::class.java).apply {
+        convention(emptyList())
+    }
 
     /**
      * Directory for staging deployments.
@@ -181,7 +120,7 @@ open class PublishConfig(
     val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
         convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
     }
-    
+
     /**
      * Searches for the version in the VERSION file or falls back to the project's version.
      *
@@ -218,12 +157,12 @@ open class PublishConfig(
     fun mergeFrom(source: PublishConfig): PublishConfig {
         mavenCentralUrl.mergeIfNotPresent(source.mavenCentralUrl)
         mavenSnapshotsUrl.mergeIfNotPresent(source.mavenSnapshotsUrl)
-        pkgDeployTypes.mergeIfNotPresent(source.pkgDeployTypes)
+        mavenCentralUsername.mergeIfNotPresent(source.mavenCentralUsername)
+        mavenCentralPassword.mergeIfNotPresent(source.mavenCentralPassword)
         pkgGithubUsername.mergeIfNotPresent(source.pkgGithubUsername)
         pkgGithubToken.mergeIfNotPresent(source.pkgGithubToken)
         signingKey.mergeIfNotPresent(source.signingKey)
         signingPassword.mergeIfNotPresent(source.signingPassword)
-        gradlePlugin.mergeIfNotPresent(source.gradlePlugin)
         stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
         return this
     }
