@@ -16,6 +16,7 @@ This document provides comprehensive documentation for the build-composite confi
   - [PublishConfig](#publishconfig)
   - [Sonar](#sonar)
   - [Detekt](#detekt)
+  - [Jacoco](#jacoco)
 - [Examples](#examples)
 
 ## Overview
@@ -30,6 +31,7 @@ The configuration system allows you to:
 - Configure Kotlin to TypeScript generation
 - Set up Sonar analysis
 - Configure Detekt for code quality checks
+- Configure JaCoCo for code coverage
 
 ## KTS Fixers Extension
 
@@ -93,10 +95,8 @@ fixers {
 
   // Publishing configuration
   publish {
-    mavenCentralUrl.set("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-    mavenSnapshotsUrl.set("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-    pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.STAGE)
-    pkgMavenRepo.set(io.komune.fixers.gradle.config.model.PkgMavenRepo.MAVEN_CENTRAL)
+    mavenCentralUrl.set("https://central.sonatype.com/api/v1/publisher")
+    mavenSnapshotsUrl.set("https://central.sonatype.com/repository/maven-snapshots/")
     pkgGithubUsername.set("github-username")
     pkgGithubToken.set("github-token")
     signingKey.set("signing-key")
@@ -113,12 +113,21 @@ fixers {
     detekt.set("build/reports/detekt/detekt.xml")
     exclusions.set("**/*.java")
     githubSummaryComment.set("true")
+    sources.set(".")
+    inclusions.set("**/src/*main*/kotlin/**/*.kt")
+    verbose.set(true)
+    detektConfigPath.set("detekt.yml")
   }
 
   detekt {
     disable.set(false)
     baseline.set("detekt-baseline.xml")
     config.set("detekt-config.yml")
+    buildUponDefaultConfig.set(true)
+    checkstyleReport.set(true)
+    htmlReport.set(true)
+    sarifReport.set(true)
+    markdownReport.set(true)
   }
 }
 
@@ -147,8 +156,8 @@ Properties are resolved in the following order:
 3. Default value (if defined)
 
 For example, the JDK version can be set using:
-- Environment variable: `JDK_VERSION`
-- Project property: `jdk.version`
+- Environment variable: `FIXERS_JDK_VERSION`
+- Project property: `fixers.jdk.version`
 - Default value: `17`
 
 ## Configuration Models
@@ -161,22 +170,21 @@ The `Bundle` class contains configuration for project metadata.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| name | - | - | Project name | The name of the project |
-| id | BUNDLE_ID | bundle.id | - | The ID of the project |
-| description | BUNDLE_DESCRIPTION | bundle.description | - | The description of the project |
-| version | BUNDLE_VERSION | bundle.version | - | The version of the project |
-| url | BUNDLE_URL | bundle.url | - | The URL of the project |
-| signingKey | GPG_SIGNING_KEY | signing.key | - | The signing key for artifacts |
-| signingPassword | GPG_SIGNING_PASSWORD | signing.password | - | The signing password for artifacts |
-| licenseName | LICENSE_NAME | license.name | "The Apache Software License, Version 2.0" | The name of the license |
-| licenseUrl | LICENSE_URL | license.url | "https://www.apache.org/licenses/LICENSE-2.0.txt" | The URL of the license |
-| licenseDistribution | LICENSE_DISTRIBUTION | license.distribution | "repo" | The distribution type of the license |
-| developerId | DEVELOPER_ID | developer.id | "Komune" | The ID of the developer |
-| developerName | DEVELOPER_NAME | developer.name | "Komune Team" | The name of the developer |
-| developerOrganization | DEVELOPER_ORGANIZATION | developer.organization | "Komune" | The organization of the developer |
-| developerOrganizationUrl | DEVELOPER_ORGANIZATION_URL | developer.organizationUrl | "https://komune.io" | The URL of the developer's organization |
-| scmConnection | SCM_CONNECTION | scm.connection | "scm:git:git://github.com/komune-io/fixers-gradle.git" | The connection URL for SCM |
-| scmDeveloperConnection | SCM_DEVELOPER_CONNECTION | scm.developerConnection | "scm:git:ssh://github.com/komune-io/fixers-gradle.git" | The developer connection URL for SCM |
+| name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
+| group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
+| id | FIXERS_BUNDLE_ID | fixers.bundle.id | - | The ID of the project |
+| description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
+| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
+| url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |
+| licenseName | FIXERS_BUNDLE_LICENSE_NAME | fixers.bundle.license.name | "The Apache Software License, Version 2.0" | The name of the license |
+| licenseUrl | FIXERS_BUNDLE_LICENSE_URL | fixers.bundle.license.url | "https://www.apache.org/licenses/LICENSE-2.0.txt" | The URL of the license |
+| licenseDistribution | FIXERS_BUNDLE_LICENSE_DISTRIBUTION | fixers.bundle.license.distribution | "repo" | The distribution type of the license |
+| developerId | FIXERS_BUNDLE_DEVELOPER_ID | fixers.bundle.developer.id | "Komune" | The ID of the developer |
+| developerName | FIXERS_BUNDLE_DEVELOPER_NAME | fixers.bundle.developer.name | "Komune Team" | The name of the developer |
+| developerOrganization | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION | fixers.bundle.developer.organization | "Komune" | The organization of the developer |
+| developerOrganizationUrl | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION_URL | fixers.bundle.developer.organizationUrl | "https://komune.io" | The URL of the developer's organization |
+| scmConnection | FIXERS_BUNDLE_SCM_CONNECTION | fixers.bundle.scm.connection | "scm:git:git://github.com/komune-io/fixers-gradle.git" | The connection URL for SCM |
+| scmDeveloperConnection | FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION | fixers.bundle.scm.developerConnection | "scm:git:ssh://github.com/komune-io/fixers-gradle.git" | The developer connection URL for SCM |
 
 #### Example
 
@@ -201,7 +209,7 @@ The `Jdk` class contains configuration for JDK version.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| version | JDK_VERSION | jdk.version | 17 | The JDK version to use |
+| version | FIXERS_JDK_VERSION | fixers.jdk.version | 17 | The JDK version to use |
 
 #### Example
 
@@ -221,10 +229,10 @@ The `Npm` class contains configuration for NPM package publishing.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| publish | NPM_PUBLISH | npm.publish | true | Whether to publish NPM packages |
-| organization | NPM_ORGANIZATION | npm.organization | "komune-io" | The organization name for NPM packages |
-| clean | NPM_CLEAN | npm.clean | true | Whether to clean NPM packages before publishing |
-| version | NPM_VERSION | npm.version | - | The version for NPM packages |
+| publish | FIXERS_NPM_PUBLISH | fixers.npm.publish | true | Whether to publish NPM packages |
+| organization | FIXERS_NPM_ORGANIZATION | fixers.npm.organization | "komune-io" | The organization name for NPM packages |
+| clean | FIXERS_NPM_CLEAN | fixers.npm.clean | true | Whether to clean NPM packages before publishing |
+| version | FIXERS_NPM_VERSION | fixers.npm.version | - | The version for NPM packages |
 
 #### Example
 
@@ -246,8 +254,8 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| outputDirectory | KT2TS_OUTPUT_DIRECTORY | kt2ts.outputDirectory | "platform/web/kotlin" | The directory where TypeScript files will be generated |
-| inputDirectory | KT2TS_INPUT_DIRECTORY | kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
+| outputDirectory | FIXERS_KT2TS_OUTPUT_DIRECTORY | fixers.kt2ts.outputDirectory | "platform/web/kotlin" | The directory where TypeScript files will be generated |
+| inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
 
 #### Example
@@ -290,14 +298,16 @@ The `PublishConfig` class contains configuration for publishing settings.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| mavenCentralUrl | MAVEN_CENTRAL_URL | publish.mavenCentralUrl | "https://central.sonatype.com/api/v1/publisher" | The URL for Maven Central |
-| mavenSnapshotsUrl | MAVEN_SNAPSHOTS_URL | publish.mavenSnapshotsUrl | "https://central.sonatype.com/repository/maven-snapshots/" | The URL for Maven Snapshots |
-| pkgDeployType | PKG_DEPLOY_TYPE | publish.pkgDeployType | PkgDeployType.STAGE | The deployment type (STAGE or PROMOTE) |
-| pkgMavenRepo | PKG_MAVEN_REPO | publish.pkgMavenRepo | - | The Maven repository for package deployment |
-| pkgGithubUsername | PKG_GITHUB_USERNAME | publish.pkgGithubUsername | - | The GitHub username for package deployment |
-| pkgGithubToken | PKG_GITHUB_TOKEN | publish.pkgGithubToken | - | The GitHub token for package deployment |
-| signingKey | GPG_SIGNING_KEY | signing.key | - | The signing key for artifacts |
-| signingPassword | GPG_SIGNING_PASSWORD | signing.password | - | The signing password for artifacts |
+| mavenCentralUrl | FIXERS_PUBLISH_MAVEN_CENTRAL_URL | fixers.publish.maven.central.url | "https://central.sonatype.com/api/v1/publisher" | The URL for Maven Central |
+| mavenSnapshotsUrl | FIXERS_PUBLISH_MAVEN_SNAPSHOTS_URL | fixers.publish.maven.snapshots.url | "https://central.sonatype.com/repository/maven-snapshots/" | The URL for Maven Snapshots |
+| mavenCentralUsername | FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME | fixers.publish.maven.central.username | - | The Maven Central username |
+| mavenCentralPassword | FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD | fixers.publish.maven.central.password | - | The Maven Central password |
+| pkgGithubUsername | FIXERS_PUBLISH_GITHUB_USERNAME | fixers.publish.github.username | - | The GitHub username for package deployment |
+| pkgGithubToken | FIXERS_PUBLISH_GITHUB_TOKEN | fixers.publish.github.token | - | The GitHub token for package deployment |
+| signingGpgKey | FIXERS_PUBLISH_SIGNING_GPG_KEY | fixers.publish.signing.gpgKey | - | The GPG signing key for artifacts |
+| signingGpgKeyPassword | FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD | fixers.publish.signing.gpgKeyPassword | - | The GPG signing key password |
+| stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
+| githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
 | gradlePlugin | - | - | - | Configuration for Gradle plugin publishing |
 
 #### Example
@@ -305,14 +315,12 @@ The `PublishConfig` class contains configuration for publishing settings.
 ```kotlin
 fixers {
     publish {
-        mavenCentralUrl.set("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-        mavenSnapshotsUrl.set("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-        pkgDeployType.set(io.komune.fixers.gradle.config.model.PkgDeployType.STAGE)
-        pkgMavenRepo.set(io.komune.fixers.gradle.config.model.PkgMavenRepo.MAVEN_CENTRAL)
+        mavenCentralUrl.set("https://central.sonatype.com/api/v1/publisher")
+        mavenSnapshotsUrl.set("https://central.sonatype.com/repository/maven-snapshots/")
         pkgGithubUsername.set("github-username")
         pkgGithubToken.set("github-token")
-        signingKey.set("signing-key")
-        signingPassword.set("signing-password")
+        signingGpgKey.set("signing-key")
+        signingGpgKeyPassword.set("signing-password")
     }
 }
 ```
@@ -325,14 +333,18 @@ The `Sonar` class contains configuration for Sonar analysis.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| organization | SONAR_ORGANIZATION | sonar.organization | "" | The Sonar organization |
-| projectKey | SONAR_PROJECT_KEY | sonar.projectKey | "" | The Sonar project key |
-| url | SONAR_URL | sonar.url | "https://sonarcloud.io" | The Sonar host URL |
-| jacoco | SONAR_JACOCO | sonar.jacoco | "${project.rootDir}/**/build/reports/jacoco/test/jacocoTestReport.xml" | The path to the JaCoCo XML report |
-| language | SONAR_LANGUAGE | sonar.language | "kotlin" | The language of the project |
-| detekt | SONAR_KOTLIN_DETEKT_REPORT_PATHS | sonar.kotlin.detekt.reportPaths | "build/reports/detekt/detekt.xml" | The path to the Detekt XML report |
-| exclusions | SONAR_EXCLUSIONS | sonar.pullrequest.github.summary_comment | "**/*.java" | The exclusions pattern for SonarQube/SonarCloud analysis |
-| githubSummaryComment | SONAR_GITHUB_SUMMARY_COMMENT | sonar.githubSummaryComment | "true" | Whether to add a summary comment to GitHub pull requests |
+| url | FIXERS_SONAR_URL | fixers.sonar.url | "https://sonarcloud.io" | The Sonar host URL |
+| organization | FIXERS_SONAR_ORGANIZATION | fixers.sonar.organization | "" | The Sonar organization |
+| projectKey | FIXERS_SONAR_PROJECT_KEY | fixers.sonar.projectKey | "" | The Sonar project key |
+| jacoco | FIXERS_SONAR_JACOCO | fixers.sonar.jacoco | "**/build/reports/jacoco/**/jacocoTestReport.xml" | The path to the JaCoCo XML report |
+| language | FIXERS_SONAR_LANGUAGE | fixers.sonar.language | "kotlin" | The language of the project |
+| detekt | FIXERS_SONAR_DETEKT_REPORT_PATHS | fixers.sonar.detekt.reportPaths | "build/reports/detekt/merge.xml" | The path to the Detekt XML report |
+| exclusions | FIXERS_SONAR_EXCLUSIONS | fixers.sonar.exclusions | "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java" | The exclusions pattern |
+| githubSummaryComment | FIXERS_SONAR_GITHUB_SUMMARY_COMMENT | fixers.sonar.githubSummaryComment | "true" | Whether to add a summary comment to GitHub pull requests |
+| sources | FIXERS_SONAR_SOURCES | fixers.sonar.sources | "." | The sources pattern |
+| inclusions | FIXERS_SONAR_INCLUSIONS | fixers.sonar.inclusions | "**/src/*main*/kotlin/**/*.kt" | The inclusions pattern |
+| verbose | FIXERS_SONAR_VERBOSE | fixers.sonar.verbose | true | Whether to enable verbose output |
+| detektConfigPath | FIXERS_SONAR_DETEKT_CONFIG_PATH | fixers.sonar.detektConfigPath | "detekt.yml" | The path to the Detekt configuration file |
 
 #### Example
 
@@ -359,9 +371,14 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| disable | DETEKT_DISABLE | detekt.disable | false | Whether to disable Detekt |
-| baseline | DETEKT_BASELINE | detekt.baseline | - | The baseline file for Detekt |
-| config | DETEKT_CONFIG | detekt.config | - | The configuration file for Detekt |
+| disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
+| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt |
+| config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
+| buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
+| checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |
+| htmlReport | FIXERS_DETEKT_REPORT_HTML | fixers.detekt.report.html | true | Whether to enable the HTML report |
+| sarifReport | FIXERS_DETEKT_REPORT_SARIF | fixers.detekt.report.sarif | true | Whether to enable the SARIF report |
+| markdownReport | FIXERS_DETEKT_REPORT_MARKDOWN | fixers.detekt.report.markdown | true | Whether to enable the Markdown report |
 
 #### Example
 
@@ -371,6 +388,32 @@ fixers {
         disable.set(false)
         baseline.set("detekt-baseline.xml")
         config.set("detekt-config.yml")
+    }
+}
+```
+
+### Jacoco
+
+The `Jacoco` class contains configuration for JaCoCo code coverage.
+
+#### Properties
+
+| Property | Environment Variable | Project Property | Default Value | Description |
+|----------|---------------------|------------------|---------------|-------------|
+| enabled | FIXERS_JACOCO_ENABLED | fixers.jacoco.enabled | true | Whether to enable JaCoCo code coverage |
+| htmlReport | FIXERS_JACOCO_REPORT_HTML | fixers.jacoco.report.html | true | Whether to enable the HTML report |
+| xmlReport | FIXERS_JACOCO_REPORT_XML | fixers.jacoco.report.xml | true | Whether to enable the XML report |
+| xmlReportFilename | FIXERS_JACOCO_REPORT_XML_FILENAME | fixers.jacoco.report.xml.filename | "jacocoTestReport.xml" | The filename for the JaCoCo XML report |
+
+#### Example
+
+```kotlin
+fixers {
+    jacoco {
+        enabled.set(true)
+        htmlReport.set(true)
+        xmlReport.set(true)
+        xmlReportFilename.set("jacocoTestReport.xml")
     }
 }
 ```
@@ -422,8 +465,7 @@ fixers {
     }
 
     publish {
-        pkgDeployType.set("STAGE")
-        pkgMavenRepo.set("maven-central")
+        mavenCentralUrl.set("https://central.sonatype.com/api/v1/publisher")
     }
 }
 ```

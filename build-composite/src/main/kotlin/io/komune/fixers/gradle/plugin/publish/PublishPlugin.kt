@@ -106,14 +106,14 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	private fun Project.setupSign(fixersConfig: ConfigExtension) {
-		if (!fixersConfig.publish.signingKey.isPresent || !fixersConfig.publish.signingPassword.isPresent) {
+		if (!fixersConfig.publish.signingGpgKey.isPresent || !fixersConfig.publish.signingGpgKeyPassword.isPresent) {
 			logger.info("No signing config provided, skip signing")
 			disableSigningTasks()
 			return
 		}
 
-		val inMemoryKey = fixersConfig.publish.signingKey.get()
-		val password = fixersConfig.publish.signingPassword.get()
+		val inMemoryKey = fixersConfig.publish.signingGpgKey.get()
+		val password = fixersConfig.publish.signingGpgKeyPassword.get()
 		if (inMemoryKey.isEmpty()) {
 			logger.info("Empty signing key provided, skip signing")
 			disableSigningTasks()

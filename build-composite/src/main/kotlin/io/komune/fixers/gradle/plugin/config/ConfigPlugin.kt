@@ -35,6 +35,7 @@ class ConfigPlugin : Plugin<Project> {
                 root.subprojects.forEach { subproject ->
                     subproject.mergeConfig(extension)
                 }
+                root.setGroup(extension)
             }
 
             root.extensions.fixers?.let { config ->
@@ -59,6 +60,14 @@ class ConfigPlugin : Plugin<Project> {
         version = versionFromFile() ?: version
         subprojects.forEach { subproject ->
             subproject.setVersion()
+        }
+    }
+
+    private fun Project.setGroup(extension: ConfigExtension) {
+        val bundleGroup = extension.bundle.group.orNull ?: return
+        group = bundleGroup
+        subprojects.forEach { subproject ->
+            subproject.group = bundleGroup
         }
     }
     private fun Project.mergeConfig(rootConfig: ConfigExtension) {

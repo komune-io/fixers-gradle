@@ -16,8 +16,8 @@ class Sonar(
      * The URL of the SonarQube/SonarCloud server.
      */
     val url: Property<String> = project.property(
-        envKey = "SONAR_URL",
-        projectKey = "sonar.url",
+        envKey = "FIXERS_SONAR_URL",
+        projectKey = "fixers.sonar.url",
         defaultValue = "https://sonarcloud.io"
     )
 
@@ -25,8 +25,8 @@ class Sonar(
      * The organization key in SonarCloud.
      */
     val organization: Property<String> = project.property(
-        envKey = "SONAR_ORGANIZATION",
-        projectKey = "sonar.organization",
+        envKey = "FIXERS_SONAR_ORGANIZATION",
+        projectKey = "fixers.sonar.organization",
         defaultValue = ""
     )
 
@@ -34,8 +34,8 @@ class Sonar(
      * The project key in SonarQube/SonarCloud.
      */
     val projectKey: Property<String> = project.property(
-        envKey = "SONAR_PROJECT_KEY",
-        projectKey = "sonar.projectKey",
+        envKey = "FIXERS_SONAR_PROJECT_KEY",
+        projectKey = "fixers.sonar.projectKey",
         defaultValue = ""
     )
 
@@ -44,8 +44,8 @@ class Sonar(
      * Includes paths for both standard JVM projects (test/) and Kotlin Multiplatform projects (jvmTest/).
      */
     val jacoco: Property<String> = project.property(
-        envKey = "SONAR_JACOCO",
-        projectKey = "sonar.jacoco",
+        envKey = "FIXERS_SONAR_JACOCO",
+        projectKey = "fixers.sonar.jacoco",
         defaultValue = "**/build/reports/jacoco/**/${Jacoco.DEFAULT_XML_REPORT_FILENAME}"
     )
 
@@ -53,8 +53,8 @@ class Sonar(
      * The language of the project.
      */
     val language: Property<String> = project.property(
-        envKey = "SONAR_LANGUAGE",
-        projectKey = "sonar.language",
+        envKey = "FIXERS_SONAR_LANGUAGE",
+        projectKey = "fixers.sonar.language",
         defaultValue = "kotlin"
     )
 
@@ -63,8 +63,8 @@ class Sonar(
      * Uses the merged report from the root project.
      */
     val detekt: Property<String> = project.property(
-        envKey = "SONAR_KOTLIN_DETEKT_REPORT_PATHS",
-        projectKey = "sonar.kotlin.detekt.reportPaths",
+        envKey = "FIXERS_SONAR_DETEKT_REPORT_PATHS",
+        projectKey = "fixers.sonar.detekt.reportPaths",
         defaultValue = "build/reports/detekt/merge.xml"
     )
 
@@ -72,8 +72,8 @@ class Sonar(
      * The exclusions pattern for SonarQube/SonarCloud analysis.
      */
     val exclusions: Property<String> = project.property(
-        envKey = "SONAR_EXCLUSIONS",
-        projectKey = "sonar.exclusions",
+        envKey = "FIXERS_SONAR_EXCLUSIONS",
+        projectKey = "fixers.sonar.exclusions",
         defaultValue = "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java"
     )
 
@@ -81,8 +81,8 @@ class Sonar(
      * Whether to add a summary comment to GitHub pull requests.
      */
     val githubSummaryComment: Property<String> = project.property(
-        envKey = "SONAR_GITHUB_SUMMARY_COMMENT",
-        projectKey = "sonar.githubSummaryComment",
+        envKey = "FIXERS_SONAR_GITHUB_SUMMARY_COMMENT",
+        projectKey = "fixers.sonar.githubSummaryComment",
         defaultValue = "true"
     )
 
@@ -90,8 +90,8 @@ class Sonar(
      * The sources pattern for SonarQube/SonarCloud analysis.
      */
     val sources: Property<String> = project.property(
-        envKey = "SONAR_SOURCES",
-        projectKey = "sonar.sources",
+        envKey = "FIXERS_SONAR_SOURCES",
+        projectKey = "fixers.sonar.sources",
         defaultValue = "."
     )
 
@@ -99,8 +99,8 @@ class Sonar(
      * The inclusions pattern for SonarQube/SonarCloud analysis.
      */
     val inclusions: Property<String> = project.property(
-        envKey = "SONAR_INCLUSIONS",
-        projectKey = "sonar.inclusions",
+        envKey = "FIXERS_SONAR_INCLUSIONS",
+        projectKey = "fixers.sonar.inclusions",
         defaultValue = "**/src/*main*/kotlin/**/*.kt"
     )
 
@@ -108,8 +108,8 @@ class Sonar(
      * Whether to enable verbose output for SonarQube/SonarCloud analysis.
      */
     val verbose: Property<Boolean> = project.property(
-        envKey = "SONAR_VERBOSE",
-        projectKey = "sonar.verbose",
+        envKey = "FIXERS_SONAR_VERBOSE",
+        projectKey = "fixers.sonar.verbose",
         defaultValue = true
     )
 
@@ -117,8 +117,8 @@ class Sonar(
      * The path to the Detekt configuration file for Sonar Kotlin plugin.
      */
     val detektConfigPath: Property<String> = project.property(
-        envKey = "SONAR_DETEKT_CONFIG_PATH",
-        projectKey = "sonar.detektConfigPath",
+        envKey = "FIXERS_SONAR_DETEKT_CONFIG_PATH",
+        projectKey = "fixers.sonar.detektConfigPath",
         defaultValue = "detekt.yml"
     )
 

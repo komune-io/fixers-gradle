@@ -15,8 +15,8 @@ class Detekt(
 	 * Whether to disable Detekt static code analysis.
 	 */
 	val disable: Property<Boolean> = project.property(
-		envKey = "DETEKT_DISABLE",
-		projectKey = "detekt.disable",
+		envKey = "FIXERS_DETEKT_DISABLE",
+		projectKey = "fixers.detekt.disable",
 		defaultValue = false
 	)
 
@@ -24,16 +24,16 @@ class Detekt(
 	 * The baseline file for Detekt.
 	 */
 	val baseline: Property<String> = project.property(
-		envKey = "DETEKT_BASELINE",
-		projectKey = "detekt.baseline"
+		envKey = "FIXERS_DETEKT_BASELINE",
+		projectKey = "fixers.detekt.baseline"
 	)
 
 	/**
 	 * The configuration file for Detekt.
 	 */
 	val config: Property<String> = project.property(
-		envKey = "DETEKT_CONFIG",
-		projectKey = "detekt.config",
+		envKey = "FIXERS_DETEKT_CONFIG",
+		projectKey = "fixers.detekt.config",
 		defaultValue = "detekt.yml"
 	)
 
@@ -42,8 +42,8 @@ class Detekt(
 	 * When true, custom config extends the default rather than replacing it.
 	 */
 	val buildUponDefaultConfig: Property<Boolean> = project.property(
-		envKey = "DETEKT_BUILD_UPON_DEFAULT_CONFIG",
-		projectKey = "detekt.buildUponDefaultConfig",
+		envKey = "FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG",
+		projectKey = "fixers.detekt.buildUponDefaultConfig",
 		defaultValue = true
 	)
 
@@ -51,8 +51,8 @@ class Detekt(
 	 * Whether to enable the checkstyle (XML) report.
 	 */
 	val checkstyleReport: Property<Boolean> = project.property(
-		envKey = "DETEKT_REPORT_CHECKSTYLE",
-		projectKey = "detekt.report.checkstyle",
+		envKey = "FIXERS_DETEKT_REPORT_CHECKSTYLE",
+		projectKey = "fixers.detekt.report.checkstyle",
 		defaultValue = true
 	)
 
@@ -60,8 +60,8 @@ class Detekt(
 	 * Whether to enable the HTML report.
 	 */
 	val htmlReport: Property<Boolean> = project.property(
-		envKey = "DETEKT_REPORT_HTML",
-		projectKey = "detekt.report.html",
+		envKey = "FIXERS_DETEKT_REPORT_HTML",
+		projectKey = "fixers.detekt.report.html",
 		defaultValue = true
 	)
 
@@ -69,8 +69,8 @@ class Detekt(
 	 * Whether to enable the SARIF report.
 	 */
 	val sarifReport: Property<Boolean> = project.property(
-		envKey = "DETEKT_REPORT_SARIF",
-		projectKey = "detekt.report.sarif",
+		envKey = "FIXERS_DETEKT_REPORT_SARIF",
+		projectKey = "fixers.detekt.report.sarif",
 		defaultValue = true
 	)
 
@@ -78,8 +78,8 @@ class Detekt(
 	 * Whether to enable the Markdown report.
 	 */
 	val markdownReport: Property<Boolean> = project.property(
-		envKey = "DETEKT_REPORT_MARKDOWN",
-		projectKey = "detekt.report.markdown",
+		envKey = "FIXERS_DETEKT_REPORT_MARKDOWN",
+		projectKey = "fixers.detekt.report.markdown",
 		defaultValue = true
 	)
 

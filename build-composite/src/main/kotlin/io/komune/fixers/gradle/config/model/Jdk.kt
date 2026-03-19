@@ -15,8 +15,8 @@ class Jdk(
      * The JDK version to use.
      */
     val version: Property<Int> = project.property(
-        envKey = "JDK_VERSION",
-        projectKey = "jdk.version",
+        envKey = "FIXERS_JDK_VERSION",
+        projectKey = "fixers.jdk.version",
         defaultValue = VERSION_DEFAULT
     )
 

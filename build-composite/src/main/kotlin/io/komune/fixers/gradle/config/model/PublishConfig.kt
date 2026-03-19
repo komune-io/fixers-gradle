@@ -25,8 +25,8 @@ open class PublishConfig(
                 mavenCentralUsername=${mavenCentralUsername.orNull?.take(USERNAME_PREVIEW_LENGTH)}***,
                 pkgGithubUsername=${pkgGithubUsername.orNull},
                 pkgGithubToken=******,
-                signingKey=******,
-                signingPassword=******,
+                signingGpgKey=******,
+                signingGpgKeyPassword=******,
                 gradlePlugin=${gradlePlugin.orNull},
                 stagingDirectory=${stagingDirectory.orNull}
             )
@@ -36,8 +36,8 @@ open class PublishConfig(
      * Maven Central URL for publishing.
      */
     val mavenCentralUrl: Property<String> = project.property(
-        envKey = "MAVEN_CENTRAL_URL",
-        projectKey = "maven.central.url",
+        envKey = "FIXERS_PUBLISH_MAVEN_CENTRAL_URL",
+        projectKey = "fixers.publish.maven.central.url",
         defaultValue = "https://central.sonatype.com/api/v1/publisher"
     )
 
@@ -45,8 +45,8 @@ open class PublishConfig(
      * Maven Snapshots URL for publishing.
      */
     val mavenSnapshotsUrl: Property<String> = project.property(
-        envKey = "MAVEN_SNAPSHOTS_URL",
-        projectKey = "maven.snapshots.url",
+        envKey = "FIXERS_PUBLISH_MAVEN_SNAPSHOTS_URL",
+        projectKey = "fixers.publish.maven.snapshots.url",
         defaultValue = "https://central.sonatype.com/repository/maven-snapshots/"
     )
 
@@ -54,48 +54,48 @@ open class PublishConfig(
      * Maven Central username for publishing via Central Portal API.
      */
     val mavenCentralUsername: Property<String> = project.property(
-        envKey = "JRELEASER_MAVENCENTRAL_USERNAME",
-        projectKey = "maven.central.username"
+        envKey = "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME",
+        projectKey = "fixers.publish.maven.central.username"
     )
 
     /**
      * Maven Central password for publishing via Central Portal API.
      */
     val mavenCentralPassword: Property<String> = project.property(
-        envKey = "JRELEASER_MAVENCENTRAL_PASSWORD",
-        projectKey = "maven.central.password"
+        envKey = "FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD",
+        projectKey = "fixers.publish.maven.central.password"
     )
 
     /**
      * GitHub username for package publishing.
      */
     val pkgGithubUsername: Property<String> = project.property(
-        envKey = "JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_USERNAME",
-        projectKey = "pkg.github.username"
+        envKey = "FIXERS_PUBLISH_GITHUB_USERNAME",
+        projectKey = "fixers.publish.github.username"
     )
 
     /**
      * GitHub token for package publishing.
      */
     val pkgGithubToken: Property<String> = project.property(
-        envKey = "JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN",
-        projectKey = "pkg.github.token"
+        envKey = "FIXERS_PUBLISH_GITHUB_TOKEN",
+        projectKey = "fixers.publish.github.token"
     )
 
     /**
      * Signing key for artifacts.
      */
-    val signingKey: Property<String> = project.property(
-        envKey = "GPG_SIGNING_KEY",
-        projectKey = "signing.key"
+    val signingGpgKey: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_SIGNING_GPG_KEY",
+        projectKey = "fixers.publish.signing.gpgKey"
     )
 
     /**
      * Signing password for artifacts.
      */
-    val signingPassword: Property<String> = project.property(
-        envKey = "GPG_SIGNING_PASSWORD",
-        projectKey = "signing.password"
+    val signingGpgKeyPassword: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD",
+        projectKey = "fixers.publish.signing.gpgKeyPassword"
     )
 
     /**
@@ -109,17 +109,19 @@ open class PublishConfig(
      * Directory for staging deployments.
      */
     val stagingDirectory: Property<String> = project.property(
-        envKey = "STAGING_DIRECTORY",
-        projectKey = "staging.directory",
+        envKey = "FIXERS_PUBLISH_STAGING_DIRECTORY",
+        projectKey = "fixers.publish.staging.directory",
         defaultValue = "staging-deploy"
     )
 
     /**
      * GitHub Packages URL for publishing.
      */
-    val githubPackagesUrl: Property<String> = project.objects.property(String::class.java).apply {
-        convention(project.provider { "https://maven.pkg.github.com/komune-io/${project.rootProject.name}" })
-    }
+    val githubPackagesUrl: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_GITHUB_PACKAGES_URL",
+        projectKey = "fixers.publish.github.packages.url",
+        defaultValue = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
+    )
 
     /**
      * Searches for the version in the VERSION file or falls back to the project's version.
@@ -161,9 +163,10 @@ open class PublishConfig(
         mavenCentralPassword.mergeIfNotPresent(source.mavenCentralPassword)
         pkgGithubUsername.mergeIfNotPresent(source.pkgGithubUsername)
         pkgGithubToken.mergeIfNotPresent(source.pkgGithubToken)
-        signingKey.mergeIfNotPresent(source.signingKey)
-        signingPassword.mergeIfNotPresent(source.signingPassword)
+        signingGpgKey.mergeIfNotPresent(source.signingGpgKey)
+        signingGpgKeyPassword.mergeIfNotPresent(source.signingGpgKeyPassword)
         stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
+        githubPackagesUrl.mergeIfNotPresent(source.githubPackagesUrl)
         return this
     }
 }

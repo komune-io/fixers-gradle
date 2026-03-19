@@ -15,8 +15,8 @@ class Jacoco(
      * Whether to enable JaCoCo code coverage.
      */
     val enabled: Property<Boolean> = project.property(
-        envKey = "JACOCO_ENABLED",
-        projectKey = "jacoco.enabled",
+        envKey = "FIXERS_JACOCO_ENABLED",
+        projectKey = "fixers.jacoco.enabled",
         defaultValue = true
     )
 
@@ -24,8 +24,8 @@ class Jacoco(
      * Whether to enable the HTML report.
      */
     val htmlReport: Property<Boolean> = project.property(
-        envKey = "JACOCO_REPORT_HTML",
-        projectKey = "jacoco.report.html",
+        envKey = "FIXERS_JACOCO_REPORT_HTML",
+        projectKey = "fixers.jacoco.report.html",
         defaultValue = true
     )
 
@@ -33,8 +33,8 @@ class Jacoco(
      * Whether to enable the XML report.
      */
     val xmlReport: Property<Boolean> = project.property(
-        envKey = "JACOCO_REPORT_XML",
-        projectKey = "jacoco.report.xml",
+        envKey = "FIXERS_JACOCO_REPORT_XML",
+        projectKey = "fixers.jacoco.report.xml",
         defaultValue = true
     )
 
@@ -42,8 +42,8 @@ class Jacoco(
      * The filename for the JaCoCo XML report.
      */
     val xmlReportFilename: Property<String> = project.property(
-        envKey = "JACOCO_REPORT_XML_FILENAME",
-        projectKey = "jacoco.report.xml.filename",
+        envKey = "FIXERS_JACOCO_REPORT_XML_FILENAME",
+        projectKey = "fixers.jacoco.report.xml.filename",
         defaultValue = DEFAULT_XML_REPORT_FILENAME
     )
 

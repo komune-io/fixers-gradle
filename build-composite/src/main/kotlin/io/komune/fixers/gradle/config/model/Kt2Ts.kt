@@ -17,8 +17,8 @@ class Kt2Ts(
      * The directory where TypeScript files will be generated.
      */
     val outputDirectory: Property<String> = project.property(
-        envKey = "KT2TS_OUTPUT_DIRECTORY",
-        projectKey = "kt2ts.outputDirectory",
+        envKey = "FIXERS_KT2TS_OUTPUT_DIRECTORY",
+        projectKey = "fixers.kt2ts.outputDirectory",
         defaultValue = "platform/web/kotlin"
     )
 
@@ -27,8 +27,8 @@ class Kt2Ts(
      * If not specified, a default value based on the build directory will be used.
      */
     val inputDirectory: Property<String> = project.property(
-        envKey = "KT2TS_INPUT_DIRECTORY",
-        projectKey = "kt2ts.inputDirectory"
+        envKey = "FIXERS_KT2TS_INPUT_DIRECTORY",
+        projectKey = "fixers.kt2ts.inputDirectory"
     )
 
     /**
