@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
+import io.komune.fixers.gradle.config.utils.versionFromFile
 import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -28,7 +29,8 @@ open class PublishConfig(
                 signingGpgKey=******,
                 signingGpgKeyPassword=******,
                 gradlePlugin=${gradlePlugin.orNull},
-                stagingDirectory=${stagingDirectory.orNull}
+                stagingDirectory=${stagingDirectory.orNull},
+                githubPackagesUrl=${githubPackagesUrl.orNull}
             )
         """.trimIndent()
     }
@@ -129,12 +131,7 @@ open class PublishConfig(
      * @return A provider that resolves to the version string
      */
     val version: Provider<String> = project.provider {
-        val versionFile = project.rootProject.file("VERSION")
-        if (versionFile.exists()) {
-            versionFile.readText().trim()
-        } else {
-            project.version.toString()
-        }
+        project.versionFromFile() ?: project.version.toString()
     }
 
     /**

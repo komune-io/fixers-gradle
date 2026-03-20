@@ -227,11 +227,11 @@ class PublishPlugin : Plugin<Project> {
 	private fun uploadToGithubPackages(stagingDir: java.io.File, fixersConfig: ConfigExtension) {
 		val ghUsername = fixersConfig.publish.pkgGithubUsername.orNull
 			?: throw org.gradle.api.GradleException(
-				"JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_USERNAME is not set"
+				"FIXERS_PUBLISH_GITHUB_USERNAME is not set"
 			)
 		val ghToken = fixersConfig.publish.pkgGithubToken.orNull
 			?: throw org.gradle.api.GradleException(
-				"JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN is not set"
+				"FIXERS_PUBLISH_GITHUB_TOKEN is not set"
 			)
 		MavenRepositoryUploader.to("GitHub Packages")
 			.from(stagingDir)
@@ -242,9 +242,9 @@ class PublishPlugin : Plugin<Project> {
 
 	private fun uploadToMavenSnapshots(stagingDir: java.io.File, fixersConfig: ConfigExtension) {
 		val username = fixersConfig.publish.mavenCentralUsername.orNull
-			?: throw org.gradle.api.GradleException("JRELEASER_MAVENCENTRAL_USERNAME is not set")
+			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME is not set")
 		val password = fixersConfig.publish.mavenCentralPassword.orNull
-			?: throw org.gradle.api.GradleException("JRELEASER_MAVENCENTRAL_PASSWORD is not set")
+			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD is not set")
 		MavenRepositoryUploader.to("Maven Central Snapshots")
 			.from(stagingDir)
 			.at(fixersConfig.publish.mavenSnapshotsUrl.get())
@@ -260,9 +260,9 @@ class PublishPlugin : Plugin<Project> {
 		bundleName: String,
 	) {
 		val resolvedUsername = username
-			?: throw org.gradle.api.GradleException("JRELEASER_MAVENCENTRAL_USERNAME is not set")
+			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME is not set")
 		val resolvedPassword = password
-			?: throw org.gradle.api.GradleException("JRELEASER_MAVENCENTRAL_PASSWORD is not set")
+			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD is not set")
 		CentralPortalUploader.upload(
 			stagingDir = stagingDir,
 			baseUrl = centralUrl,

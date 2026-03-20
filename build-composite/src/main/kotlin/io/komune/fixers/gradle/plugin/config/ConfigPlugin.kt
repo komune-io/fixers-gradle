@@ -32,10 +32,16 @@ class ConfigPlugin : Plugin<Project> {
             log(target, root, extension)
 
             if (target == root) {
+                val bundleGroup = extension.bundle.group.orNull
+                if (bundleGroup != null) {
+                    root.group = bundleGroup
+                }
                 root.subprojects.forEach { subproject ->
                     subproject.mergeConfig(extension)
+                    if (bundleGroup != null) {
+                        subproject.group = bundleGroup
+                    }
                 }
-                root.setGroup(extension)
             }
 
             root.extensions.fixers?.let { config ->
@@ -63,13 +69,6 @@ class ConfigPlugin : Plugin<Project> {
         }
     }
 
-    private fun Project.setGroup(extension: ConfigExtension) {
-        val bundleGroup = extension.bundle.group.orNull ?: return
-        group = bundleGroup
-        subprojects.forEach { subproject ->
-            subproject.group = bundleGroup
-        }
-    }
     private fun Project.mergeConfig(rootConfig: ConfigExtension) {
         val subprojectConfig = this.config()
 

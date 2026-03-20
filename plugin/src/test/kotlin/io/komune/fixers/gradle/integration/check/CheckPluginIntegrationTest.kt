@@ -694,8 +694,10 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             val content = propsFile.readText()
             assertThat(content).contains("# No fixers sonar configuration found")
-            assertThat(content).doesNotContain("sonar.organization=")
-            assertThat(content).doesNotContain("sonar.projectKey=")
+            // Should not contain actual (uncommented) sonar properties
+            val uncommentedLines = content.lines().filter { !it.startsWith("#") && it.isNotBlank() }
+            assertThat(uncommentedLines.any { it.contains("sonar.organization=") }).isFalse()
+            assertThat(uncommentedLines.any { it.contains("sonar.projectKey=") }).isFalse()
         }
 
         /**

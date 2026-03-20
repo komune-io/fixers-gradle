@@ -275,8 +275,23 @@ class CheckPluginTest {
             val content = task.outputFile.get().asFile.readText()
             assertThat(content).contains("# No fixers sonar configuration found")
             assertThat(content).contains("# Configure sonar in your build.gradle.kts:")
-            assertThat(content).doesNotContain("sonar.organization=")
-            assertThat(content).doesNotContain("sonar.projectKey=")
+            // Should not contain actual (uncommented) sonar properties
+            val uncommentedLines = content.lines().filter { !it.startsWith("#") && it.isNotBlank() }
+            assertThat(uncommentedLines.any { it.contains("sonar.organization=") }).isFalse()
+            assertThat(uncommentedLines.any { it.contains("sonar.projectKey=") }).isFalse()
+        }
+
+        @Test
+        fun `should include gradle properties and env var hints in placeholder`() {
+            task.generate()
+
+            val content = task.outputFile.get().asFile.readText()
+            assertThat(content).contains("# Or in gradle.properties:")
+            assertThat(content).contains("# fixers.sonar.organization=your-org")
+            assertThat(content).contains("# fixers.sonar.projectKey=your-project-key")
+            assertThat(content).contains("# Or via environment variables:")
+            assertThat(content).contains("# FIXERS_SONAR_ORGANIZATION=your-org")
+            assertThat(content).contains("# FIXERS_SONAR_PROJECT_KEY=your-project-key")
         }
 
         @Test
@@ -378,6 +393,33 @@ class CheckPluginTest {
 
             val content = task.outputFile.get().asFile.readText()
             assertThat(content).contains("# No fixers sonar configuration found")
+        }
+    }
+
+    @Nested
+    inner class PublishConfigTest {
+
+        @Test
+        fun `toString should include githubPackagesUrl`() {
+            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+            val str = config.publish.toString()
+            assertThat(str).contains("githubPackagesUrl=")
+        }
+
+        @Test
+        fun `version should fall back to project version when no VERSION file`() {
+            project.version = "2.0.0"
+            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+            assertThat(config.publish.version.get()).isEqualTo("2.0.0")
+        }
+
+        @Test
+        fun `version should read from VERSION file when present`(@TempDir tempDir: File) {
+            val rootProject = ProjectBuilder.builder().withProjectDir(tempDir).build()
+            File(tempDir, "VERSION").writeText("3.5.0\n")
+            rootProject.version = "fallback"
+            val config = rootProject.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, rootProject)
+            assertThat(config.publish.version.get()).isEqualTo("3.5.0")
         }
     }
 

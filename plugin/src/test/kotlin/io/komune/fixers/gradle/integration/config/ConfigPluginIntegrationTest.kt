@@ -136,6 +136,54 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     /**
+     * Test that bundle.group propagates to root and subproject Gradle group property.
+     */
+    @Test
+    fun `should propagate bundle group to root and subprojects`() {
+        settingsFile.writeText("""
+            rootProject.name = "integration-test-project"
+            include("subproject")
+        """.trimIndent())
+
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+
+            fixers {
+                bundle {
+                    group.set("io.komune.test")
+                }
+            }
+
+            tasks.register("verifyRootGroup") {
+                doLast {
+                    println("Root group: ${'$'}{project.group}")
+                }
+            }
+        """.trimIndent())
+
+        val subprojectDir = testProjectDir.resolve("subproject").toFile()
+        subprojectDir.mkdirs()
+        subprojectDir.resolve("build.gradle.kts").writeText("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+
+            tasks.register("verifySubGroup") {
+                doLast {
+                    println("Sub group: ${'$'}{project.group}")
+                }
+            }
+        """.trimIndent())
+
+        val result = runGradle("verifyRootGroup", ":subproject:verifySubGroup")
+
+        assertThat(result.output).contains("Root group: io.komune.test")
+        assertThat(result.output).contains("Sub group: io.komune.test")
+    }
+
+    /**
      * Test that the ConfigPlugin correctly configures all extension properties.
      */
     @Test

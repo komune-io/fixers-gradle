@@ -99,8 +99,8 @@ fixers {
     mavenSnapshotsUrl.set("https://central.sonatype.com/repository/maven-snapshots/")
     pkgGithubUsername.set("github-username")
     pkgGithubToken.set("github-token")
-    signingKey.set("signing-key")
-    signingPassword.set("signing-password")
+    signingGpgKey.set("signing-key")
+    signingGpgKeyPassword.set("signing-password")
   }
 
   // Sonar configuration
