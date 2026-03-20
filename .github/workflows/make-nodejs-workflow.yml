@@ -159,7 +159,7 @@ jobs:
     env:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

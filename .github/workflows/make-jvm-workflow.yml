@@ -195,7 +195,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Add Firefox to Run Kotlin test
         uses: browser-actions/setup-firefox@v1

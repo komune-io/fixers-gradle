@@ -104,7 +104,7 @@ jobs:
       PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
       PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Initialize Java and Gradle Environment
         uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
