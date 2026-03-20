@@ -43,6 +43,7 @@ object FixersRepository {
 
 }
 
+@Deprecated("Use f2-bom, c2-bom or s2-bom instead")
 object FixersPluginVersions {
 	const val kotlin = "2.3.20"
 	const val springBoot = "4.0.3"
@@ -63,6 +64,7 @@ object FixersPluginVersions {
 	val fixers = FixersPluginVersions::class.java.`package`.implementationVersion!!
 }
 
+@Deprecated("Use f2-bom, c2-bom or s2-bom instead")
 object FixersVersions {
 	object Logging {
 		const val slf4j = "2.0.17"
@@ -101,6 +103,7 @@ object FixersVersions {
 	}
 }
 
+@Deprecated("Use f2-bom, c2-bom or s2-bom instead")
 object FixersDependencies {
 	object Jvm {
 		object Json {
