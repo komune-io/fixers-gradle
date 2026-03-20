@@ -113,6 +113,14 @@ abstract class GenerateSonarPropertiesTask : DefaultTask() {
                 appendLine("#         projectKey = \"your-project-key\"")
                 appendLine("#     }")
                 appendLine("# }")
+                appendLine("#")
+                appendLine("# Or in gradle.properties:")
+                appendLine("# fixers.sonar.organization=your-org")
+                appendLine("# fixers.sonar.projectKey=your-project-key")
+                appendLine("#")
+                appendLine("# Or via environment variables:")
+                appendLine("# FIXERS_SONAR_ORGANIZATION=your-org")
+                appendLine("# FIXERS_SONAR_PROJECT_KEY=your-project-key")
             }
         }
 
