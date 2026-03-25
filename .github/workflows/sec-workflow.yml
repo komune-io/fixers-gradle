@@ -1,4 +1,4 @@
-name: Reusable Security Analysis Workflow
+name: Workflow Reusable - Security Analysis
 
 on:
   workflow_call:

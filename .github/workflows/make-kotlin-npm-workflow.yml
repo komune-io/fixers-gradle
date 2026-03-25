@@ -1,4 +1,4 @@
-name: Reusable JVM Development Workflow
+name: Workflow Reusable - Make Kotlin NPM
 
 on:
   workflow_call:

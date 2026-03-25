@@ -1,4 +1,4 @@
-name: Reusable Node.js Development Workflow
+name: Workflow Reusable - Make Node.js
 
 on:
   workflow_call:

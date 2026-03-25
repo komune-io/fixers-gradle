@@ -1,4 +1,4 @@
-name: Reusable Storybook Workflow
+name: Workflow Reusable - Publish Storybook
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Release New Version
+name: Workflow Reusable - Release
 
 on:
   workflow_call:
