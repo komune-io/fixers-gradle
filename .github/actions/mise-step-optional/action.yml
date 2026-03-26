@@ -1,0 +1,28 @@
+name: 'Mise Step Optional'
+description: 'Run a mise task if it exists'
+inputs:
+  mise-task:
+    description: 'The mise task to conditionally execute'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check ${{ inputs.mise-task }} existence
+      id: check_step
+      run: |
+        if mise tasks "${{ inputs.mise-task }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Run ${{ inputs.mise-task }}
+      if: ${{ steps.check_step.outputs.exists == 'true' }}
+      run: |
+        echo "/////////////////////////////////////"
+        echo "//// Running ${{ inputs.mise-task }}"
+        echo "/////////////////////////////////////"
+        mise run ${{ inputs.mise-task }}
+      shell: bash
