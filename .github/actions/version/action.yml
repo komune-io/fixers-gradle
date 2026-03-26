@@ -71,7 +71,7 @@ runs:
         IFS=' ' read -r -a BRANCH_PREFIXES <<< "${{ inputs.branch-prefixes }}"
         echo "Parsed BRANCH_PREFIXES: ${BRANCH_PREFIXES[@]}"
 
-        TAGS=("${{ inputs.with-main-pre-release-tag }}" "${{ inputs.with-release-pre-release-tag }}" "${{ inputs.with-feat-pre-release-tag }}" "${{ inputs.with-fix-pre-release-tag }}" "${{ inputs.with-refact-pre-release-tag }}")
+        TAGS=("${{ inputs.with-main-pre-release-tag }}" "${{ inputs.with-release-pre-release-tag }}" "${{ inputs.with-feat-pre-release-tag }}" "${{ inputs.with-fix-pre-release-tag }}" "${{ inputs.with-refact-pre-release-tag }}" "${{ inputs.with-versioning-pre-release-tag }}")
         echo "TAGS array: ${TAGS[@]}"
 
         for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do

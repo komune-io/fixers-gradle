@@ -58,6 +58,11 @@ on:
         type: "string"
         default: "promote"
 
+      docker-buildx-platform:
+        description: "Specify the target platforms for Docker buildx, such as 'linux/amd64,linux/arm64'. Leave empty to use the default platform."
+        required: false
+        type: "string"
+
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
         required: false
@@ -81,9 +86,17 @@ on:
         default: 'false'
 
     secrets:
+      GPG_SIGNING_KEY:
+        required: false
+      GPG_SIGNING_PASSWORD:
+        required: false
       PKG_GITHUB_USERNAME:
         required: false
       PKG_GITHUB_TOKEN:
+        required: false
+      PKG_SONATYPE_OSS_USERNAME:
+        required: false
+      PKG_SONATYPE_OSS_TOKEN:
         required: false
       # DEPRECATED
       NPM_PKG_PUBLISH_TOKEN:

@@ -3,8 +3,7 @@ description: 'Configures Npm to use a GitHub Packages repository for dependencie
 inputs:
   npm-auth-token:
     description: "Npm Auth Token"
-    required: false
-    default: "Makefile"
+    required: true
   npm-registry:
     description: "Npm registry"
     required: false
