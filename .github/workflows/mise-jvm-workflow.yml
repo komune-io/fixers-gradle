@@ -164,17 +164,17 @@ jobs:
         uses: browser-actions/setup-firefox@v1
 
       - name: Initialize Java and Gradle Environment
-        uses: komune-io/fixers-gradle/.github/actions/jvm@main
+        uses: komune-io/fixers-gradle/.github/actions/jvm@feat/mise-action
         with:
           with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@feat/mise-action
 
       - name: Execute Mise Lint Task
         if: (contains(inputs.on-tag, inputs.mise-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-lint-task }}
 
@@ -185,18 +185,18 @@ jobs:
           platforms: ${{ inputs.docker-buildx-platform }}
 
       - name: Execute Mise Build Task
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-build-task }}
 
       - name: Execute Mise Test Task
         if: (contains(inputs.on-tag, inputs.mise-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-test-task }}
 
       - name: Upload Analysis Reports
-        uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
+        uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@feat/mise-action
 
       - name: Docker Registry Login to Stage
         if: (inputs.force-stage == 'true' || (inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))))
@@ -208,13 +208,13 @@ jobs:
 
       - name: Execute Mise Stage Task
         if: (inputs.force-stage == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-stage-task }}
 
       - name: Execute Mise Check Task
         if: (contains(inputs.on-tag, inputs.mise-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-check-task }}
 
@@ -228,7 +228,7 @@ jobs:
 
       - name: Execute Mise Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-promote-task }}
 
