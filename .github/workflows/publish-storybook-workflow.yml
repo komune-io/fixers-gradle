@@ -64,7 +64,7 @@ on:
         default: "storybook-static"
 
       on-tag:
-        description: "The path to the artifact to upload, if needed."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed. Set to 'false' to disable all tag-specific tasks."
         required: false
         type: "string"
         default: 'false'

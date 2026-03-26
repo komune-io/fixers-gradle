@@ -35,7 +35,7 @@ inputs:
     required: false
     default: "-dev-SNAPSHOT"
   with-versioning-pre-release-tag:
-    description: "Pre-release tag for refactoring branches."
+    description: "Pre-release tag for versioning branches."
     required: false
     default: "-dev-SNAPSHOT"
   with-default-tag:
@@ -55,31 +55,39 @@ runs:
       env:
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         GITHUB_REF: ${{ github.ref }}
+        BRANCH_PREFIXES: ${{ inputs.branch-prefixes }}
+        TAG_MAIN: ${{ inputs.with-main-pre-release-tag }}
+        TAG_RELEASE: ${{ inputs.with-release-pre-release-tag }}
+        TAG_FEAT: ${{ inputs.with-feat-pre-release-tag }}
+        TAG_FIX: ${{ inputs.with-fix-pre-release-tag }}
+        TAG_REFACT: ${{ inputs.with-refact-pre-release-tag }}
+        TAG_VERSIONING: ${{ inputs.with-versioning-pre-release-tag }}
+        TAG_DEFAULT: ${{ inputs.with-default-tag }}
       run: |
         VERSION=$(cat VERSION)
         echo "Original VERSION: $VERSION"
 
-          # Initialize BRANCH_NAME_REF based on the event type
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            BRANCH_NAME_REF="refs/heads/$GITHUB_HEAD_REF"
-          else
-            BRANCH_NAME_REF="$GITHUB_REF"
-          fi
-          echo "Branch Name: $BRANCH_NAME_REF"
+        # Initialize BRANCH_NAME_REF based on the event type
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+          BRANCH_NAME_REF="refs/heads/$GITHUB_HEAD_REF"
+        else
+          BRANCH_NAME_REF="$GITHUB_REF"
+        fi
+        echo "Branch Name: $BRANCH_NAME_REF"
 
         # Split branch-prefixes input into an array
-        IFS=' ' read -r -a BRANCH_PREFIXES <<< "${{ inputs.branch-prefixes }}"
-        echo "Parsed BRANCH_PREFIXES: ${BRANCH_PREFIXES[@]}"
+        IFS=' ' read -r -a BRANCH_PREFIXES_ARR <<< "$BRANCH_PREFIXES"
+        echo "Parsed BRANCH_PREFIXES: ${BRANCH_PREFIXES_ARR[@]}"
 
-        TAGS=("${{ inputs.with-main-pre-release-tag }}" "${{ inputs.with-release-pre-release-tag }}" "${{ inputs.with-feat-pre-release-tag }}" "${{ inputs.with-fix-pre-release-tag }}" "${{ inputs.with-refact-pre-release-tag }}" "${{ inputs.with-versioning-pre-release-tag }}")
+        TAGS=("$TAG_MAIN" "$TAG_RELEASE" "$TAG_FEAT" "$TAG_FIX" "$TAG_REFACT" "$TAG_VERSIONING")
         echo "TAGS array: ${TAGS[@]}"
 
-        for ((i=0; i<${#BRANCH_PREFIXES[@]}; i++)); do
-          echo "Checking branch prefix: $BRANCH_NAME_REF == refs/heads/${BRANCH_PREFIXES[i]}"
-          if [[ "$BRANCH_NAME_REF" == "refs/heads/${BRANCH_PREFIXES[i]}"* ]]; then
-            echo "Match found: ${BRANCH_PREFIXES[i]}"
+        for ((i=0; i<${#BRANCH_PREFIXES_ARR[@]}; i++)); do
+          echo "Checking branch prefix: $BRANCH_NAME_REF == refs/heads/${BRANCH_PREFIXES_ARR[i]}"
+          if [[ "$BRANCH_NAME_REF" == "refs/heads/${BRANCH_PREFIXES_ARR[i]}"* ]]; then
+            echo "Match found: ${BRANCH_PREFIXES_ARR[i]}"
             # Use the specific tag if available; otherwise, use the default tag from inputs
-            TAG_TO_USE="${TAGS[i]:-${{ inputs.with-default-tag }}}"
+            TAG_TO_USE="${TAGS[i]:-$TAG_DEFAULT}"
             echo "Tag to use: $TAG_TO_USE"
             VERSION=${VERSION/-SNAPSHOT/$TAG_TO_USE}
             echo "Updated VERSION: $VERSION"
@@ -98,9 +106,11 @@ runs:
 
     - name: "Set Snapshot Tag"
       if: inputs.use-snapshot == 'false'
+      env:
+        SNAPSHOT_TAG: ${{ inputs.with-snapshot-tag }}
       run: |
         VERSION=$(cat VERSION)
-        VERSION=${VERSION/-SNAPSHOT/${{ inputs.with-snapshot-tag }}}
+        VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG}
         echo "$VERSION" > VERSION
       shell: bash
     - name: "Retrieve Version"
@@ -119,12 +129,14 @@ runs:
 
     - name: "Output Version Information"
       shell: bash
+      env:
+        VERSION_OUTPUT: ${{ steps.version.outputs.VERSION }}
       run: |
         echo "## Project Version Information" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        if [ -z "${{ steps.version.outputs.VERSION }}" ]; then
+        if [ -z "$VERSION_OUTPUT" ]; then
           echo "The VERSION file could not be found, or it's empty. Unable to retrieve the version information." >> $GITHUB_STEP_SUMMARY
         else
           echo "The project is being built with the following version:" >> $GITHUB_STEP_SUMMARY
-          echo "* **Version:** ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "* **Version:** $VERSION_OUTPUT" >> $GITHUB_STEP_SUMMARY
         fi

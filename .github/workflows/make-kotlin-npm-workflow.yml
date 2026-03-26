@@ -52,6 +52,12 @@ on:
         type: "string"
         default: "stage"
 
+      make-check-task:
+        description: "The make task to execute for checking."
+        required: false
+        type: "string"
+        default: "check"
+
       make-promote-task:
         description: "The Make command to execute for promote."
         required: false
@@ -74,13 +80,13 @@ on:
         type: "string"
 
       version-with-snapshot-tag:
-        description: "Base directory of the Node.js project, if applicable."
+        description: "Snapshot tag to append to the version string."
         required: false
         type: "string"
         default: ".${GITHUB_SHA:0:7}"
 
       on-tag:
-        description: "The path to the artifact to upload, if needed."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed. Set to 'false' to disable all tag-specific tasks."
         required: false
         type: "string"
         default: 'false'

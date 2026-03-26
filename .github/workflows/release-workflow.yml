@@ -26,9 +26,10 @@ jobs:
     steps:
       - name: Print Env
         run: |
-          echo "RELEASE_BRANCH: ${{ env.RELEASE_BRANCH }}"
-          echo "RELEASE_TAG: ${{ env.RELEASE_TAG }}"
-          echo "SOURCE_BRANCH: ${{ env.SOURCE_BRANCH }}"
+          echo "RELEASE_BRANCH: $RELEASE_BRANCH"
+          echo "RELEASE_TAG: $RELEASE_TAG"
+          echo "SOURCE_BRANCH: $SOURCE_BRANCH"
+        shell: bash
       - name: Set up Git
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -42,45 +43,63 @@ jobs:
           token: ${{ secrets.PKG_GITHUB_TOKEN }}
 
       - name: Create new release branch
-        run: |
-          git checkout -b ${{ env.RELEASE_BRANCH }}
+        run: git checkout -b "$RELEASE_BRANCH"
+        shell: bash
 
       - name: Update VERSION file with new version
-        run: echo "${{ inputs.version }}" > VERSION
+        env:
+          VERSION_TAG: ${{ inputs.version }}
+        run: echo "$VERSION_TAG" > VERSION
+        shell: bash
 
       - name: Commit updated VERSION file
+        env:
+          VERSION_TAG: ${{ inputs.version }}
         run: |
           git add VERSION
-          git commit -m "Bump version to ${{ inputs.version }}"
-          git push origin ${{ env.RELEASE_BRANCH }}
+          git commit -m "Bump version to ${VERSION_TAG}"
+          git push origin "$RELEASE_BRANCH"
+        shell: bash
 
       - name: Create a new Git tag
+        env:
+          VERSION_TAG: ${{ inputs.version }}
         run: |
-          git tag -a ${{ inputs.version }} -m "Release version ${{ inputs.version }}"
-          git push origin ${{ env.RELEASE_TAG }}
+          git tag -a "$VERSION_TAG" -m "Release version ${VERSION_TAG}"
+          git push origin "refs/tags/${VERSION_TAG}"
+        shell: bash
 
       - name: Update VERSION file to next development version
-        run: echo "${{ inputs.next_version }}" > VERSION
+        env:
+          NEXT_VERSION: ${{ inputs.next_version }}
+        run: echo "$NEXT_VERSION" > VERSION
+        shell: bash
 
       - name: Commit next development version
+        env:
+          NEXT_VERSION: ${{ inputs.next_version }}
         run: |
           git add VERSION
-          git commit -m "Set next development version to ${{ inputs.next_version }}"
-          git push origin ${{ env.RELEASE_BRANCH }}
+          git commit -m "Set next development version to ${NEXT_VERSION}"
+          git push origin "$RELEASE_BRANCH"
+        shell: bash
 
       - name: Create Pull Request via GitHub API
         env:
           PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+          VERSION_TAG: ${{ inputs.version }}
+          NEXT_VERSION: ${{ inputs.next_version }}
+          REPO: ${{ github.repository }}
         run: |
+          jq -n \
+            --arg title "Release ${VERSION_TAG}" \
+            --arg body "This PR releases version ${VERSION_TAG} and sets the version to ${NEXT_VERSION} for ongoing development. Please review and merge." \
+            --arg head "$RELEASE_BRANCH" \
+            --arg base "$SOURCE_BRANCH" \
+            '{title: $title, body: $body, head: $head, base: $base}' | \
           curl -X POST \
-            -H "Authorization: token $PKG_GITHUB_TOKEN" \
+            -H "Authorization: token ${PKG_GITHUB_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls \
-            -d @- <<EOF
-          {
-            "title": "Release ${{ inputs.version }}",
-            "body": "This PR releases version ${{ inputs.version }} and sets the version to ${{ inputs.next_version }} for ongoing development. Please review and merge.",
-            "head": "${{ env.RELEASE_BRANCH }}",
-            "base": "${{ env.SOURCE_BRANCH }}"
-          }
-          EOF
+            "https://api.github.com/repos/${REPO}/pulls" \
+            -d @-
+        shell: bash

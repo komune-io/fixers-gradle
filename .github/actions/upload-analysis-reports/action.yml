@@ -20,14 +20,17 @@ runs:
     - name: Compute Artifact Name
       id: artifact-name
       shell: bash
+      env:
+        MAKE_FILE: ${{ inputs.make-file }}
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
       run: |
-        if [ -n "${{ inputs.make-file }}" ]; then
+        if [ -n "$MAKE_FILE" ]; then
           # Convert make-file path to a valid artifact name suffix
           # e.g., "infra/make/libs.mk" -> "infra-make-libs"
-          SUFFIX=$(echo "${{ inputs.make-file }}" | sed 's|[/.]|-|g' | sed 's|-mk$||' | sed 's|^-||')
-          echo "name=${{ inputs.artifact-name }}-${SUFFIX}" >> $GITHUB_OUTPUT
+          SUFFIX=$(echo "$MAKE_FILE" | sed 's|[/.]|-|g' | sed 's|-mk$||' | sed 's|^-||')
+          echo "name=${ARTIFACT_NAME}-${SUFFIX}" >> $GITHUB_OUTPUT
         else
-          echo "name=${{ inputs.artifact-name }}" >> $GITHUB_OUTPUT
+          echo "name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload Analysis Reports

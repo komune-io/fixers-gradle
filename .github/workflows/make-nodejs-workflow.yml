@@ -39,7 +39,7 @@ on:
         default: "versioning/"
 
       version-with-snapshot-tag:
-        description: "Base directory of the Node.js project, if applicable."
+        description: "Snapshot tag to append to the version string."
         required: false
         type: "string"
         default: ".${GITHUB_SHA:0:7}"
@@ -85,6 +85,12 @@ on:
         required: false
         type: "string"
         default: "stage"
+
+      make-check-task:
+        description: "The make task to execute for checking."
+        required: false
+        type: "string"
+        default: "check"
 
       make-promote-task:
         description: "The Make command to execute for promoting."

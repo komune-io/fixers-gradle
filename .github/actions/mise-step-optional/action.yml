@@ -10,8 +10,10 @@ runs:
   steps:
     - name: Check ${{ inputs.mise-task }} existence
       id: check_step
+      env:
+        MISE_TASK: ${{ inputs.mise-task }}
       run: |
-        if mise tasks "${{ inputs.mise-task }}" >/dev/null 2>&1; then
+        if mise tasks "$MISE_TASK" >/dev/null 2>&1; then
           echo "exists=true" >> $GITHUB_OUTPUT
         else
           echo "exists=false" >> $GITHUB_OUTPUT
@@ -20,9 +22,11 @@ runs:
 
     - name: Run ${{ inputs.mise-task }}
       if: ${{ steps.check_step.outputs.exists == 'true' }}
+      env:
+        MISE_TASK: ${{ inputs.mise-task }}
       run: |
         echo "/////////////////////////////////////"
-        echo "//// Running ${{ inputs.mise-task }}"
+        echo "//// Running ${MISE_TASK}"
         echo "/////////////////////////////////////"
-        mise run ${{ inputs.mise-task }}
+        mise run "$MISE_TASK"
       shell: bash
