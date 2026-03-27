@@ -13,8 +13,8 @@ on:
         type: string
     secrets:
       PKG_GITHUB_TOKEN:
-        description: 'Token for package operations'
-        required: true
+        description: 'Token for package operations (defaults to github.token)'
+        required: false
 
 jobs:
   create-release-branch:
@@ -40,7 +40,7 @@ jobs:
         with:
           ref: ${{ env.SOURCE_BRANCH }}
           submodules: true
-          token: ${{ secrets.PKG_GITHUB_TOKEN }}
+          token: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
 
       - name: Create new release branch
         run: git checkout -b "$RELEASE_BRANCH"
@@ -86,7 +86,7 @@ jobs:
 
       - name: Create Pull Request via GitHub API
         env:
-          PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+          PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
           VERSION_TAG: ${{ inputs.version }}
           NEXT_VERSION: ${{ inputs.next_version }}
           REPO: ${{ github.repository }}
