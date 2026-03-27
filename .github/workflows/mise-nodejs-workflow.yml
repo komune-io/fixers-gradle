@@ -14,12 +14,6 @@ on:
         default: 'true'
         type: "string"
 
-      with-publish-docker-registry-login:
-        description: 'Flag to enable Docker login to the publish Docker registry.'
-        required: false
-        default: 'false'
-        type: "string"
-
       with-stage-docker-registry-login:
         description: 'Flag to enable Docker login to the stage Docker registry.'
         required: false
