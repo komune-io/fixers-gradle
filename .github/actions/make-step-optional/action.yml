@@ -19,7 +19,7 @@ runs:
         MAKE_FILE: ${{ inputs.make-file }}
         MAKE_STEP: ${{ inputs.make-step }}
       run: |
-        if grep -q "^${MAKE_STEP}:" "$MAKE_FILE"; then
+        if awk -F: -v step="$MAKE_STEP" '$1 == step { found=1; exit } END { exit !found }' "$MAKE_FILE"; then
           echo "exists=true" >> $GITHUB_OUTPUT
         else
           echo "exists=false" >> $GITHUB_OUTPUT
