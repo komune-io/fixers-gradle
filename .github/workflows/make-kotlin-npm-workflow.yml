@@ -137,7 +137,7 @@ jobs:
 
       - if: inputs.docker-buildx-platform != ''
         name: Setup Docker Buildx for Specified Platforms
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           platforms: ${{ inputs.docker-buildx-platform }}
 
@@ -181,7 +181,7 @@ jobs:
 
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.artifact-path }}
