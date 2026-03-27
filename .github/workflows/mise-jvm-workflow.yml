@@ -144,11 +144,11 @@ jobs:
       JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
       JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
       JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
+      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
+      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
       FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
@@ -203,8 +203,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-stage-repository }}
-          username: ${{ secrets.DOCKER_STAGE_USERNAME }}
-          password: ${{ secrets.DOCKER_STAGE_PASSWORD }}
+          username: ${{ secrets.DOCKER_STAGE_USERNAME || github.actor }}
+          password: ${{ secrets.DOCKER_STAGE_PASSWORD || github.token }}
 
       - name: Execute Mise Stage Task
         if: (inputs.force-stage == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))
