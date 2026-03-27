@@ -84,22 +84,15 @@ jobs:
           git push origin "$RELEASE_BRANCH"
         shell: bash
 
-      - name: Create Pull Request via GitHub API
+      - name: Create Pull Request
         env:
-          PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
           VERSION_TAG: ${{ inputs.version }}
           NEXT_VERSION: ${{ inputs.next_version }}
-          REPO: ${{ github.repository }}
         run: |
-          jq -n \
-            --arg title "Release ${VERSION_TAG}" \
-            --arg body "This PR releases version ${VERSION_TAG} and sets the version to ${NEXT_VERSION} for ongoing development. Please review and merge." \
-            --arg head "$RELEASE_BRANCH" \
-            --arg base "$SOURCE_BRANCH" \
-            '{title: $title, body: $body, head: $head, base: $base}' | \
-          curl -X POST \
-            -H "Authorization: token ${PKG_GITHUB_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${REPO}/pulls" \
-            -d @-
+          gh pr create \
+            --title "Release ${VERSION_TAG}" \
+            --body "This PR releases version ${VERSION_TAG} and sets the version to ${NEXT_VERSION} for ongoing development. Please review and merge." \
+            --head "$RELEASE_BRANCH" \
+            --base "$SOURCE_BRANCH"
         shell: bash

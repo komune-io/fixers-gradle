@@ -109,6 +109,10 @@ runs:
       env:
         SNAPSHOT_TAG: ${{ inputs.with-snapshot-tag }}
       run: |
+        if [ ! -f VERSION ]; then
+          echo "::error::VERSION file not found"
+          exit 1
+        fi
         VERSION=$(cat VERSION)
         VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG}
         echo "$VERSION" > VERSION

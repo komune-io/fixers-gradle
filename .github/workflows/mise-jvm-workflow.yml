@@ -199,7 +199,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@feat/mise-action
 
       - name: Docker Registry Login to Stage
-        if: (inputs.force-stage == 'true' || (inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))))
+        if: (inputs.force-stage == 'true' || (inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.head_ref, 'versioning/'))))))
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker-stage-repository }}
@@ -207,7 +207,7 @@ jobs:
           password: ${{ secrets.DOCKER_STAGE_PASSWORD || github.token }}
 
       - name: Execute Mise Stage Task
-        if: (inputs.force-stage == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.ref, 'refs/heads/versioning/'))))
+        if: (inputs.force-stage == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.head_ref, 'versioning/'))))
         uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@feat/mise-action
         with:
           mise-task: ${{ inputs.mise-stage-task }}
