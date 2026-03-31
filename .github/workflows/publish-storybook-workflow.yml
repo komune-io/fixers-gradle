@@ -32,13 +32,6 @@ on:
         type: "string"
         default: "."
 
-      # DEPRECATED
-      docker-publish-repository:
-        description: "The Docker registry to which images should be published. Defaults to GitHub Container Registry (ghcr.io)."
-        required: false
-        type: "string"
-        default: "ghcr.io"
-
       docker-stage-repository:
         description: "The Docker registry to which images should be staged. Defaults to GitHub Container Registry (ghcr.io)."
         required: false
@@ -64,7 +57,7 @@ on:
         default: "storybook-static"
 
       on-tag:
-        description: "The path to the artifact to upload, if needed."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed. Set to 'false' to disable all tag-specific tasks."
         required: false
         type: "string"
         default: 'false'
@@ -79,12 +72,6 @@ on:
       NPM_AUTH_TOKEN:
         required: false
       CHROMATIC_PROJECT_TOKEN:
-        required: false
-      # DEPRECATED
-      DOCKER_PUBLISH_USERNAME:
-        required: false
-      # DEPRECATED
-      DOCKER_PUBLISH_PASSWORD:
         required: false
       DOCKER_STAGE_USERNAME:
         required: false
@@ -104,17 +91,11 @@ jobs:
       artifact-name: ${{ inputs.storybook-static-dir }}
       artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
       with-setup-npm-github-pkg: ${{ inputs.with-setup-npm-github-pkg }}
-      # DEPRECATED
-      docker-publish-repository: ${{ inputs.docker-publish-repository }}
       docker-stage-repository: ${{ inputs.docker-stage-repository }}
       docker-promote-repository: ${{ inputs.docker-promote-repository }}
       on-tag: ${{ inputs.on-tag }}
     secrets:
       NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-      # DEPRECATED
-      DOCKER_PUBLISH_USERNAME: ${{ secrets.DOCKER_PUBLISH_USERNAME }}
-      # DEPRECATED
-      DOCKER_PUBLISH_PASSWORD: ${{ secrets.DOCKER_PUBLISH_PASSWORD }}
       DOCKER_STAGE_USERNAME: ${{ secrets.DOCKER_STAGE_USERNAME }}
       DOCKER_STAGE_PASSWORD: ${{ secrets.DOCKER_STAGE_PASSWORD }}
       DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_PROMOTE_USERNAME }}

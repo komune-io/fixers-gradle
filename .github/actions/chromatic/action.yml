@@ -16,8 +16,8 @@ inputs:
     default: "/"
 
   project-token:
-    description: "Path to the artifact to upload, leave empty if no artifact is needed"
-    required: false
+    description: "Chromatic project token for publishing"
+    required: true
 
 runs:
   using: "composite"
@@ -26,13 +26,13 @@ runs:
       with:
         fetch-depth: 0
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: storybook-static
         path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
     - name: Publish to Chromatic
       id: chromatic
-      uses: chromaui/action@latest
+      uses: chromaui/action@v16
       with:
         projectToken: ${{ inputs.project-token }}
         workingDir: ${{ inputs.storybook-dir }}

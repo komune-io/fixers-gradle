@@ -37,6 +37,7 @@ runs:
                 }
             }
         }" > ~/.gradle/init.gradle.kts
+        chmod 600 ~/.gradle/init.gradle.kts
       shell: bash
     - id: set_output
       run: echo "setup_gradle_github_pkg=${HOME}/.gradle/init.gradle.kts" >> $GITHUB_OUTPUT

@@ -1,10 +1,9 @@
-name: 'Configure Gradle with GitHub Packages'
+name: 'Configure NPM with GitHub Packages'
 description: 'Configures Npm to use a GitHub Packages repository for dependencies.'
 inputs:
   npm-auth-token:
     description: "Npm Auth Token"
-    required: false
-    default: "Makefile"
+    required: true
   npm-registry:
     description: "Npm registry"
     required: false
@@ -17,10 +16,13 @@ runs:
   using: "composite"
   steps:
     - id: setup_npm
+      env:
+        NPM_REGISTRY: ${{ inputs.npm-registry }}
+        NPM_AUTH_TOKEN: ${{ inputs.npm-auth-token }}
       run: |
         echo "
-          @komune-io:registry=https://${{ inputs.npm-registry }}
-          //${{ inputs.npm-registry }}/:_authToken=${{ inputs.npm-auth-token }}
+          @komune-io:registry=https://${NPM_REGISTRY}
+          //${NPM_REGISTRY}/:_authToken=${NPM_AUTH_TOKEN}
         " > .npmrc
       shell: bash
     - id: set_output

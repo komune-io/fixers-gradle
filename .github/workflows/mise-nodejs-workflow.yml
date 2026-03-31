@@ -1,4 +1,4 @@
-name: Reusable Node.js Development Workflow
+name: Reusable Node.js Development Workflow (Mise)
 
 on:
   workflow_call:
@@ -13,7 +13,7 @@ on:
         required: false
         default: 'true'
         type: "string"
-      
+
       with-stage-docker-registry-login:
         description: 'Flag to enable Docker login to the stage Docker registry.'
         required: false
@@ -33,54 +33,48 @@ on:
         default: "versioning/"
 
       version-with-snapshot-tag:
-        description: "Snapshot tag to append to the version string."
+        description: "Snapshot tag suffix for versioning."
         required: false
         type: "string"
         default: ".${GITHUB_SHA:0:7}"
-
-      make-file:
-        description: "The Makefile to execute."
-        required: false
-        type: "string"
-        default: "Makefile"
 
       base-dir:
         description: "The base directory of the Node.js project."
         required: false
         type: "string"
 
-      make-lint-task:
-        description: "The Make command to execute for linting."
+      mise-lint-task:
+        description: "The mise task to execute for linting."
         required: false
         type: "string"
         default: "lint"
 
-      make-build-task:
-        description: "The Make command to execute for building."
+      mise-build-task:
+        description: "The mise task to execute for building."
         required: false
         type: "string"
         default: "build"
 
-      make-test-task:
-        description: "The Make command to execute for testing."
+      mise-test-task:
+        description: "The mise task to execute for testing."
         required: false
         type: "string"
         default: "test"
 
-      make-stage-task:
-        description: "The Make command to execute for staging."
+      mise-stage-task:
+        description: "The mise task to execute for staging."
         required: false
         type: "string"
         default: "stage"
 
-      make-check-task:
-        description: "The make task to execute for checking."
+      mise-check-task:
+        description: "The mise task to execute for checking."
         required: false
         type: "string"
         default: "check"
 
-      make-promote-task:
-        description: "The Make command to execute for promoting."
+      mise-promote-task:
+        description: "The mise task to execute for promoting."
         required: false
         type: "string"
         default: "promote"
@@ -113,7 +107,7 @@ on:
         type: "string"
 
       on-tag:
-        description: "Comma-separated list of task names that should be executed when a tag is pushed. For example, 'lint,test,stage,promote' will run these tasks on tag events. Set to 'false' to disable all tag-specific tasks."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed."
         required: false
         type: "string"
         default: 'false'
@@ -143,6 +137,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Mise
+        uses: jdx/mise-action@v4
+
       - name: Initialize Node.js Environment
         uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
@@ -164,12 +161,11 @@ jobs:
           with-release-pre-release-tag: '-alpha-SNAPSHOT'
           with-snapshot-tag: ${{ inputs.version-with-snapshot-tag }}
 
-      - name: Execute Make Lint Task
-        if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Lint Task
+        if: (contains(inputs.on-tag, inputs.mise-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-lint-task }}
+          mise-task: ${{ inputs.mise-lint-task }}
 
       - if: inputs.docker-buildx-platform != ''
         name: Setup Docker Buildx for Specified Platforms
@@ -177,18 +173,16 @@ jobs:
         with:
           platforms: ${{ inputs.docker-buildx-platform }}
 
-      - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Build Task
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-build-task }}
+          mise-task: ${{ inputs.mise-build-task }}
 
-      - name: Execute Make Test Task
-        if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Test Task
+        if: (contains(inputs.on-tag, inputs.mise-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-test-task }}
+          mise-task: ${{ inputs.mise-test-task }}
 
       - if: inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage')))
         name: Docker Registry Login to Stage
@@ -198,12 +192,11 @@ jobs:
           username: ${{ secrets.DOCKER_STAGE_USERNAME }}
           password: ${{ secrets.DOCKER_STAGE_PASSWORD }}
 
-      - name: Execute Make Stage Task
+      - name: Execute Mise Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-stage-task }}
+          mise-task: ${{ inputs.mise-stage-task }}
 
       - if: inputs.with-promote-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')))
         name: Docker Registry Login To Promote
@@ -221,19 +214,17 @@ jobs:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
 
-      - name: Execute Make Check Task
-        if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Check Task
+        if: (contains(inputs.on-tag, inputs.mise-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-check-task }}
+          mise-task: ${{ inputs.mise-check-task }}
 
-      - name: Execute Make Promote Task
+      - name: Execute Mise Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-promote-task }}
+          mise-task: ${{ inputs.mise-promote-task }}
 
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''

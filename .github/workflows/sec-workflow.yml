@@ -81,7 +81,7 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Download Analysis Reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: analysis-reports*
           merge-multiple: true
@@ -119,6 +119,6 @@ jobs:
 #          gh-code-scanning-compat: true
 #          max-allowed-issues: 2147483647
 #      - name: Upload SARIF File to GitHub Code Scanning
-#        uses: github/codeql-action/upload-sarif@v3
+#        uses: github/codeql-action/upload-sarif@v4
 #        with:
 #          sarif_file: results.sarif

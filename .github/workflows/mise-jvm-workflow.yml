@@ -1,4 +1,4 @@
-name: Reusable JVM Development Workflow
+name: Reusable JVM Development Workflow (Mise)
 
 on:
   workflow_call:
@@ -20,57 +20,51 @@ on:
         required: false
         default: 'false'
         type: "string"
-        
+
       with-promote-docker-registry-login:
         description: 'Flag to enable Docker login to the promote Docker registry.'
         required: false
         default: 'false'
         type: "string"
-        
+
       excluded-versioning-branch:
         description: "A single branch name prefix where the job should be excluded from running. For example, use 'versioning/' to skip running the job on any branch that starts with 'versioning/'."
         required: false
         type: "string"
         default: "versioning/"
 
-      make-file:
-        description: "The Makefile to execute."
-        required: false
-        type: "string"
-        default: "Makefile"
-
-      make-lint-task:
-        description: "The Make command to execute for linting."
+      mise-lint-task:
+        description: "The mise task to execute for linting."
         required: false
         type: "string"
         default: "lint"
 
-      make-build-task:
-        description: "The Make command to execute for building."
+      mise-build-task:
+        description: "The mise task to execute for building."
         required: false
         type: "string"
         default: "build"
 
-      make-test-task:
-        description: "The Make command to execute for testing."
+      mise-test-task:
+        description: "The mise task to execute for testing."
         required: false
         type: "string"
         default: "test"
 
-      make-stage-task:
-        description: "The Make command to execute for staging."
+      mise-stage-task:
+        description: "The mise task to execute for staging."
         required: false
         type: "string"
         default: "stage"
 
-      make-check-task:
-        description: "The Make command to execute for checking."
+      mise-check-task:
+        description: "The mise task to execute for checking."
         required: false
         type: "string"
         default: "check"
 
-      make-promote-task:
-        description: "The Make command to execute for promote."
+      mise-promote-task:
+        description: "The mise task to execute for promote."
         required: false
         type: "string"
         default: "promote"
@@ -86,17 +80,17 @@ on:
         type: "string"
         default: "ghcr.io"
 
-      force-stage:
-        description: "Flag to force execute stage task."
-        required: false
-        type: "string"
-        default: "false"
-
       docker-promote-repository:
         description: "The Docker registry to which images should be promoted. Defaults to Docker Hub (docker.io)."
         required: false
         type: "string"
         default: "docker.io"
+
+      force-stage:
+        description: "Flag to force execute stage task."
+        required: false
+        type: "string"
+        default: "false"
 
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
@@ -109,7 +103,7 @@ on:
         type: "string"
 
       on-tag:
-        description: "Comma-separated list of task names that should be executed when a tag is pushed. Set to 'false' to disable all tag-specific tasks."
+        description: "Comma-separated list of task names that should be executed when a tag is pushed."
         required: false
         type: "string"
         default: 'false'
@@ -150,11 +144,11 @@ jobs:
       JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
       JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
       JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
+      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
+      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
+      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
       FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.GPG_SIGNING_KEY }}
       FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
@@ -162,6 +156,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+
+      - name: Install Mise
+        uses: jdx/mise-action@v4
 
       - name: Add Firefox to Run Kotlin test
         uses: browser-actions/setup-firefox@v1
@@ -175,12 +172,11 @@ jobs:
       - name: Get Version from File
         uses: komune-io/fixers-gradle/.github/actions/version@main
 
-      - name: Execute Make Lint Task
-        if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Lint Task
+        if: (contains(inputs.on-tag, inputs.mise-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-lint-task }}
+          mise-task: ${{ inputs.mise-lint-task }}
 
       - name: Setup Docker Buildx for Specified Platforms
         if: inputs.docker-buildx-platform != ''
@@ -188,44 +184,39 @@ jobs:
         with:
           platforms: ${{ inputs.docker-buildx-platform }}
 
-      - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Build Task
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-build-task }}
+          mise-task: ${{ inputs.mise-build-task }}
 
-      - name: Execute Make Test Task
-        if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+      - name: Execute Mise Test Task
+        if: (contains(inputs.on-tag, inputs.mise-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-test-task }}
+          mise-task: ${{ inputs.mise-test-task }}
 
       - name: Upload Analysis Reports
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
-        with:
-          make-file: ${{ inputs.make-file }}
 
       - name: Docker Registry Login to Stage
         if: (inputs.force-stage == 'true' || (inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.head_ref, 'versioning/'))))))
         uses: docker/login-action@v4
         with:
           registry: ${{ inputs.docker-stage-repository }}
-          username: ${{ secrets.DOCKER_STAGE_USERNAME }}
-          password: ${{ secrets.DOCKER_STAGE_PASSWORD }}
+          username: ${{ secrets.DOCKER_STAGE_USERNAME || github.actor }}
+          password: ${{ secrets.DOCKER_STAGE_PASSWORD || github.token }}
 
-      - name: Execute Make Stage Task
+      - name: Execute Mise Stage Task
         if: (inputs.force-stage == 'true' || (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.head_ref, 'versioning/'))))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-stage-task }}
-      - name: Execute Make Check Task
-        if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+          mise-task: ${{ inputs.mise-stage-task }}
+
+      - name: Execute Mise Check Task
+        if: (contains(inputs.on-tag, inputs.mise-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-check-task }}
+          mise-task: ${{ inputs.mise-check-task }}
 
       - name: Docker Registry Login To Promote
         if: (inputs.with-promote-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))
@@ -235,12 +226,11 @@ jobs:
           username: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
           password: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
-      - name: Execute Make Promote Task
+      - name: Execute Mise Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
-          make-file: ${{ inputs.make-file }}
-          make-step: ${{ inputs.make-promote-task }}
+          mise-task: ${{ inputs.mise-promote-task }}
 
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''

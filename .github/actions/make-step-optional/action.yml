@@ -1,4 +1,4 @@
-# This is a reusable GitHub Action defined in make-step-optional/action.yaml
+# This is a reusable GitHub Action defined in make-step-optional/action.yml
 
 name: 'Make Step Optional'
 description: 'Run a Makefile step if it exists'
@@ -15,8 +15,11 @@ runs:
   steps:
     - name: Check ${{ inputs.make-step }} existence
       id: check_step
+      env:
+        MAKE_FILE: ${{ inputs.make-file }}
+        MAKE_STEP: ${{ inputs.make-step }}
       run: |
-        if grep -q "^${{ inputs.make-step }}:" ${{ inputs.make-file }}; then
+        if awk -F: -v step="$MAKE_STEP" '$1 == step { found=1; exit } END { exit !found }' "$MAKE_FILE"; then
           echo "exists=true" >> $GITHUB_OUTPUT
         else
           echo "exists=false" >> $GITHUB_OUTPUT
@@ -25,9 +28,12 @@ runs:
 
     - name: Run ${{ inputs.make-step }}
       if: ${{ steps.check_step.outputs.exists == 'true' }}
+      env:
+        MAKE_FILE: ${{ inputs.make-file }}
+        MAKE_STEP: ${{ inputs.make-step }}
       run: |
         echo "/////////////////////////////////////"
-        echo "//// Running ${{ inputs.make-step }}"
+        echo "//// Running ${MAKE_STEP}"
         echo "/////////////////////////////////////"
-        make -f ${{ inputs.make-file }} ${{ inputs.make-step }}
+        make -f "$MAKE_FILE" "$MAKE_STEP"
       shell: bash
