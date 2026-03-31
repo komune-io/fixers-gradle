@@ -1,6 +1,6 @@
-VERSION = $(shell cat VERSION)
+VERSION ?= $(shell cat VERSION)
 
-.PHONY: clean lint build test stage promote tag untag tag-github-actions untag-github-actions
+.PHONY: clean lint build test stage promote tag untag tag-github-actions
 
 LIBS_MK = infra/make/libs.mk
 GITHUB_MK = infra/make/github.mk
@@ -25,8 +25,11 @@ promote:
 
 tag:
 	@echo "$(VERSION)" > VERSION
-	@VERSION=$(VERSION) make -f $(GITHUB_MK) tag-github-actions
+	@make -f $(GITHUB_MK) tag-github-actions VERSION=$(VERSION)
 
 untag:
 	@echo "$(VERSION)" > VERSION
-	@VERSION=$(VERSION) make -f $(GITHUB_MK) untag-github-actions
+	@make -f $(GITHUB_MK) tag-github-actions VERSION=main
+
+tag-github-actions:
+	@make -f $(GITHUB_MK) tag-github-actions VERSION=$(VERSION)
