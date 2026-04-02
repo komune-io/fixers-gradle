@@ -2,9 +2,12 @@ package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.Repositories
 import io.komune.fixers.gradle.config.utils.versionFromFile
+import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 
 /**
  * Plugin that applies and configures the ConfigExtension for a project.
@@ -41,6 +44,9 @@ class ConfigPlugin : Plugin<Project> {
                     if (bundleGroup != null) {
                         subproject.group = bundleGroup
                     }
+                }
+                root.allprojects.forEach { proj ->
+                    proj.configureRepositories(extension.repositories)
                 }
             }
 
@@ -80,7 +86,28 @@ class ConfigPlugin : Plugin<Project> {
         subprojectConfig.kt2Ts.mergeFrom(rootConfig.kt2Ts)
         subprojectConfig.npm.mergeFrom(rootConfig.npm)
         subprojectConfig.pom.mergeFrom(rootConfig.pom)
+        subprojectConfig.repositories.mergeFrom(rootConfig.repositories)
         subprojectConfig.sonar.mergeFrom(rootConfig.sonar)
+    }
+
+    private fun Project.configureRepositories(repos: Repositories) {
+        val handler = repositories
+        if (repos.mavenLocal.getOrElse(false)) {
+            handler.mavenLocal()
+        }
+        if (repos.mavenCentral.getOrElse(true)) {
+            handler.mavenCentral()
+        }
+        if (repos.sonatypeSnapshots.getOrElse(true)) {
+            handler.maven(Action<MavenArtifactRepository> {
+                url = java.net.URI("https://central.sonatype.com/repository/maven-snapshots")
+            })
+        }
+        repos.mavenUrls.getOrElse(emptyList()).forEach { repoUrl ->
+            handler.maven(Action<MavenArtifactRepository> {
+                url = java.net.URI(repoUrl)
+            })
+        }
     }
 
 }

@@ -8,6 +8,7 @@ import io.komune.fixers.gradle.config.model.Kt2Ts
 import io.komune.fixers.gradle.config.model.Npm
 import io.komune.fixers.gradle.config.model.Publication
 import io.komune.fixers.gradle.config.model.PublishConfig
+import io.komune.fixers.gradle.config.model.Repositories
 import io.komune.fixers.gradle.config.model.Sonar
 import io.komune.fixers.gradle.config.model.sonarCloud
 import org.gradle.api.Action
@@ -85,6 +86,8 @@ abstract class ConfigExtension(
 
 	var sonar: Sonar = Sonar.sonarCloud(project)
 
+	var repositories: Repositories = Repositories(project)
+
 	var publish: PublishConfig = PublishConfig(project)
 
 	fun bundle(configure: Action<Bundle>) {
@@ -119,6 +122,10 @@ abstract class ConfigExtension(
 		configure.execute(jacoco)
 	}
 
+	fun repositories(configure: Action<Repositories>) {
+		configure.execute(repositories)
+	}
+
 	fun publish(configure: Action<PublishConfig>) {
 		configure.execute(publish)
 	}
@@ -135,6 +142,7 @@ abstract class ConfigExtension(
 			detekt=$detekt,
 			jacoco=$jacoco,
 			sonar=$sonar,
+			repositories=$repositories,
 			publish=$publish)
 			""".trimIndent()
 	}
