@@ -28,51 +28,51 @@ gradlePlugin {
 		create("io.komune.fixers.gradle.config") {
 			id = "io.komune.fixers.gradle.config"
 			implementationClass = "io.komune.fixers.gradle.plugin.config.ConfigPlugin"
-			displayName = "Fixers Gradle Config"
-			description = "Ease the configuration of Kotlin Fixers Project."
+			displayName = "Komune FixersGradle Config"
+			description = "Convention plugin providing a central DSL to configure Kotlin JVM and Multiplatform projects with sensible defaults."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
 		create("io.komune.fixers.gradle.dependencies") {
 			id = "io.komune.fixers.gradle.dependencies"
 			implementationClass = "io.komune.fixers.gradle.plugin.dependencies.DependenciesPlugin"
-			displayName = "Fixers Dependencies version"
-			description = "Register fixers dependencies version."
+			displayName = "Komune FixersGradle Dependencies"
+			description = "Registers a curated set of dependency versions for Kotlin JVM and Multiplatform projects."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
 		create("io.komune.fixers.gradle.kotlin.jvm") {
 			id = "io.komune.fixers.gradle.kotlin.jvm"
 			implementationClass = "io.komune.fixers.gradle.plugin.kotlin.JvmPlugin"
-			displayName = "Fixers Gradle Kotlin JVM"
-			description = "Ease the configuration of Kotlin Jvm Module."
-			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
+			displayName = "Komune FixersGradle Kotlin JVM"
+			description = "Convention plugin that configures Kotlin JVM projects with compiler options, JDK version, and standard dependencies."
+			tags = listOf("Komune", "Fixers", "kotlin", "jvm")
 		}
 		create("io.komune.fixers.gradle.kotlin.mpp") {
 			id = "io.komune.fixers.gradle.kotlin.mpp"
 			implementationClass = "io.komune.fixers.gradle.plugin.kotlin.MppPlugin"
-			displayName = "Fixers Gradle Kotlin MPP"
-			description = "Ease the configuration of Kotlin Multiplatform Plugin."
+			displayName = "Komune FixersGradle Kotlin Multiplatform"
+			description = "Convention plugin that configures Kotlin Multiplatform projects with JVM, JS, and common targets."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
 		create("io.komune.fixers.gradle.publish") {
 			id = "io.komune.fixers.gradle.publish"
 			implementationClass = "io.komune.fixers.gradle.plugin.publish.PublishPlugin"
-			displayName = "Fixers Gradle publish"
-			description = "Ease the configuration of maven publication."
-			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
+			displayName = "Komune FixersGradle Publish"
+			description = "Convention plugin for publishing artifacts to Maven Central, GitHub Packages, and the Gradle Plugin Portal with GPG signing."
+			tags = listOf("Komune", "Fixers", "kotlin", "maven", "publish", "signing")
 		}
 		create("io.komune.fixers.gradle.npm") {
 			id = "io.komune.fixers.gradle.npm"
 			implementationClass = "io.komune.fixers.gradle.plugin.npm.NpmPlugin"
-			displayName = "Fixers Gradle publish npm"
-			description = "Ease the configuration of npm publication."
-			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
+			displayName = "Komune FixersGradle NPM"
+			description = "Convention plugin for publishing Kotlin/JS modules as NPM packages with TypeScript definition generation."
+			tags = listOf("Komune", "Fixers", "kotlin", "npm", "js", "typescript")
 		}
 		create("io.komune.fixers.gradle.check") {
 			id = "io.komune.fixers.gradle.check"
 			implementationClass = "io.komune.fixers.gradle.plugin.check.CheckPlugin"
-			displayName = "Fixers Gradle Sonar"
-			description = "Ease the configuration of static code analysis with sonarqube and detekt."
-			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
+			displayName = "Komune FixersGradle Check"
+			description = "Convention plugin that configures Detekt, SonarQube, and JaCoCo for static analysis and code coverage."
+			tags = listOf("Komune", "Fixers", "kotlin", "detekt", "sonarqube", "jacoco", "code-quality")
 		}
 	}
 }
