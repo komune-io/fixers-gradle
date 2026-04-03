@@ -1,6 +1,6 @@
-# Fixers Gradle 
+# Fixers Gradle
 
-Gradle plugins to facilitate the configuration of Kotlin modules. These plugins provide sensible defaults and simplify the setup of Kotlin JVM and Multiplatform projects, Maven publication, and static code analysis.
+Gradle plugins to facilitate the configuration of Kotlin modules. These plugins provide sensible defaults and simplify the setup of Kotlin JVM and Multiplatform projects, Maven/NPM publication, and static code analysis.
 
 ## Table of Contents
 - [Installation](#installation)
@@ -13,7 +13,6 @@ Gradle plugins to facilitate the configuration of Kotlin modules. These plugins 
   - [io.komune.fixers.gradle.npm](#iokomune-fixers-gradle-npm)
   - [io.komune.fixers.gradle.check](#iokomune-fixers-gradle-check)
 - [Configuration Options](#configuration-options)
-- [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
 
 ## Installation
@@ -73,18 +72,24 @@ fixers {
 
 The Dependencies plugin registers Fixers dependencies versions for use in your project.
 
-#### Usage Example
-
-```kotlin
-plugins {
-    id("io.komune.fixers.gradle.dependencies") version "x.y.z"
-}
-
-dependencies {
-    implementation(FixersDependencies.Jvm.Kotlin.coroutines)
-    testImplementation(FixersDependencies.Jvm.Test.junit)
-}
-```
+> **Note:** The `FixersDependencies` API is deprecated. Use the Fixers version catalog instead:
+>
+> ```kotlin
+> // In settings.gradle.kts
+> dependencyResolutionManagement {
+>     versionCatalogs {
+>         create("fixers") {
+>             from("io.komune.fixers.gradle:catalog:x.y.z")
+>         }
+>     }
+> }
+>
+> // In build.gradle.kts
+> dependencies {
+>     implementation(fixers.bundles.kotlin.coroutines.jvm)
+>     testImplementation(fixers.bundles.test.junit)
+> }
+> ```
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -98,7 +103,7 @@ plugins {
 }
 
 // The plugin automatically configures:
-// - JDK version (from fixers.jdk.version or default)
+// - JDK version (from fixers.jdk.version or default 17)
 // - Kotlin compiler options
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
 ```
@@ -179,11 +184,24 @@ fixers {
     sonar {
         organization = "my-org"
         projectKey = "my-project"
-        url = "https://sonarcloud.io"
     }
 
     detekt {
-        // Detekt configuration
+        disable = false               // default: false
+        config = "detekt.yml"         // default: detekt.yml
+        baseline = "detekt-baseline.xml"
+        buildUponDefaultConfig = true // default: true
+        checkstyleReport = true       // default: true
+        htmlReport = true             // default: true
+        sarifReport = true            // default: true
+        markdownReport = true         // default: true
+    }
+
+    jacoco {
+        enabled = true                             // default: true
+        htmlReport = true                          // default: true
+        xmlReport = true                           // default: true
+        xmlReportFilename = "jacocoTestReport.xml" // default
     }
 }
 ```
@@ -197,10 +215,21 @@ The Fixers Gradle plugins provide a central configuration through the `fixers` e
 ```kotlin
 fixers {
     bundle {
+        id = "my-project"
         name = "my-project"
+        group = "com.example"
         description = "My awesome project"
-        version = "1.0.0"
+        version = "1.0.0"                                          // default: from VERSION file
         url = "https://github.com/my-org/my-project"
+        licenseName = "The Apache Software License, Version 2.0"   // default
+        licenseUrl = "https://www.apache.org/licenses/LICENSE-2.0.txt" // default
+        licenseDistribution = "repo"                                // default
+        developerId = "Komune"                                      // default
+        developerName = "Komune Team"                               // default
+        developerOrganization = "Komune"                            // default
+        developerOrganizationUrl = "https://komune.io"              // default
+        scmConnection = "scm:git:git://github.com/komune-io/fixers-gradle.git"    // default
+        scmDeveloperConnection = "scm:git:ssh://github.com/komune-io/fixers-gradle.git" // default
     }
 }
 ```
@@ -210,7 +239,7 @@ fixers {
 ```kotlin
 fixers {
     jdk {
-        version = 17 // Default is 17
+        version = 17 // default: 17
     }
 }
 ```
@@ -220,13 +249,13 @@ fixers {
 ```kotlin
 fixers {
     kt2Ts {
-        outputDirectory = "platform/web/kotlin" // Default
-        inputDirectory = "src/jsMain/kotlin"
-        additionalCleaning = mapOf(
+        outputDirectory = "platform/web/kotlin" // default
+        inputDirectory = "build/js/packages"
+        additionalCleaning.set(mapOf(
             "fileName" to listOf(
                 Regex("pattern") to "replacement"
             )
-        )
+        ))
     }
 }
 ```
@@ -236,14 +265,51 @@ fixers {
 ```kotlin
 fixers {
     sonar {
-        url = "https://sonarcloud.io"
+        url = "https://sonarcloud.io"                     // default
         organization = "my-org"
         projectKey = "my-project"
-        language = "kotlin"
-        detekt = "build/reports/detekt/detekt.xml"
-        jacoco = "${rootDir}/**/build/reports/jacoco/test/jacocoTestReport.xml"
-        exclusions = "**/*.java"
-        githubSummaryComment = "true"
+        language = "kotlin"                               // default
+        sources = "."                                     // default
+        inclusions = "**/src/*main*/kotlin/**/*.kt"       // default
+        exclusions = "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java" // default
+        jacoco = "**/build/reports/jacoco/**/jacocoTestReport.xml" // default
+        detekt = "build/reports/detekt/merge.xml"         // default
+        detektConfigPath = "detekt.yml"                   // default
+        verbose = true                                    // default
+        githubSummaryComment = "true"                     // default
+        properties {
+            property("sonar.coverage.exclusions", "src/generated/**/*")
+        }
+    }
+}
+```
+
+### Detekt
+
+```kotlin
+fixers {
+    detekt {
+        disable = false               // default: false
+        config = "detekt.yml"         // default: detekt.yml
+        baseline = "detekt-baseline.xml"
+        buildUponDefaultConfig = true // default: true
+        checkstyleReport = true       // default: true
+        htmlReport = true             // default: true
+        sarifReport = true            // default: true
+        markdownReport = true         // default: true
+    }
+}
+```
+
+### JaCoCo
+
+```kotlin
+fixers {
+    jacoco {
+        enabled = true                             // default: true
+        htmlReport = true                          // default: true
+        xmlReport = true                           // default: true
+        xmlReportFilename = "jacocoTestReport.xml" // default
     }
 }
 ```
@@ -253,21 +319,54 @@ fixers {
 ```kotlin
 fixers {
     npm {
-        publish = true
-        organization = "my-org"
-        clean = true
-        version = "1.0.0"
+        publish = true          // default: true
+        organization = "komune-io" // default
+        clean = true            // default: true
+        version = "1.0.0"      // default: project version
     }
 }
 ```
 
+### Repositories
+
+```kotlin
+fixers {
+    repositories {
+        mavenLocal = false           // default: false
+        mavenCentral = true          // default: true
+        sonatypeSnapshots = false    // default: false
+        maven("https://custom.repo/maven")
+    }
+}
+```
+
+### Publish
+
+```kotlin
+fixers {
+    publish {
+        gradlePluginPortalEnabled = true // default: true
+        stagingDirectory = "staging-deploy" // default
+        githubPackagesUrl = "https://maven.pkg.github.com/komune-io/my-project" // default: computed
+        mavenCentralUrl = "https://central.sonatype.com/api/v1/publisher" // default
+        mavenSnapshotsUrl = "https://central.sonatype.com/repository/maven-snapshots/" // default
+        // Credentials (typically set via env vars, not in build scripts)
+        // pkgGithubUsername, pkgGithubToken, mavenCentralUsername, mavenCentralPassword
+        // signingGpgKey, signingGpgKeyPassword
+    }
+}
+```
 
 ## Project Structure
 
 This project uses a composite build to facilitate the development and testing of the Gradle plugins. Here's a brief overview of the project structure:
 
-- **`build-composite`**: This directory contains the source code for all the plugins as "convention plugins". This allows for a better developer experience within this repository, including features like code completion and easy navigation in the IDE.
+- **`build-composite/`**: Contains the source code for all the plugins as "convention plugins". This allows for a better developer experience within this repository, including features like code completion and easy navigation in the IDE.
 
-- **`config`, `dependencies`, `plugin`**: These are standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite` directory during the build process.
+- **`config/`**, **`dependencies/`**, **`plugin/`**: Standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite/` directory during the build process.
+
+- **`sandbox/`**: Test environment for validating plugins locally.
+
+- **`integration-tests/`**: Integration tests for the published plugins.
 
 This setup allows for the local development and testing of the plugins in a streamlined way, while also enabling the publication of the plugins as standard, independent artifacts for other projects to use.
