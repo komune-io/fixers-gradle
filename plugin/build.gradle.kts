@@ -50,7 +50,7 @@ gradlePlugin {
 			id = "io.komune.fixers.gradle.kotlin.mpp"
 			implementationClass = "io.komune.fixers.gradle.plugin.kotlin.MppPlugin"
 			displayName = "Fixers Gradle Kotlin MPP"
-			description = "Ease the configuration of Kotlin Multiplateform Plugin."
+			description = "Ease the configuration of Kotlin Multiplatform Plugin."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
 		create("io.komune.fixers.gradle.publish") {
@@ -73,6 +73,16 @@ gradlePlugin {
 			displayName = "Fixers Gradle Sonar"
 			description = "Ease the configuration of static code analysis with sonarqube and detekt."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
+		}
+	}
+}
+
+// Declare configuration cache compatibility for all plugins
+// Uses the Gradle Compatibility Plugin auto-applied by com.gradle.plugin-publish 2.1.1+
+gradlePlugin.plugins.configureEach {
+	(this as ExtensionAware).extensions.configure<org.gradle.plugin.compatibility.CompatibilityExtension>("compatibility") {
+		features {
+			configurationCache.set(false)
 		}
 	}
 }

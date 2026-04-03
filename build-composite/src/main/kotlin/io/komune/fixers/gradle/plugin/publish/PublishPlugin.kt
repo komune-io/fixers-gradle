@@ -16,6 +16,7 @@ class PublishPlugin : Plugin<Project> {
 
 	companion object {
 		const val PLUGIN_ID = "io.komune.fixers.gradle.publish"
+		const val GRADLE_PLUGIN_PUBLISH_ID = "com.gradle.plugin-publish"
 	}
 
 	override fun apply(project: Project) {
@@ -120,7 +121,7 @@ class PublishPlugin : Plugin<Project> {
 			return
 		}
 
-		val hasPublishPlugin = plugins.hasPlugin("com.gradle.plugin-publish")
+		val hasPublishPlugin = plugins.hasPlugin(GRADLE_PLUGIN_PUBLISH_ID)
 
 		extensions.getByType(SigningExtension::class.java).apply {
 			isRequired = true
@@ -214,6 +215,16 @@ class PublishPlugin : Plugin<Project> {
 				description = "Publishes all artifacts to Maven Central via Central Portal"
 				dependsOn(cleanStagingTask)
 				dependsOn(allPublishToStagingTasks)
+
+				// Also publish to Gradle Plugin Portal (only non-SNAPSHOT releases are accepted)
+				if (fixersConfig.publish.gradlePluginPortalEnabled.getOrElse(true)) {
+					dependsOn(
+						publishSubprojects
+							.filter { it.plugins.hasPlugin(GRADLE_PLUGIN_PUBLISH_ID) }
+							.map { "${it.path}:publishPlugins" }
+					)
+				}
+
 				doLast {
 					uploadToCentralPortal(
 						stagingDirProvider.get().asFile, centralUrlProvider.get(),

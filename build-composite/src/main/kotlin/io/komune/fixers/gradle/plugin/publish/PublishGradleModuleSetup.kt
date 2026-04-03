@@ -49,7 +49,7 @@ fun PublicationContainer.configureMavenPublications(
     configExtension: ConfigExtension
 ) {
     val artifactSetup = PublishGradleModuleSetup(project, configExtension, this)
-    val hasPublishPlugin = project.plugins.hasPlugin("com.gradle.plugin-publish")
+    val hasPublishPlugin = project.plugins.hasPlugin(PublishPlugin.GRADLE_PLUGIN_PUBLISH_ID)
     if (hasPublishPlugin) {
         artifactSetup.configurePluginPublications()
     }

@@ -4,7 +4,9 @@ import io.komune.fixers.gradle.plugin.config.cleanProjectDir
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
+@DisableCachingByDefault(because = "Cleans and regenerates TypeScript definitions")
 open class NpmTsGenTask: DefaultTask() {
 
     @Input

@@ -29,6 +29,9 @@ fixers {
 			property("sonar.coverage.exclusions", "config/**,dependencies/**,plugin/**")
 		}
 	}
+	publish {
+		gradlePluginPortalEnabled = false
+	}
 }
 
 

@@ -29,6 +29,7 @@ open class PublishConfig(
                 signingGpgKey=******,
                 signingGpgKeyPassword=******,
                 gradlePlugin=${gradlePlugin.orNull},
+                gradlePluginPortalEnabled=${gradlePluginPortalEnabled.orNull},
                 stagingDirectory=${stagingDirectory.orNull},
                 githubPackagesUrl=${githubPackagesUrl.orNull}
             )
@@ -108,6 +109,16 @@ open class PublishConfig(
     }
 
     /**
+     * Whether to publish to the Gradle Plugin Portal during promote.
+     * Defaults to true. Set to false to skip Gradle Plugin Portal publishing.
+     */
+    val gradlePluginPortalEnabled: Property<Boolean> = project.property(
+        envKey = "FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED",
+        projectKey = "fixers.publish.gradle.portal.enabled",
+        defaultValue = true
+    )
+
+    /**
      * Directory for staging deployments.
      */
     val stagingDirectory: Property<String> = project.property(
@@ -164,6 +175,7 @@ open class PublishConfig(
         signingGpgKeyPassword.mergeIfNotPresent(source.signingGpgKeyPassword)
         stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
         githubPackagesUrl.mergeIfNotPresent(source.githubPackagesUrl)
+        gradlePluginPortalEnabled.mergeIfNotPresent(source.gradlePluginPortalEnabled)
         return this
     }
 }

@@ -8,6 +8,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 class CheckPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -36,6 +37,7 @@ class CheckPlugin : Plugin<Project> {
  * Task to generate sonar-project.properties file from fixers configuration.
  * Configuration cache compatible - all values captured during configuration time.
  */
+@DisableCachingByDefault(because = "Generates a properties file that depends on project structure")
 abstract class GenerateSonarPropertiesTask : DefaultTask() {
 
     @get:org.gradle.api.tasks.Input
