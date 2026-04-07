@@ -6,7 +6,7 @@ dependencies {
 	implementation(project(":plugin"))
 	// Override kotlin-gradle-plugin to 2.3.10 (consumer version)
 	// so withPluginClasspath() injects the correct Kotlin compiler
-	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.10")
+	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20")
 
 	implementation(libs.bundles.test)
 	testRuntimeOnly(libs.junit.platform.launcher)
