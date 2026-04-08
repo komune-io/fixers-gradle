@@ -338,4 +338,92 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
         verifyGradlePluginPublishingConfig(result)
     }
+
+    /**
+     * Creates a version catalog subproject with the PublishPlugin.
+     */
+    private fun createCatalogPublishProject() {
+        val rootExtra = """
+            fixers {
+                bundle {
+                    id = "test-bundle"
+                    name = "Test Bundle"
+                    description = "A test bundle for integration testing"
+                    url = "https://github.com/komune-io/fixers-gradle"
+                }
+            }
+        """.trimIndent()
+
+        settingsFile.writeText("""
+            rootProject.name = "integration-test-project"
+            include("catalog")
+        """.trimIndent())
+
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+            $rootExtra
+        """.trimIndent())
+
+        val catalogDir = testProjectDir.resolve("catalog").toFile()
+        catalogDir.mkdirs()
+
+        // Create a minimal version catalog TOML file
+        File(catalogDir, "libs.versions.toml").writeText("""
+            [versions]
+            kotlin = "2.3.0"
+
+            [libraries]
+            kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+        """.trimIndent())
+
+        File(catalogDir, "build.gradle.kts").writeText("""
+            plugins {
+                `version-catalog`
+                id("io.komune.fixers.gradle.publish")
+            }
+
+            group = "com.example"
+            version = "1.0.0"
+
+            catalog {
+                versionCatalog {
+                    from(files("libs.versions.toml"))
+                }
+            }
+
+            tasks.register("verifyCatalogPublishing") {
+                doLast {
+                    println("Has maven-publish plugin: ${'$'}{plugins.hasPlugin("maven-publish")}")
+                    println("Has publications: ${'$'}{publishing.publications.names}")
+                    println("Has maven publication: ${'$'}{publishing.publications.findByName("maven") != null}")
+
+                    val pub = publishing.publications.findByName("maven") as? org.gradle.api.publish.maven.MavenPublication
+                    println("Publication component: ${'$'}{pub?.artifacts != null}")
+                    println("POM name: ${'$'}{pub?.pom?.name?.orNull}")
+                    println("POM description: ${'$'}{pub?.pom?.description?.orNull}")
+                    println("POM url: ${'$'}{pub?.pom?.url?.orNull}")
+                }
+            }
+        """.trimIndent())
+    }
+
+    /**
+     * Test that the PublishPlugin auto-creates a publication for version catalog projects
+     * with POM metadata from the bundle config.
+     */
+    @Test
+    fun `should configure publishing for version catalog project`() {
+        createCatalogPublishProject()
+
+        val result = runGradle(":catalog:verifyCatalogPublishing")
+
+        assertThat(result.task(":catalog:verifyCatalogPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("Has maven-publish plugin: true")
+        assertThat(result.output).contains("Has maven publication: true")
+        assertThat(result.output).contains("POM name: Test Bundle")
+        assertThat(result.output).contains("POM description: A test bundle for integration testing")
+        assertThat(result.output).contains("POM url: https://github.com/komune-io/fixers-gradle")
+    }
 }

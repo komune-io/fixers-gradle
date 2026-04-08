@@ -83,6 +83,7 @@ class PublishPlugin : Plugin<Project> {
 		PublishMppSetup.setupMppPublish(currentProject, fixersConfig)
 		PublishJvmSetup.setupJVMPublish(currentProject, fixersConfig)
 		PublishPlatformSetup.setupPlatformPublish(currentProject, fixersConfig)
+		PublishCatalogSetup.setupCatalogPublish(currentProject, fixersConfig)
 
 		publishing.publications {
 			configureMavenPublications(currentProject, fixersConfig)

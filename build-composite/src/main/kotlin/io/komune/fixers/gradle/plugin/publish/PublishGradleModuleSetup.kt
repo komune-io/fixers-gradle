@@ -53,4 +53,12 @@ fun PublicationContainer.configureMavenPublications(
     if (hasPublishPlugin) {
         artifactSetup.configurePluginPublications()
     }
+
+    // Apply POM metadata to all MavenPublications that don't already have it set.
+    // This covers manually created publications (e.g. version catalogs) that bypass
+    // the specific setup classes (JVM, MPP, Platform, GradleModule).
+    val pomMetadata = project.pom(configExtension.bundle)
+    withType(MavenPublication::class.java).configureEach {
+        pom(pomMetadata)
+    }
 }
