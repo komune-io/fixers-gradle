@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0
       - name: Initialize Java and Gradle Environment
         id: jvm
-        uses: komune-io/fixers-gradle/.github/actions/jvm@0.31.1
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           with-gradle: false
           with-setup-gradle-github-pkg: true
@@ -74,7 +74,7 @@ jobs:
           fetch-depth: 0
       - name: Initialize Java and Gradle Environment
         id: jvm
-        uses: komune-io/fixers-gradle/.github/actions/jvm@0.31.1
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           with-gradle: true
           with-setup-gradle-github-pkg: true
