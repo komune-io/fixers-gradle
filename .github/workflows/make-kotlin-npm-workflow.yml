@@ -115,13 +115,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Initialize Java and Gradle Environment
-        uses: komune-io/fixers-gradle/.github/actions/jvm@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/version@main
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
@@ -130,7 +130,7 @@ jobs:
 
       - name: Execute Make Lint Task
         if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
@@ -142,21 +142,21 @@ jobs:
           platforms: ${{ inputs.docker-buildx-platform }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
         if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
 
       - name: Execute Make Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
@@ -165,14 +165,14 @@ jobs:
 
       - name: Execute Make Check Task
         if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-check-task }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.32.0
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
