@@ -144,7 +144,7 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize Node.js Environment
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@0.33.2
         with:
           base-dir: ${{ inputs.base-dir }}
           node-version: ${{ inputs.node-version }}
@@ -152,12 +152,12 @@ jobs:
       - if: inputs.with-setup-npm-github-pkg == 'true'
         name: Setup Npm with GitHub Packages
         id: setup_npm_github_pkg
-        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@0.33.2
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@main
+        uses: komune-io/fixers-gradle/.github/actions/version@0.33.2
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
@@ -166,7 +166,7 @@ jobs:
 
       - name: Execute Make Lint Task
         if: (contains(inputs.on-tag, inputs.make-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
@@ -178,14 +178,14 @@ jobs:
           platforms: ${{ inputs.docker-buildx-platform }}
 
       - name: Execute Make Build Task
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
 
       - name: Execute Make Test Task
         if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
@@ -200,7 +200,7 @@ jobs:
 
       - name: Execute Make Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
@@ -216,21 +216,21 @@ jobs:
       - name: Setup Npm with NpmJs Repository
         id: setup_npm_npmjs_pkg
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
+        uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@0.33.2
         with:
           npm-auth-token: ${{ secrets.NPM_PKG_NPMJS_TOKEN }}
           npm-registry: registry.npmjs.org
 
       - name: Execute Make Check Task
         if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-check-task }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
+        uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@0.33.2
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
