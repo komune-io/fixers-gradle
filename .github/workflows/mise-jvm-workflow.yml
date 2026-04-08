@@ -92,6 +92,12 @@ on:
         type: "string"
         default: "false"
 
+      analysis-reports-name:
+        description: "Name for the analysis reports artifact. Use a unique value per job when this workflow is called multiple times in the same parent workflow to avoid artifact name conflicts."
+        required: false
+        type: "string"
+        default: "analysis-reports"
+
       artifact-name:
         description: "The name for the uploaded artifact, if needed."
         required: false
@@ -197,6 +203,8 @@ jobs:
 
       - name: Upload Analysis Reports
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
+        with:
+          artifact-name: ${{ inputs.analysis-reports-name }}
 
       - name: Docker Registry Login to Stage
         if: (inputs.force-stage == 'true' || (inputs.with-stage-docker-registry-login == 'true' && ((github.ref == 'refs/heads/main' ||startsWith(github.ref, 'refs/heads/release/') ||startsWith(github.ref, 'refs/heads/versioning/') ||(contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/'))) ||(github.event_name == 'pull_request' &&(contains(github.event.pull_request.labels.*.name, 'stage') || startsWith(github.head_ref, 'versioning/'))))))
