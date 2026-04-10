@@ -113,8 +113,11 @@ runs:
           echo "::error::VERSION file not found"
           exit 1
         fi
+        # Expand any shell parameter expansion in SNAPSHOT_TAG (e.g. ${GITHUB_SHA:0:7})
+        # so that downstream consumers receive a plain string with no unexpanded references.
+        SNAPSHOT_TAG_EXPANDED=$(eval "printf '%s' \"$SNAPSHOT_TAG\"")
         VERSION=$(cat VERSION)
-        VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG}
+        VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG_EXPANDED}
         echo "$VERSION" > VERSION
       shell: bash
     - name: "Retrieve Version"
