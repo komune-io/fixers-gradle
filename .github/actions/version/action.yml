@@ -113,8 +113,17 @@ runs:
           echo "::error::VERSION file not found"
           exit 1
         fi
+        # Expand known GITHUB_SHA references in SNAPSHOT_TAG so that downstream
+        # consumers receive a plain string with no unexpanded shell references.
+        # Uses literal pattern substitution rather than eval to avoid command
+        # injection risk from workflow inputs.
+        SNAPSHOT_TAG_EXPANDED="$SNAPSHOT_TAG"
+        if [[ -n "${GITHUB_SHA:-}" ]]; then
+          SNAPSHOT_TAG_EXPANDED="${SNAPSHOT_TAG_EXPANDED//\$\{GITHUB_SHA:0:7\}/${GITHUB_SHA:0:7}}"
+          SNAPSHOT_TAG_EXPANDED="${SNAPSHOT_TAG_EXPANDED//\$\{GITHUB_SHA\}/${GITHUB_SHA}}"
+        fi
         VERSION=$(cat VERSION)
-        VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG}
+        VERSION=${VERSION/-SNAPSHOT/$SNAPSHOT_TAG_EXPANDED}
         echo "$VERSION" > VERSION
       shell: bash
     - name: "Retrieve Version"
