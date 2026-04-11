@@ -47,6 +47,18 @@ class Npm(
     )
 
     /**
+     * Dist-tag to use when publishing a semver prerelease version (one containing `-`,
+     * e.g. `0.35.0-SNAPSHOT.cae20d5`). Release versions (no `-`) are always published
+     * with npm's default `latest` tag. Required by npm 7+, which refuses `npm publish`
+     * for prereleases unless `--tag` is provided.
+     */
+    val tag: Property<String> = project.property(
+        envKey = "FIXERS_NPM_TAG",
+        projectKey = "fixers.npm.tag",
+        defaultValue = "next"
+    )
+
+    /**
      * Merges properties from the source Npm into this Npm.
      * Properties are only merged if the target property is not present and the source property is present.
      *
@@ -58,6 +70,7 @@ class Npm(
         organization.mergeIfNotPresent(source.organization)
         clean.mergeIfNotPresent(source.clean)
         version.mergeIfNotPresent(source.version)
+        tag.mergeIfNotPresent(source.tag)
 
         return this
     }

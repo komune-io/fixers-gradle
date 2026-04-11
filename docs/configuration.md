@@ -233,6 +233,7 @@ The `Npm` class contains configuration for NPM package publishing.
 | organization | FIXERS_NPM_ORGANIZATION | fixers.npm.organization | "komune-io" | The organization name for NPM packages |
 | clean | FIXERS_NPM_CLEAN | fixers.npm.clean | true | Whether to clean NPM packages before publishing |
 | version | FIXERS_NPM_VERSION | fixers.npm.version | - | The version for NPM packages |
+| tag | FIXERS_NPM_TAG | fixers.npm.tag | "next" | Dist-tag used when publishing a semver prerelease (a version containing `-`, e.g. `0.35.0-SNAPSHOT.abc1234`). Release versions (no `-`) always use npm's default `latest`. |
 
 #### Example
 

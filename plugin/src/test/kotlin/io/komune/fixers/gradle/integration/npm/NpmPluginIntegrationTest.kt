@@ -219,4 +219,124 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         // Verify that NPM dependencies are configured
         verifyNpmDependencies(result)
     }
+
+    /**
+     * Creates a build file that exposes the publish tag configured by NpmPlugin on
+     * each NpmPublishTask. The project version is injected by the caller via
+     * `-PprojectVersion=...` so the test can drive prerelease vs release behavior. If
+     * [npmTag] is non-null, it is set in the `fixers { npm { tag } }` DSL to exercise the
+     * configurable-dist-tag override.
+     */
+    private fun createPublishTagBuildFile(npmTag: String? = null) {
+        val tagLine = if (npmTag != null) "tag = \"$npmTag\"" else ""
+        writeBuildFile("""
+            import dev.petuska.npm.publish.task.NpmPublishTask
+
+            plugins {
+                id("io.komune.fixers.gradle.config")
+                id("io.komune.fixers.gradle.kotlin.mpp")
+                id("io.komune.fixers.gradle.npm")
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            version = providers.gradleProperty("projectVersion").get()
+
+            fixers {
+                bundle {
+                    id = "test-bundle"
+                    name = "Test Bundle"
+                    description = "A test bundle for integration testing"
+                    url = "https://github.com/komune-io/fixers-gradle"
+                }
+                npm {
+                    publish = true
+                    organization = "test-organization"
+                    $tagLine
+                }
+            }
+
+            kotlin {
+                js(IR) {
+                    browser()
+                    nodejs()
+                }
+            }
+
+            tasks.register("verifyPublishTag") {
+                val publishTasks = tasks.withType(NpmPublishTask::class.java)
+                doLast {
+                    println("NpmPublishTask count: ${'$'}{publishTasks.size}")
+                    publishTasks.forEach { task ->
+                        val tagValue = if (task.tag.isPresent) task.tag.get() else "<unset>"
+                        println("NpmPublishTask ${'$'}{task.name} tag: ${'$'}tagValue")
+                    }
+                }
+            }
+        """.trimIndent())
+    }
+
+    /**
+     * Test that for prerelease project versions (containing `-`, e.g. `0.35.0-SNAPSHOT.cae20d5`),
+     * NpmPlugin sets the `tag` on every NpmPublishTask to "next" so that `npm publish` receives
+     * the required `--tag=next` flag. Without this, npm 7+ fails with:
+     *   "You must specify a tag using --tag when publishing a prerelease version."
+     */
+    @Test
+    fun `should set publish tag to next for prerelease version`() {
+        createJsSourceFile()
+        createBasicPackageJson()
+        createPublishTagBuildFile()
+
+        val result = runGradle("verifyPublishTag", "-PprojectVersion=0.35.0-SNAPSHOT.cae20d5")
+
+        assertThat(result.task(":verifyPublishTag")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        // There must be at least one NpmPublishTask registered by the KotlinJs target integration.
+        assertThat(result.output).doesNotContain("NpmPublishTask count: 0")
+        // Every registered NpmPublishTask must have been configured with the "next" tag.
+        assertThat(result.output).contains("tag: next")
+        assertThat(result.output).doesNotContain("tag: <unset>")
+    }
+
+    /**
+     * Test that for release project versions (no `-`, e.g. `0.35.0`), NpmPlugin does NOT set
+     * a publish tag, letting `npm publish` use its default "latest" dist-tag.
+     */
+    @Test
+    fun `should not set publish tag for release version`() {
+        createJsSourceFile()
+        createBasicPackageJson()
+        createPublishTagBuildFile()
+
+        val result = runGradle("verifyPublishTag", "-PprojectVersion=0.35.0")
+
+        assertThat(result.task(":verifyPublishTag")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).doesNotContain("NpmPublishTask count: 0")
+        // Every registered NpmPublishTask must be left with the tag unset (npm default "latest").
+        assertThat(result.output).contains("tag: <unset>")
+        assertThat(result.output).doesNotContain("tag: next")
+    }
+
+    /**
+     * Test that a user can override the default prerelease dist-tag ("next") via the
+     * `fixers { npm { tag = "..." } }` DSL. The plugin must honor that value on every
+     * registered NpmPublishTask instead of falling back to "next".
+     */
+    @Test
+    fun `should use configured npm tag override for prerelease version`() {
+        createJsSourceFile()
+        createBasicPackageJson()
+        createPublishTagBuildFile(npmTag = "rc")
+
+        val result = runGradle("verifyPublishTag", "-PprojectVersion=0.35.0-SNAPSHOT.cae20d5")
+
+        assertThat(result.task(":verifyPublishTag")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).doesNotContain("NpmPublishTask count: 0")
+        // Every registered NpmPublishTask must pick up the user-configured override, not the default.
+        assertThat(result.output).contains("tag: rc")
+        assertThat(result.output).doesNotContain("tag: next")
+        assertThat(result.output).doesNotContain("tag: <unset>")
+    }
 }

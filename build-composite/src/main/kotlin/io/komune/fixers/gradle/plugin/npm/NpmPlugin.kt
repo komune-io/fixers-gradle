@@ -12,6 +12,20 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.the
 
+/**
+ * Applies `dev.petuska.npm.publish` with Komune conventions: two registries (npmjs,
+ * GitHub Packages) authenticated via `$NPM_TOKEN`, a `kt2Ts` cleanup task wired
+ * before every publish, and a dist-tag policy for prerelease versions.
+ *
+ * Dist-tag policy:
+ *   - release versions (no `-` in the semver) → npm default `latest`
+ *   - prerelease versions (containing `-`, e.g. `0.35.0-SNAPSHOT.cae20d5`) →
+ *     `fixers.npm.tag` (default `next`). Required by npm 7+, which refuses
+ *     `npm publish` without `--tag` for prereleases.
+ *
+ * The tag is applied via `convention`, so `./gradlew ... --tag=foo` still overrides
+ * per-invocation.
+ */
 class NpmPlugin : Plugin<Project> {
 
 	override fun apply(target: Project) {
@@ -20,7 +34,7 @@ class NpmPlugin : Plugin<Project> {
 		// internally uses afterEvaluate which would fail if project is already evaluated
 		target.afterEvaluate {
 			target.rootProject.extensions.fixers?.takeIf { it.npm.publish.get() }?.let { config ->
-				target.logger.info("Apply NpmPlugin to ${target.name} - ${target.getVersion(config)}")
+				target.logger.info("Apply NpmPlugin to ${target.name} - ${target.version}")
 				target.configureNpmPublishPlugin(config)
 				target.configurePackTsCleaning(config.npm)
 			}
@@ -50,9 +64,10 @@ class NpmPlugin : Plugin<Project> {
 		project.pluginManager.apply(NpmPublishPlugin::class.java)
 		// Use providers.environmentVariable() for configuration cache compatibility
 		val npmToken = providers.environmentVariable("NPM_TOKEN")
+		val effectiveVersion = config.npm.version.orNull ?: project.version.toString()
 		project.the<NpmPublishExtension>().apply {
 			organization.set(config.npm.organization.get())
-			version.set(getVersion(config))
+			version.set(effectiveVersion)
 			registries {
 				register("npmjs") {
 					uri.set(uri("https://registry.npmjs.org"))
@@ -64,23 +79,13 @@ class NpmPlugin : Plugin<Project> {
 				}
 			}
 		}
-	}
 
-	private fun Project.getVersion(config: ConfigExtension): String? {
-		if (!config.npm.version.isPresent) return null
-		val npmVersion = config.npm.version.get()
-		val buildTimeValue = config.buildTime.get()
-		val projectVersion = project.version.toString().let { projectVersion ->
-			if(projectVersion == "next-SNAPSHOT" || projectVersion == "experimental-SNAPSHOT") {
-				projectVersion.replace("-SNAPSHOT", ".$buildTimeValue")
-			} else {
-				"next.$buildTimeValue"
+		// See the class KDoc for the dist-tag policy.
+		if (effectiveVersion.contains('-')) {
+			val prereleaseTag = config.npm.tag.get()
+			tasks.withType(NpmPublishTask::class.java).configureEach {
+				tag.convention(prereleaseTag)
 			}
-		}
-		return npmVersion.replace("-SNAPSHOT", projectVersion).also {
-			logger.info("NpmPublishPlugin - Npm Version - $projectVersion")
-			logger.info("NpmPublishPlugin - Project Version - $projectVersion")
-			logger.info("NpmPublishPlugin - Final Version - $npmVersion")
 		}
 	}
 
