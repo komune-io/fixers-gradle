@@ -137,16 +137,8 @@ on:
         required: false
       FIXERS_DOCKER_HUB_PASSWORD:
         required: false
-      # Legacy names — kept for one release cycle for backwards compatibility.
-      # TODO(normalize-secrets): remove after all consumers migrate.
-      GPG_SIGNING_KEY:
-        required: false
-      GPG_SIGNING_PASSWORD:
-        required: false
-      PKG_GITHUB_USERNAME:
-        required: false
-      PKG_GITHUB_TOKEN:
-        required: false
+      # Docker registry login inputs — these are the workflow's own input names
+      # for the docker/login-action step, not legacy aliases.
       DOCKER_STAGE_USERNAME:
         required: false
       DOCKER_STAGE_PASSWORD:
@@ -155,43 +147,27 @@ on:
         required: false
       DOCKER_PROMOTE_PASSWORD:
         required: false
-      JRELEASER_MAVENCENTRAL_USERNAME:
-        required: false
-      JRELEASER_MAVENCENTRAL_PASSWORD:
-        required: false
-      SONAR_TOKEN:
-        required: false
-      GRADLE_PUBLISH_KEY:
-        required: false
-      GRADLE_PUBLISH_SECRET:
-        required: false
 
 jobs:
   run-dev-tasks:
     if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
-      # Primary FIXERS_PUBLISH_* names read by Kotlin plugin and gradle tasks.
-      # Use new secret names first, fall back to legacy names during transition.
-      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME || secrets.PKG_GITHUB_USERNAME }}
-      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || secrets.PKG_GITHUB_TOKEN }}
-      FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY || secrets.GPG_SIGNING_KEY }}
-      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD || secrets.GPG_SIGNING_PASSWORD }}
-      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME || secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
-      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD || secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
-      # Legacy names — kept for composite actions (setup-gradle-github-pkg) that
-      # still read System.getenv("PKG_GITHUB_*") with fallback. Also needed until
-      # all consumer repos migrate their caller-side pass-throughs.
-      # TODO(normalize-secrets): drop after one release cycle.
-      PKG_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME || secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || secrets.PKG_GITHUB_TOKEN }}
+      # FIXERS_PUBLISH_* names read by Kotlin plugin and gradle tasks via
+      # PublishConfig's project.property() helper.
+      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME }}
+      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD }}
       # sonarqube-scan-action@v7 reads SONAR_TOKEN env var directly.
-      SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN || secrets.SONAR_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
       # Gradle Plugin Portal credentials: PublishPlugin.kt bridges these env vars
       # to the `gradle.publish.key`/`gradle.publish.secret` system properties that
       # `com.gradle.plugin-publish` reads at task-execution time.
-      FIXERS_PUBLISH_GRADLE_PORTAL_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY || secrets.GRADLE_PUBLISH_KEY }}
-      FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET || secrets.GRADLE_PUBLISH_SECRET }}
+      FIXERS_PUBLISH_GRADLE_PORTAL_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY }}
+      FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
