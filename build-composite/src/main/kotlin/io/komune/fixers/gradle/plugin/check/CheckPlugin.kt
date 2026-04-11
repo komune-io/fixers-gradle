@@ -12,6 +12,7 @@ import org.gradle.work.DisableCachingByDefault
 
 class CheckPlugin : Plugin<Project> {
     override fun apply(target: Project) {
+        bridgeSonarToken()
         target.gradle.projectsEvaluated {
             val config = target.rootProject.extensions.fixers
 
@@ -29,6 +30,28 @@ class CheckPlugin : Plugin<Project> {
                 val jacocoConfigurator = JacocoConfigurator(this)
                 jacocoConfigurator.configure(config?.jacoco)
             }
+        }
+    }
+
+    /**
+     * Bridges the `FIXERS_SONAR_TOKEN` env var (the `FIXERS_*` namespace) to the
+     * `sonar.token` system property that the `org.sonarqube` gradle plugin reads
+     * at task-execution time.
+     *
+     * This is the only way to let users export `FIXERS_SONAR_TOKEN` locally or in
+     * CI instead of the legacy `SONAR_TOKEN` env var name — the sonarqube plugin's
+     * env var name is hard-coded and cannot be remapped.
+     *
+     * Only sets the system property if it is not already set, so explicit
+     * `-Dsonar.token=...` always wins. Does NOT affect the `sonarqube-scan-action`
+     * used in `sec-workflow.yml`, which runs in a separate process and reads
+     * `SONAR_TOKEN` directly — that workflow still maps
+     * `SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}` at step level.
+     */
+    private fun bridgeSonarToken() {
+        val sonarToken = System.getenv("FIXERS_SONAR_TOKEN")
+        if (!sonarToken.isNullOrEmpty() && System.getProperty("sonar.token") == null) {
+            System.setProperty("sonar.token", sonarToken)
         }
     }
 }

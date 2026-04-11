@@ -161,8 +161,9 @@ jobs:
       FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD }}
-      # sonarqube-scan-action@v7 reads SONAR_TOKEN env var directly.
-      SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
+      # CheckPlugin.bridgeSonarToken() reads FIXERS_SONAR_TOKEN and sets the
+      # `sonar.token` system property for the gradle sonarqube plugin.
+      FIXERS_SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
       # Gradle Plugin Portal credentials: PublishPlugin.kt bridges these env vars
       # to the `gradle.publish.key`/`gradle.publish.secret` system properties that
       # `com.gradle.plugin-publish` reads at task-execution time.

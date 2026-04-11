@@ -356,6 +356,12 @@ The `Sonar` class contains configuration for Sonar analysis.
 | verbose | FIXERS_SONAR_VERBOSE | fixers.sonar.verbose | true | Whether to enable verbose output |
 | detektConfigPath | FIXERS_SONAR_DETEKT_CONFIG_PATH | fixers.sonar.detektConfigPath | "detekt.yml" | The path to the Detekt configuration file |
 
+#### Sonar token bridge
+
+The `org.sonarqube` gradle plugin reads `sonar.token` (project / system property) or `SONAR_TOKEN` env var — these names are hard-coded by the plugin. `CheckPlugin.bridgeSonarToken()` reads `FIXERS_SONAR_TOKEN` at plugin apply time and calls `System.setProperty("sonar.token", …)`, so local developers and CI workflows can export `FIXERS_SONAR_TOKEN` consistently with the rest of the `FIXERS_*` namespace. Explicit `-Dsonar.token=…` always wins — the bridge only sets the system property if it is not already set.
+
+**Scope of the bridge:** local `gradle sonar` runs and `make-jvm` / `mise-jvm` CI jobs that run gradle in-process. **Does NOT affect** `sonarqube-scan-action@v7` used in `sec-workflow.yml` — that action runs in a separate process and reads `SONAR_TOKEN` env var directly. `sec-workflow.yml` maps `SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}` at step level to satisfy both conventions.
+
 #### Example
 
 ```kotlin
