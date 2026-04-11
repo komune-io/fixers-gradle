@@ -307,9 +307,16 @@ The `PublishConfig` class contains configuration for publishing settings.
 | pkgGithubToken | FIXERS_PUBLISH_GITHUB_TOKEN | fixers.publish.github.token | - | The GitHub token for package deployment |
 | signingGpgKey | FIXERS_PUBLISH_SIGNING_GPG_KEY | fixers.publish.signing.gpgKey | - | The GPG signing key for artifacts |
 | signingGpgKeyPassword | FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD | fixers.publish.signing.gpgKeyPassword | - | The GPG signing key password |
+| gradlePortalKey | FIXERS_PUBLISH_GRADLE_PORTAL_KEY | fixers.publish.gradle.portal.key | - | Gradle Plugin Portal publish key — bridged to the `gradle.publish.key` system property that `com.gradle.plugin-publish` reads at task-execution time |
+| gradlePortalSecret | FIXERS_PUBLISH_GRADLE_PORTAL_SECRET | fixers.publish.gradle.portal.secret | - | Gradle Plugin Portal publish secret — bridged to the `gradle.publish.secret` system property |
+| gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
-| gradlePlugin | - | - | - | Configuration for Gradle plugin publishing |
+| gradlePlugin | - | - | - | List of marker publications for Gradle plugins (non-env DSL-only) |
+
+#### Gradle Plugin Portal credential bridge
+
+`com.gradle.plugin-publish` reads the `GRADLE_PUBLISH_KEY` / `GRADLE_PUBLISH_SECRET` env vars (or `gradle.publish.key` / `gradle.publish.secret` system properties) at task-execution time — these env var names are hard-coded by the plugin. `PublishPlugin.bridgeGradlePortalCredentials()` bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET` env vars (or the corresponding gradle properties) to those system properties at plugin apply time. As a result, local developers and CI workflows can use the `FIXERS_PUBLISH_*` namespace consistently; `publishPlugins` picks up the credentials transparently. Explicit `-Dgradle.publish.key=...` always wins — the bridge only sets the system property if it is not already set.
 
 #### Example
 
@@ -322,6 +329,8 @@ fixers {
         pkgGithubToken.set("github-token")
         signingGpgKey.set("signing-key")
         signingGpgKeyPassword.set("signing-password")
+        gradlePortalKey.set("gradle-portal-key")
+        gradlePortalSecret.set("gradle-portal-secret")
     }
 }
 ```
