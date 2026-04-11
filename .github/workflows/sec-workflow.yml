@@ -26,8 +26,12 @@ on:
         type: "string"
 
     secrets:
+      FIXERS_SONAR_TOKEN:
+        required: false
+      # Legacy name — kept for backwards compatibility during transition.
+      # TODO(normalize-secrets): remove after all consumers migrate.
       SONAR_TOKEN:
-        required: true
+        required: false
 
 jobs:
   gradle-dependency-analysis:
@@ -97,12 +101,12 @@ jobs:
       - name: Run SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN || secrets.SONAR_TOKEN }}
       - name: Check SonarQube Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN || secrets.SONAR_TOKEN }}
 
 #  codacy-analysis:
 #    runs-on: ubuntu-latest

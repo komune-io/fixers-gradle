@@ -18,11 +18,11 @@ runs:
     - id: setup_npm
       env:
         NPM_REGISTRY: ${{ inputs.npm-registry }}
-        NPM_AUTH_TOKEN: ${{ inputs.npm-auth-token }}
+        FIXERS_PUBLISH_NPM_GITHUB_TOKEN: ${{ inputs.npm-auth-token }}
       run: |
         echo "
           @komune-io:registry=https://${NPM_REGISTRY}
-          //${NPM_REGISTRY}/:_authToken=${NPM_AUTH_TOKEN}
+          //${NPM_REGISTRY}/:_authToken=${FIXERS_PUBLISH_NPM_GITHUB_TOKEN}
         " > .npmrc
       shell: bash
     - id: set_output

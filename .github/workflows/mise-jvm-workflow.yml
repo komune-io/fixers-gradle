@@ -115,6 +115,26 @@ on:
         default: 'false'
 
     secrets:
+      FIXERS_PUBLISH_SIGNING_GPG_KEY:
+        required: false
+      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD:
+        required: false
+      FIXERS_PUBLISH_GITHUB_USERNAME:
+        required: false
+      FIXERS_PUBLISH_GITHUB_TOKEN:
+        required: false
+      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME:
+        required: false
+      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD:
+        required: false
+      FIXERS_SONAR_TOKEN:
+        required: false
+      FIXERS_DOCKER_HUB_USERNAME:
+        required: false
+      FIXERS_DOCKER_HUB_PASSWORD:
+        required: false
+      # Legacy names — kept for backwards compatibility during transition.
+      # TODO(normalize-secrets): remove after all consumers migrate.
       GPG_SIGNING_KEY:
         required: false
       GPG_SIGNING_PASSWORD:
@@ -143,22 +163,21 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
-      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-      GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-      JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
-      JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
-      JRELEASER_DEPLOY_MAVEN_NEXUS2_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
-      JRELEASER_DEPLOY_MAVEN_NEXUS2_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
-      JRELEASER_DEPLOY_MAVEN_GITHUB_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME || github.actor }}
-      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
-      FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
-      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
+      # Primary FIXERS_PUBLISH_* names read by Kotlin plugin and gradle tasks.
+      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME || secrets.PKG_GITHUB_USERNAME || github.actor }}
+      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || secrets.PKG_GITHUB_TOKEN || github.token }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY || secrets.GPG_SIGNING_KEY }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD || secrets.GPG_SIGNING_PASSWORD }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME || secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD || secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
+      # Legacy names — kept for composite actions (setup-gradle-github-pkg) that
+      # still read System.getenv("PKG_GITHUB_*") with fallback. Also needed until
+      # all consumer repos migrate their caller-side pass-throughs.
+      # TODO(normalize-secrets): drop after one release cycle.
+      PKG_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME || secrets.PKG_GITHUB_USERNAME || github.actor }}
+      PKG_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || secrets.PKG_GITHUB_TOKEN || github.token }}
+      # sonarqube-scan-action@v7 reads SONAR_TOKEN directly.
+      SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN || secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6

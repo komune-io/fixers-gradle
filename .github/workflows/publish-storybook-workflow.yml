@@ -69,7 +69,7 @@ on:
         default: "make_docs.mk"
 
     secrets:
-      NPM_AUTH_TOKEN:
+      FIXERS_PUBLISH_NPM_GITHUB_TOKEN:
         required: false
       CHROMATIC_PROJECT_TOKEN:
         required: false
@@ -95,7 +95,7 @@ jobs:
       docker-promote-repository: ${{ inputs.docker-promote-repository }}
       on-tag: ${{ inputs.on-tag }}
     secrets:
-      NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      NPM_PKG_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_NPM_GITHUB_TOKEN }}
       DOCKER_STAGE_USERNAME: ${{ secrets.DOCKER_STAGE_USERNAME }}
       DOCKER_STAGE_PASSWORD: ${{ secrets.DOCKER_STAGE_PASSWORD }}
       DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
