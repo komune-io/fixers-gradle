@@ -28,6 +28,7 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	private fun applyToRoot(root: Project) {
+		bridgeGradlePortalCredentials()
 		root.gradle.projectsEvaluated {
 			val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
 			val publishSubprojects = root.subprojects.filter {
@@ -36,6 +37,34 @@ class PublishPlugin : Plugin<Project> {
 			if (publishSubprojects.isNotEmpty()) {
 				registerPublishTasks(root, fixersConfig, publishSubprojects)
 			}
+		}
+	}
+
+	/**
+	 * Bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET`
+	 * env vars (the `FIXERS_PUBLISH_*` namespace) to the `gradle.publish.key` /
+	 * `gradle.publish.secret` system properties that `com.gradle.plugin-publish` reads
+	 * at task-execution time.
+	 *
+	 * This is the only way to let users export `FIXERS_PUBLISH_GRADLE_PORTAL_*` locally
+	 * (or in CI) instead of the legacy `GRADLE_PUBLISH_*` env var names — the
+	 * plugin-publish plugin's env var names are hard-coded and cannot be remapped.
+	 *
+	 * Falls back to the legacy `GRADLE_PUBLISH_KEY` / `GRADLE_PUBLISH_SECRET` env vars
+	 * so existing setups keep working. Only sets the system property if it is not
+	 * already set, so explicit `-Dgradle.publish.key=...` always wins.
+	 */
+	private fun bridgeGradlePortalCredentials() {
+		val portalKey = System.getenv("FIXERS_PUBLISH_GRADLE_PORTAL_KEY")
+			?: System.getenv("GRADLE_PUBLISH_KEY")
+		val portalSecret = System.getenv("FIXERS_PUBLISH_GRADLE_PORTAL_SECRET")
+			?: System.getenv("GRADLE_PUBLISH_SECRET")
+
+		if (!portalKey.isNullOrEmpty() && System.getProperty("gradle.publish.key") == null) {
+			System.setProperty("gradle.publish.key", portalKey)
+		}
+		if (!portalSecret.isNullOrEmpty() && System.getProperty("gradle.publish.secret") == null) {
+			System.setProperty("gradle.publish.secret", portalSecret)
 		}
 	}
 

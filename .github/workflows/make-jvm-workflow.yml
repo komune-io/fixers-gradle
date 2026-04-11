@@ -185,13 +185,13 @@ jobs:
       # TODO(normalize-secrets): drop after one release cycle.
       PKG_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME || secrets.PKG_GITHUB_USERNAME }}
       PKG_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || secrets.PKG_GITHUB_TOKEN }}
-      # Non-plugin consumers read these step-level env var names directly:
-      # - sonarqube-scan-action@v7 reads SONAR_TOKEN
-      # - com.gradle.plugin-publish reads GRADLE_PUBLISH_KEY/SECRET at gradle runtime
-      # Source values use new FIXERS_* names with legacy fallback.
+      # sonarqube-scan-action@v7 reads SONAR_TOKEN env var directly.
       SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN || secrets.SONAR_TOKEN }}
-      GRADLE_PUBLISH_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY || secrets.GRADLE_PUBLISH_KEY }}
-      GRADLE_PUBLISH_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET || secrets.GRADLE_PUBLISH_SECRET }}
+      # Gradle Plugin Portal credentials: PublishPlugin.kt bridges these env vars
+      # to the `gradle.publish.key`/`gradle.publish.secret` system properties that
+      # `com.gradle.plugin-publish` reads at task-execution time.
+      FIXERS_PUBLISH_GRADLE_PORTAL_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY || secrets.GRADLE_PUBLISH_KEY }}
+      FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET || secrets.GRADLE_PUBLISH_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6

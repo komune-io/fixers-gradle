@@ -119,6 +119,24 @@ open class PublishConfig(
     )
 
     /**
+     * Gradle Plugin Portal publish key. Bridged to the `gradle.publish.key`
+     * system property that `com.gradle.plugin-publish` reads at task-execution time.
+     */
+    val gradlePortalKey: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_GRADLE_PORTAL_KEY",
+        projectKey = "fixers.publish.gradle.portal.key"
+    )
+
+    /**
+     * Gradle Plugin Portal publish secret. Bridged to the `gradle.publish.secret`
+     * system property that `com.gradle.plugin-publish` reads at task-execution time.
+     */
+    val gradlePortalSecret: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_GRADLE_PORTAL_SECRET",
+        projectKey = "fixers.publish.gradle.portal.secret"
+    )
+
+    /**
      * Directory for staging deployments.
      */
     val stagingDirectory: Property<String> = project.property(
@@ -176,6 +194,8 @@ open class PublishConfig(
         stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
         githubPackagesUrl.mergeIfNotPresent(source.githubPackagesUrl)
         gradlePluginPortalEnabled.mergeIfNotPresent(source.gradlePluginPortalEnabled)
+        gradlePortalKey.mergeIfNotPresent(source.gradlePortalKey)
+        gradlePortalSecret.mergeIfNotPresent(source.gradlePortalSecret)
         return this
     }
 }
