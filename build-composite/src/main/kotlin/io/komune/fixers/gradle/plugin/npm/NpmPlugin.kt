@@ -13,9 +13,15 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.the
 
 /**
- * Applies `dev.petuska.npm.publish` with Komune conventions: two registries (npmjs,
- * GitHub Packages) authenticated via `$NPM_TOKEN`, a `kt2Ts` cleanup task wired
- * before every publish, and a dist-tag policy for prerelease versions.
+ * Applies `dev.petuska.npm.publish` with Komune conventions: two registries authenticated
+ * via per-registry tokens sourced from `PublishConfig`, a `kt2Ts` cleanup task wired before
+ * every publish, and a dist-tag policy for prerelease versions.
+ *
+ * Registry → token mapping:
+ *   - `npmjs` (https://registry.npmjs.org) → `config.publish.npmjsToken`,
+ *     env `$FIXERS_PUBLISH_NPMJS_TOKEN` or gradle prop `fixers.publish.npmjs.token`
+ *   - `github` (https://npm.pkg.github.com) → `config.publish.npmGithubToken`,
+ *     env `$FIXERS_PUBLISH_NPM_GITHUB_TOKEN` or gradle prop `fixers.publish.npm.github.token`
  *
  * Dist-tag policy:
  *   - release versions (no `-` in the semver) → npm default `latest`
@@ -62,8 +68,9 @@ class NpmPlugin : Plugin<Project> {
 	private fun Project.configureNpmPublishPlugin(config: ConfigExtension) {
 		logger.info("Apply NpmPublishPlugin to ${this.name}")
 		project.pluginManager.apply(NpmPublishPlugin::class.java)
-		// Use providers.environmentVariable() for configuration cache compatibility
-		val npmToken = providers.environmentVariable("NPM_TOKEN")
+		// Per-registry tokens read from PublishConfig (env/gradle-prop fallback chain).
+		val npmjsToken = config.publish.npmjsToken
+		val npmGithubToken = config.publish.npmGithubToken
 		val effectiveVersion = config.npm.version.orNull ?: project.version.toString()
 		project.the<NpmPublishExtension>().apply {
 			organization.set(config.npm.organization.get())
@@ -71,11 +78,11 @@ class NpmPlugin : Plugin<Project> {
 			registries {
 				register("npmjs") {
 					uri.set(uri("https://registry.npmjs.org"))
-					authToken.set(npmToken)
+					authToken.set(npmjsToken)
 				}
 				register("github") {
 					uri.set(uri("https://npm.pkg.github.com"))
-					authToken.set(npmToken)
+					authToken.set(npmGithubToken)
 				}
 			}
 		}

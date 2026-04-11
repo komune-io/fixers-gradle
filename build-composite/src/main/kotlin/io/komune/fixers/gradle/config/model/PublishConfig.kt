@@ -28,6 +28,8 @@ open class PublishConfig(
                 pkgGithubToken=******,
                 signingGpgKey=******,
                 signingGpgKeyPassword=******,
+                npmjsToken=******,
+                npmGithubToken=******,
                 gradlePlugin=${gradlePlugin.orNull},
                 gradlePluginPortalEnabled=${gradlePluginPortalEnabled.orNull},
                 stagingDirectory=${stagingDirectory.orNull},
@@ -102,6 +104,25 @@ open class PublishConfig(
     )
 
     /**
+     * npmjs automation token for `@komune-io` scope publishes from `NpmPlugin`.
+     * Bound to the `npmjs` registry in the npm-publish extension.
+     */
+    val npmjsToken: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_NPMJS_TOKEN",
+        projectKey = "fixers.publish.npmjs.token"
+    )
+
+    /**
+     * GitHub Packages npm token for `@komune-io` scope publishes from `NpmPlugin`.
+     * Bound to the `github` registry in the npm-publish extension.
+     * In CI, sourced directly from the auto-forwarded `GITHUB_TOKEN` via reusable workflows.
+     */
+    val npmGithubToken: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_NPM_GITHUB_TOKEN",
+        projectKey = "fixers.publish.npm.github.token"
+    )
+
+    /**
      * List of marker publications for Gradle plugins.
      */
     val gradlePlugin: ListProperty<String> = project.objects.listProperty(String::class.java).apply {
@@ -173,6 +194,8 @@ open class PublishConfig(
         pkgGithubToken.mergeIfNotPresent(source.pkgGithubToken)
         signingGpgKey.mergeIfNotPresent(source.signingGpgKey)
         signingGpgKeyPassword.mergeIfNotPresent(source.signingGpgKeyPassword)
+        npmjsToken.mergeIfNotPresent(source.npmjsToken)
+        npmGithubToken.mergeIfNotPresent(source.npmGithubToken)
         stagingDirectory.mergeIfNotPresent(source.stagingDirectory)
         githubPackagesUrl.mergeIfNotPresent(source.githubPackagesUrl)
         gradlePluginPortalEnabled.mergeIfNotPresent(source.gradlePluginPortalEnabled)
