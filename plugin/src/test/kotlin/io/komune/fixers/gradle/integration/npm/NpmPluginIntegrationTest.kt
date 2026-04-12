@@ -413,14 +413,20 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             "-Pfixers.publish.npm.github.token=github-token-value"
         )
 
-        assertThat(result.task(":verifyNpmRegistryTokens")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-        // The npmjs registry must receive the npmjs-specific token.
-        assertThat(result.output).contains("registry=npmjs uri=https://registry.npmjs.org token=npmjs-token-value")
-        // The github registry must receive the github-specific token.
-        assertThat(result.output).contains("registry=github uri=https://npm.pkg.github.com token=github-token-value")
-        // Neither registry should have the opposite token bound (guards against the legacy
-        // single-token wiring that assigned the same value to both).
-        assertThat(result.output).doesNotContain("registry=npmjs uri=https://registry.npmjs.org token=github-token-value")
-        assertThat(result.output).doesNotContain("registry=github uri=https://npm.pkg.github.com token=npmjs-token-value")
+        assertThat(result.task(":verifyNpmRegistryTokens")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains(
+            "registry=npmjs uri=https://registry.npmjs.org token=npmjs-token-value"
+        )
+        assertThat(result.output).contains(
+            "registry=github uri=https://npm.pkg.github.com token=github-token-value"
+        )
+        // Neither registry should have the opposite token bound.
+        assertThat(result.output).doesNotContain(
+            "registry=npmjs uri=https://registry.npmjs.org token=github-token-value"
+        )
+        assertThat(result.output).doesNotContain(
+            "registry=github uri=https://npm.pkg.github.com token=npmjs-token-value"
+        )
     }
 }
