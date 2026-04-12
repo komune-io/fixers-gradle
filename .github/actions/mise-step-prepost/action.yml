@@ -9,16 +9,16 @@ runs:
   using: "composite"
   steps:
     - name: Run ${{ inputs.mise-task }}:pre optionally
-      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@0.37.0
+      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}:pre
 
     - name: Run ${{ inputs.mise-task }} optionally
-      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@0.37.0
+      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}
 
     - name: Run ${{ inputs.mise-task }}:post optionally
-      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@0.37.0
+      uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}:post
