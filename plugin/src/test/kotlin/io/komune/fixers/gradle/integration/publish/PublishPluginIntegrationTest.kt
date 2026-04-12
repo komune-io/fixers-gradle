@@ -328,7 +328,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `should bridge gradle portal credentials to project properties`() {
+    fun `should bridge gradle portal credentials to system properties`() {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
@@ -336,28 +336,33 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             tasks.register("verifyPortalBridge") {
                 doLast {
-                    val key = rootProject.findProperty("gradle.publish.key")
-                    val secret = rootProject.findProperty("gradle.publish.secret")
+                    val key = System.getProperty("gradle.publish.key")
+                    val secret = System.getProperty("gradle.publish.secret")
                     println("bridge.key.present=${'$'}{key != null}")
                     println("bridge.secret.present=${'$'}{secret != null}")
                 }
             }
         """.trimIndent())
 
-        val result = runGradle(
-            "verifyPortalBridge",
-            "-Pfixers.publish.gradle.portal.key=test-portal-key",
-            "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
-        )
+        try {
+            val result = runGradle(
+                "verifyPortalBridge",
+                "-Pfixers.publish.gradle.portal.key=test-portal-key",
+                "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
+            )
 
-        assertThat(result.task(":verifyPortalBridge")?.outcome)
-            .isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.output).contains("bridge.key.present=true")
-        assertThat(result.output).contains("bridge.secret.present=true")
+            assertThat(result.task(":verifyPortalBridge")?.outcome)
+                .isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.output).contains("bridge.key.present=true")
+            assertThat(result.output).contains("bridge.secret.present=true")
+        } finally {
+            System.clearProperty("gradle.publish.key")
+            System.clearProperty("gradle.publish.secret")
+        }
     }
 
     @Test
-    fun `should not override explicit gradle publish key property`() {
+    fun `should not override explicit gradle publish key system property`() {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
@@ -365,21 +370,29 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             tasks.register("verifyPortalBridgeNoOverride") {
                 doLast {
-                    val key = rootProject.findProperty("gradle.publish.key")
+                    val key = System.getProperty("gradle.publish.key")
                     println("bridge.key=${'$'}key")
                 }
             }
         """.trimIndent())
 
-        val result = runGradle(
-            "verifyPortalBridgeNoOverride",
-            "-Pgradle.publish.key=explicit-key",
-            "-Pgradle.publish.secret=explicit-secret"
-        )
+        // Pre-set system property to simulate -Dgradle.publish.key=explicit-key
+        System.setProperty("gradle.publish.key", "explicit-key")
+        System.setProperty("gradle.publish.secret", "explicit-secret")
+        try {
+            val result = runGradle(
+                "verifyPortalBridgeNoOverride",
+                "-Pfixers.publish.gradle.portal.key=should-not-override",
+                "-Pfixers.publish.gradle.portal.secret=should-not-override"
+            )
 
-        assertThat(result.task(":verifyPortalBridgeNoOverride")?.outcome)
-            .isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.output).contains("bridge.key=explicit-key")
+            assertThat(result.task(":verifyPortalBridgeNoOverride")?.outcome)
+                .isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.output).contains("bridge.key=explicit-key")
+        } finally {
+            System.clearProperty("gradle.publish.key")
+            System.clearProperty("gradle.publish.secret")
+        }
     }
 
     /**

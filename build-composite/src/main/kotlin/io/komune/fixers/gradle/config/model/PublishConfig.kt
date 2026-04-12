@@ -143,8 +143,7 @@ open class PublishConfig(
 
     /**
      * Gradle Plugin Portal publish key. Bridged to the `gradle.publish.key`
-     * Gradle project property (via `extraProperties`) that `com.gradle.plugin-publish`
-     * reads at task-execution time.
+     * system property that `com.gradle.plugin-publish` reads at task-execution time.
      */
     val gradlePortalKey: Property<String> = project.property(
         envKey = "FIXERS_PUBLISH_GRADLE_PORTAL_KEY",
@@ -153,8 +152,7 @@ open class PublishConfig(
 
     /**
      * Gradle Plugin Portal publish secret. Bridged to the `gradle.publish.secret`
-     * Gradle project property (via `extraProperties`) that `com.gradle.plugin-publish`
-     * reads at task-execution time.
+     * system property that `com.gradle.plugin-publish` reads at task-execution time.
      */
     val gradlePortalSecret: Property<String> = project.property(
         envKey = "FIXERS_PUBLISH_GRADLE_PORTAL_SECRET",
