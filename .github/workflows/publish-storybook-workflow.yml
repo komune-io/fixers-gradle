@@ -82,7 +82,7 @@ on:
 
 jobs:
   package-storybook:
-    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@0.38.0
+    uses: komune-io/fixers-gradle/.github/workflows/make-nodejs-workflow.yml@main
     with:
       make-file: ${{ inputs.make-file }}
       base-dir: ${{ inputs.base-dir }}
@@ -108,12 +108,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@0.38.0
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.base-dir }}
       - name: Publish Storybook to Chromatic
-        uses: komune-io/fixers-gradle/.github/actions/chromatic@0.38.0
+        uses: komune-io/fixers-gradle/.github/actions/chromatic@main
         with:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
@@ -133,12 +133,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Initialize Node.js for GitHub Pages
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@0.38.0
+        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
         with:
           node-version: ${{ inputs.node-version }}
           base-dir: ${{ inputs.base-dir }}
       - name: Deploy Storybook to GitHub Pages
-        uses: komune-io/fixers-gradle/.github/actions/github-page@0.38.0
+        uses: komune-io/fixers-gradle/.github/actions/github-page@main
         with:
           artifact-name: ${{ inputs.storybook-static-dir }}
           artifact-path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
