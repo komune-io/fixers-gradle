@@ -407,6 +407,47 @@ class CheckPluginTest {
         }
 
         @Test
+        fun `toString should mask credential fields`() {
+            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+            config.publish.gradlePortalKey.set("portal-key-secret")
+            config.publish.gradlePortalSecret.set("portal-secret-secret")
+            config.publish.signingGpgKey.set("gpg-key-secret")
+
+            val str = config.publish.toString()
+
+            assertThat(str).contains("gradlePortalKey=******")
+            assertThat(str).contains("gradlePortalSecret=******")
+            assertThat(str).contains("signingGpgKey=******")
+            assertThat(str).doesNotContain("portal-key-secret")
+            assertThat(str).doesNotContain("portal-secret-secret")
+        }
+
+        @Test
+        fun `mergeFrom should merge gradlePortalKey and gradlePortalSecret`() {
+            val source = project.extensions.create("source", ConfigExtension::class.java, project)
+            source.publish.gradlePortalKey.set("source-key")
+            source.publish.gradlePortalSecret.set("source-secret")
+
+            val target = project.extensions.create("target", ConfigExtension::class.java, project)
+            target.publish.mergeFrom(source.publish)
+
+            assertThat(target.publish.gradlePortalKey.get()).isEqualTo("source-key")
+            assertThat(target.publish.gradlePortalSecret.get()).isEqualTo("source-secret")
+        }
+
+        @Test
+        fun `mergeFrom should not override existing gradlePortalKey`() {
+            val source = project.extensions.create("source2", ConfigExtension::class.java, project)
+            source.publish.gradlePortalKey.set("source-key")
+
+            val target = project.extensions.create("target2", ConfigExtension::class.java, project)
+            target.publish.gradlePortalKey.set("existing-key")
+            target.publish.mergeFrom(source.publish)
+
+            assertThat(target.publish.gradlePortalKey.get()).isEqualTo("existing-key")
+        }
+
+        @Test
         fun `version should fall back to project version when no VERSION file`() {
             project.version = "2.0.0"
             val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)

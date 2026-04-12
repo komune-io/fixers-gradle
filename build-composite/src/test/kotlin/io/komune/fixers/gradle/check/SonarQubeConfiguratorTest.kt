@@ -118,6 +118,47 @@ class SonarQubeConfiguratorTest {
         }
 
         @Test
+        fun `should include sonar token when set via property`() {
+            val sonar = Sonar(project).apply {
+                organization.set("my-org")
+                projectKey.set("my-project")
+                token.set("test-sonar-token")
+            }
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            assertThat(properties["sonar.token"]).isEqualTo("test-sonar-token")
+        }
+
+        @Test
+        fun `should not include sonar token when not set`() {
+            val sonar = Sonar(project).apply {
+                organization.set("my-org")
+                projectKey.set("my-project")
+            }
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            assertThat(properties).doesNotContainKey("sonar.token")
+        }
+
+        @Test
+        fun `should allow custom properties to override sonar token`() {
+            val sonar = Sonar(project).apply {
+                organization.set("my-org")
+                projectKey.set("my-project")
+                token.set("token-from-config")
+                properties {
+                    property("sonar.token", "token-from-custom")
+                }
+            }
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            assertThat(properties["sonar.token"]).isEqualTo("token-from-custom")
+        }
+
+        @Test
         fun `should include detekt config path`() {
             val sonar = Sonar(project).apply {
                 detektConfigPath.set("custom-detekt.yml")
