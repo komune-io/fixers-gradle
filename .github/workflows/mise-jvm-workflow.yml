@@ -129,11 +129,8 @@ on:
         required: false
       FIXERS_SONAR_TOKEN:
         required: false
-      FIXERS_DOCKER_HUB_USERNAME:
-        required: false
-      FIXERS_DOCKER_HUB_PASSWORD:
-        required: false
       # Docker registry login inputs — workflow input names for docker/login-action.
+      # Callers map their org secrets (e.g. FIXERS_DOCKER_HUB_USERNAME) to these.
       DOCKER_STAGE_USERNAME:
         required: false
       DOCKER_STAGE_PASSWORD:
