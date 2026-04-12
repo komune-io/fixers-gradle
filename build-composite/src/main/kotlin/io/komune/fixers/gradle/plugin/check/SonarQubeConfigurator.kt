@@ -95,7 +95,9 @@ class SonarQubeConfigurator(
         properties["detekt.sonar.kotlin.config.path"] = "${project.rootDir}/${sonar.detektConfigPath.get()}"
         properties["sonar.verbose"] = sonar.verbose.get()
 
-        // Add custom properties
+        sonar.token.orNull?.let { properties["sonar.token"] = it }
+
+        // Custom properties last so they can override any computed value above
         sonar.customProperties.forEach { (key, value) ->
             properties[key] = value
         }

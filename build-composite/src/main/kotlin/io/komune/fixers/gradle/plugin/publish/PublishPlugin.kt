@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.PublishConfig
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -30,12 +31,41 @@ class PublishPlugin : Plugin<Project> {
 	private fun applyToRoot(root: Project) {
 		root.gradle.projectsEvaluated {
 			val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
+			bridgeGradlePortalCredentials(root, fixersConfig.publish)
 			val publishSubprojects = root.subprojects.filter {
 				it.pluginManager.hasPlugin(PLUGIN_ID)
 			}
 			if (publishSubprojects.isNotEmpty()) {
 				registerPublishTasks(root, fixersConfig, publishSubprojects)
 			}
+		}
+	}
+
+	/**
+	 * Bridges `PublishConfig.gradlePortalKey` / `PublishConfig.gradlePortalSecret`
+	 * (env `FIXERS_PUBLISH_GRADLE_PORTAL_KEY/SECRET` or gradle prop
+	 * `fixers.publish.gradle.portal.key/secret`) to the `gradle.publish.key` /
+	 * `gradle.publish.secret` Gradle project properties that `com.gradle.plugin-publish`
+	 * reads via `providers.gradleProperty()` at task-execution time.
+	 *
+	 * Uses `extraProperties` instead of `System.setProperty()` so values are scoped
+	 * to the current build invocation and do not leak across daemon builds.
+	 *
+	 * Called inside `projectsEvaluated` so the `PublishConfig` properties are fully
+	 * resolved (env → gradle prop → DSL fallback chain).
+	 *
+	 * Only sets the property if it is not already set, so explicit
+	 * `-Pgradle.publish.key=...` always wins.
+	 */
+	private fun bridgeGradlePortalCredentials(root: Project, config: PublishConfig) {
+		val portalKey = config.gradlePortalKey.orNull
+		val portalSecret = config.gradlePortalSecret.orNull
+
+		if (!portalKey.isNullOrEmpty() && !root.hasProperty("gradle.publish.key")) {
+			root.extensions.extraProperties.set("gradle.publish.key", portalKey)
+		}
+		if (!portalSecret.isNullOrEmpty() && !root.hasProperty("gradle.publish.secret")) {
+			root.extensions.extraProperties.set("gradle.publish.secret", portalSecret)
 		}
 	}
 

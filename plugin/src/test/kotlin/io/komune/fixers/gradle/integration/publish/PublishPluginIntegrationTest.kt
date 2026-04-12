@@ -327,6 +327,61 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         assertThat(result.output).contains("Has testPluginPluginMarkerMaven publication: true")
     }
 
+    @Test
+    fun `should bridge gradle portal credentials to project properties`() {
+        createGradlePluginPublishBuildFile()
+
+        val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
+        buildFile.appendText("""
+
+            tasks.register("verifyPortalBridge") {
+                doLast {
+                    val key = rootProject.findProperty("gradle.publish.key")
+                    val secret = rootProject.findProperty("gradle.publish.secret")
+                    println("bridge.key.present=${'$'}{key != null}")
+                    println("bridge.secret.present=${'$'}{secret != null}")
+                }
+            }
+        """.trimIndent())
+
+        val result = runGradle(
+            "verifyPortalBridge",
+            "-Pfixers.publish.gradle.portal.key=test-portal-key",
+            "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
+        )
+
+        assertThat(result.task(":verifyPortalBridge")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("bridge.key.present=true")
+        assertThat(result.output).contains("bridge.secret.present=true")
+    }
+
+    @Test
+    fun `should not override explicit gradle publish key property`() {
+        createGradlePluginPublishBuildFile()
+
+        val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
+        buildFile.appendText("""
+
+            tasks.register("verifyPortalBridgeNoOverride") {
+                doLast {
+                    val key = rootProject.findProperty("gradle.publish.key")
+                    println("bridge.key=${'$'}key")
+                }
+            }
+        """.trimIndent())
+
+        val result = runGradle(
+            "verifyPortalBridgeNoOverride",
+            "-Pgradle.publish.key=explicit-key",
+            "-Pgradle.publish.secret=explicit-secret"
+        )
+
+        assertThat(result.task(":verifyPortalBridgeNoOverride")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("bridge.key=explicit-key")
+    }
+
     /**
      * Test that the PublishPlugin correctly configures publishing for a Gradle plugin project.
      */

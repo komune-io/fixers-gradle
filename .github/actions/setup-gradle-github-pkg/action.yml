@@ -18,8 +18,8 @@ runs:
                     maven {
                         url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
                         credentials {
-                            username = System.getenv(\"PKG_GITHUB_USERNAME\")
-                            password = System.getenv(\"PKG_GITHUB_TOKEN\")
+                            username = System.getenv(\"FIXERS_PUBLISH_GITHUB_USERNAME\")
+                            password = System.getenv(\"FIXERS_PUBLISH_GITHUB_TOKEN\")
                         }
                     }
                 }
@@ -31,8 +31,8 @@ runs:
                 maven {
                     url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
                     credentials {
-                        username = System.getenv(\"PKG_GITHUB_USERNAME\")
-                        password = System.getenv(\"PKG_GITHUB_TOKEN\")
+                        username = System.getenv(\"FIXERS_PUBLISH_GITHUB_USERNAME\")
+                        password = System.getenv(\"FIXERS_PUBLISH_GITHUB_TOKEN\")
                     }
                 }
             }

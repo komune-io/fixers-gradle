@@ -307,9 +307,16 @@ The `PublishConfig` class contains configuration for publishing settings.
 | pkgGithubToken | FIXERS_PUBLISH_GITHUB_TOKEN | fixers.publish.github.token | - | The GitHub token for package deployment |
 | signingGpgKey | FIXERS_PUBLISH_SIGNING_GPG_KEY | fixers.publish.signing.gpgKey | - | The GPG signing key for artifacts |
 | signingGpgKeyPassword | FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD | fixers.publish.signing.gpgKeyPassword | - | The GPG signing key password |
+| gradlePortalKey | FIXERS_PUBLISH_GRADLE_PORTAL_KEY | fixers.publish.gradle.portal.key | - | Gradle Plugin Portal publish key — bridged to the `gradle.publish.key` Gradle project property |
+| gradlePortalSecret | FIXERS_PUBLISH_GRADLE_PORTAL_SECRET | fixers.publish.gradle.portal.secret | - | Gradle Plugin Portal publish secret — bridged to the `gradle.publish.secret` Gradle project property |
+| gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
-| gradlePlugin | - | - | - | Configuration for Gradle plugin publishing |
+| gradlePlugin | - | - | - | List of marker publications for Gradle plugins (non-env DSL-only) |
+
+#### Gradle Plugin Portal credential bridge
+
+`com.gradle.plugin-publish` reads `gradle.publish.key` / `gradle.publish.secret` via `providers.gradleProperty()` (which checks Gradle project properties and `extraProperties`) and also checks `GRADLE_PUBLISH_KEY` / `GRADLE_PUBLISH_SECRET` env vars — these names are hard-coded by the plugin. `PublishPlugin.bridgeGradlePortalCredentials()` bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET` env vars (or the corresponding gradle properties) into the root project's `extraProperties` at plugin apply time. Using `extraProperties` instead of `System.setProperty()` keeps credentials scoped to the current build invocation — they do not leak across Gradle daemon builds. Explicit `-Pgradle.publish.key=...` always wins — the bridge only sets the property if it is not already set.
 
 #### Example
 
@@ -322,6 +329,8 @@ fixers {
         pkgGithubToken.set("github-token")
         signingGpgKey.set("signing-key")
         signingGpgKeyPassword.set("signing-password")
+        gradlePortalKey.set("gradle-portal-key")
+        gradlePortalSecret.set("gradle-portal-secret")
     }
 }
 ```
@@ -346,6 +355,12 @@ The `Sonar` class contains configuration for Sonar analysis.
 | inclusions | FIXERS_SONAR_INCLUSIONS | fixers.sonar.inclusions | "**/src/*main*/kotlin/**/*.kt" | The inclusions pattern |
 | verbose | FIXERS_SONAR_VERBOSE | fixers.sonar.verbose | true | Whether to enable verbose output |
 | detektConfigPath | FIXERS_SONAR_DETEKT_CONFIG_PATH | fixers.sonar.detektConfigPath | "detekt.yml" | The path to the Detekt configuration file |
+
+#### Sonar token bridge
+
+The `org.sonarqube` gradle plugin reads `sonar.token` from system properties, `SONAR_TOKEN` env var, or the extension DSL `sonar { properties { property("sonar.token", …) } }` — these names are hard-coded by the plugin. `SonarQubeConfigurator.buildSonarProperties()` reads `FIXERS_SONAR_TOKEN` and sets `sonar.token` via the extension DSL, so local developers and CI workflows can export `FIXERS_SONAR_TOKEN` consistently with the rest of the `FIXERS_*` namespace. Using the extension DSL instead of `System.setProperty()` keeps credentials scoped to the current build invocation — they do not leak across Gradle daemon builds. Explicit `-Dsonar.token=…` or `SONAR_TOKEN` env var still wins (higher precedence in the plugin's resolution chain).
+
+**Scope of the bridge:** local `gradle sonar` runs and `make-jvm` / `mise-jvm` CI jobs that run gradle in-process. **Does NOT affect** `sonarqube-scan-action@v7` used in `sec-workflow.yml` — that action runs in a separate process and reads `SONAR_TOKEN` env var directly. `sec-workflow.yml` maps `SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}` at step level to satisfy both conventions.
 
 #### Example
 
