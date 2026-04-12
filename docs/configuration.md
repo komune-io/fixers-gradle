@@ -316,7 +316,7 @@ The `PublishConfig` class contains configuration for publishing settings.
 
 #### Gradle Plugin Portal credential bridge
 
-`com.gradle.plugin-publish` reads the `GRADLE_PUBLISH_KEY` / `GRADLE_PUBLISH_SECRET` env vars (or `gradle.publish.key` / `gradle.publish.secret` system properties) at task-execution time — these env var names are hard-coded by the plugin. `PublishPlugin.bridgeGradlePortalCredentials()` bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET` env vars (or the corresponding gradle properties) to those system properties at plugin apply time. As a result, local developers and CI workflows can use the `FIXERS_PUBLISH_*` namespace consistently; `publishPlugins` picks up the credentials transparently. Explicit `-Dgradle.publish.key=...` always wins — the bridge only sets the system property if it is not already set.
+`com.gradle.plugin-publish` reads `gradle.publish.key` / `gradle.publish.secret` via `providers.gradleProperty()` (which checks Gradle project properties and `extraProperties`) and also checks `GRADLE_PUBLISH_KEY` / `GRADLE_PUBLISH_SECRET` env vars — these names are hard-coded by the plugin. `PublishPlugin.bridgeGradlePortalCredentials()` bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET` env vars (or the corresponding gradle properties) into the root project's `extraProperties` at plugin apply time. Using `extraProperties` instead of `System.setProperty()` keeps credentials scoped to the current build invocation — they do not leak across Gradle daemon builds. Explicit `-Pgradle.publish.key=...` always wins — the bridge only sets the property if it is not already set.
 
 #### Example
 
@@ -358,7 +358,7 @@ The `Sonar` class contains configuration for Sonar analysis.
 
 #### Sonar token bridge
 
-The `org.sonarqube` gradle plugin reads `sonar.token` (project / system property) or `SONAR_TOKEN` env var — these names are hard-coded by the plugin. `CheckPlugin.bridgeSonarToken()` reads `FIXERS_SONAR_TOKEN` at plugin apply time and calls `System.setProperty("sonar.token", …)`, so local developers and CI workflows can export `FIXERS_SONAR_TOKEN` consistently with the rest of the `FIXERS_*` namespace. Explicit `-Dsonar.token=…` always wins — the bridge only sets the system property if it is not already set.
+The `org.sonarqube` gradle plugin reads `sonar.token` from system properties, `SONAR_TOKEN` env var, or the extension DSL `sonar { properties { property("sonar.token", …) } }` — these names are hard-coded by the plugin. `SonarQubeConfigurator.buildSonarProperties()` reads `FIXERS_SONAR_TOKEN` and sets `sonar.token` via the extension DSL, so local developers and CI workflows can export `FIXERS_SONAR_TOKEN` consistently with the rest of the `FIXERS_*` namespace. Using the extension DSL instead of `System.setProperty()` keeps credentials scoped to the current build invocation — they do not leak across Gradle daemon builds. Explicit `-Dsonar.token=…` or `SONAR_TOKEN` env var still wins (higher precedence in the plugin's resolution chain).
 
 **Scope of the bridge:** local `gradle sonar` runs and `make-jvm` / `mise-jvm` CI jobs that run gradle in-process. **Does NOT affect** `sonarqube-scan-action@v7` used in `sec-workflow.yml` — that action runs in a separate process and reads `SONAR_TOKEN` env var directly. `sec-workflow.yml` maps `SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}` at step level to satisfy both conventions.
 

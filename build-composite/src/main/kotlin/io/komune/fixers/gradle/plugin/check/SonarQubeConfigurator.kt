@@ -95,6 +95,15 @@ class SonarQubeConfigurator(
         properties["detekt.sonar.kotlin.config.path"] = "${project.rootDir}/${sonar.detektConfigPath.get()}"
         properties["sonar.verbose"] = sonar.verbose.get()
 
+        // Bridge FIXERS_SONAR_TOKEN env var to the sonar.token property via the
+        // extension DSL. This is daemon-safe (build-scoped) unlike System.setProperty().
+        // Does NOT affect sonarqube-scan-action in sec-workflow.yml — that action runs
+        // in a separate process and reads SONAR_TOKEN env var directly.
+        val fixersSonarToken = System.getenv("FIXERS_SONAR_TOKEN")
+        if (!fixersSonarToken.isNullOrEmpty()) {
+            properties["sonar.token"] = fixersSonarToken
+        }
+
         // Add custom properties
         sonar.customProperties.forEach { (key, value) ->
             properties[key] = value
