@@ -128,6 +128,8 @@ jobs:
   run-dev-tasks:
     if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      FIXERS_PUBLISH_NPM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
