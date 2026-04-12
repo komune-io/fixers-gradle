@@ -69,9 +69,7 @@ on:
         default: "make_docs.mk"
 
     secrets:
-      FIXERS_PUBLISH_NPM_GITHUB_TOKEN:
-        required: false
-      CHROMATIC_PROJECT_TOKEN:
+      FIXERS_CHROMATIC_PROJECT_TOKEN:
         required: false
       DOCKER_STAGE_USERNAME:
         required: false
@@ -95,7 +93,6 @@ jobs:
       docker-promote-repository: ${{ inputs.docker-promote-repository }}
       on-tag: ${{ inputs.on-tag }}
     secrets:
-      NPM_PKG_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_NPM_GITHUB_TOKEN }}
       DOCKER_STAGE_USERNAME: ${{ secrets.DOCKER_STAGE_USERNAME }}
       DOCKER_STAGE_PASSWORD: ${{ secrets.DOCKER_STAGE_PASSWORD }}
       DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
@@ -121,7 +118,7 @@ jobs:
           storybook-dir: ${{ inputs.storybook-dir }}
           storybook-static-dir: ${{ inputs.storybook-static-dir }}
           storybook-static-dir-separator: ${{ inputs.storybook-static-dir-separator }}
-          project-token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          project-token: ${{ secrets.FIXERS_CHROMATIC_PROJECT_TOKEN }}
 
   publish-github-page:
     if: github.ref == 'refs/heads/main' || (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))

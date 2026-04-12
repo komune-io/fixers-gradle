@@ -12,7 +12,7 @@ on:
         required: true
         type: string
     secrets:
-      PKG_GITHUB_TOKEN:
+      FIXERS_PUBLISH_GITHUB_TOKEN:
         description: 'Token for package operations (defaults to github.token)'
         required: false
 
@@ -40,7 +40,7 @@ jobs:
         with:
           ref: ${{ env.SOURCE_BRANCH }}
           submodules: true
-          token: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || github.token }}
 
       - name: Create new release branch
         run: git checkout -b "$RELEASE_BRANCH"
@@ -86,7 +86,7 @@ jobs:
 
       - name: Create Pull Request
         env:
-          GH_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN || github.token }}
           VERSION_TAG: ${{ inputs.version }}
           NEXT_VERSION: ${{ inputs.next_version }}
         run: |

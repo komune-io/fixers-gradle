@@ -85,17 +85,17 @@ on:
         default: 'false'
 
     secrets:
-      GPG_SIGNING_KEY:
+      FIXERS_PUBLISH_SIGNING_GPG_KEY:
         required: false
-      GPG_SIGNING_PASSWORD:
+      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD:
         required: false
-      PKG_GITHUB_USERNAME:
+      FIXERS_PUBLISH_GITHUB_USERNAME:
         required: false
-      PKG_GITHUB_TOKEN:
+      FIXERS_PUBLISH_GITHUB_TOKEN:
         required: false
-      PKG_SONATYPE_OSS_USERNAME:
+      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME:
         required: false
-      PKG_SONATYPE_OSS_TOKEN:
+      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD:
         required: false
       FIXERS_PUBLISH_NPMJS_TOKEN:
         required: false
@@ -104,12 +104,12 @@ jobs:
   run-dev-tasks:
     runs-on: ubuntu-latest
     env:
-      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-      GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
-      PKG_GITHUB_USERNAME: ${{ secrets.PKG_GITHUB_USERNAME }}
-      PKG_GITHUB_TOKEN: ${{ secrets.PKG_GITHUB_TOKEN }}
-      PKG_SONATYPE_OSS_USERNAME: ${{ secrets.PKG_SONATYPE_OSS_USERNAME }}
-      PKG_SONATYPE_OSS_TOKEN: ${{ secrets.PKG_SONATYPE_OSS_TOKEN }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY }}
+      FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD }}
+      FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME }}
+      FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME }}
+      FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
       - name: Initialize Java and Gradle Environment
