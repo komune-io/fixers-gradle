@@ -127,6 +127,10 @@ on:
         required: false
       FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD:
         required: false
+      FIXERS_PUBLISH_GRADLE_PORTAL_KEY:
+        required: false
+      FIXERS_PUBLISH_GRADLE_PORTAL_SECRET:
+        required: false
       FIXERS_SONAR_TOKEN:
         required: false
       # Docker registry login inputs — workflow input names for docker/login-action.
@@ -153,6 +157,11 @@ jobs:
       FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD: ${{ secrets.FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD }}
+      # Gradle Plugin Portal credentials: PublishPlugin.kt bridges these env vars
+      # to the `gradle.publish.key`/`gradle.publish.secret` system properties that
+      # `com.gradle.plugin-publish` reads at task-execution time.
+      FIXERS_PUBLISH_GRADLE_PORTAL_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY }}
+      FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET }}
       # CheckPlugin.bridgeSonarToken() reads FIXERS_SONAR_TOKEN and sets the
       # `sonar.token` system property for the gradle sonarqube plugin.
       FIXERS_SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
