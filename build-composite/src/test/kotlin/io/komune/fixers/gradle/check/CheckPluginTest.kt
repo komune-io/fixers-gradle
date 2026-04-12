@@ -420,6 +420,7 @@ class CheckPluginTest {
             assertThat(str).contains("signingGpgKey=******")
             assertThat(str).doesNotContain("portal-key-secret")
             assertThat(str).doesNotContain("portal-secret-secret")
+            assertThat(str).doesNotContain("gpg-key-secret")
         }
 
         @Test

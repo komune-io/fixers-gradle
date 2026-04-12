@@ -307,8 +307,8 @@ The `PublishConfig` class contains configuration for publishing settings.
 | pkgGithubToken | FIXERS_PUBLISH_GITHUB_TOKEN | fixers.publish.github.token | - | The GitHub token for package deployment |
 | signingGpgKey | FIXERS_PUBLISH_SIGNING_GPG_KEY | fixers.publish.signing.gpgKey | - | The GPG signing key for artifacts |
 | signingGpgKeyPassword | FIXERS_PUBLISH_SIGNING_GPG_KEY_PASSWORD | fixers.publish.signing.gpgKeyPassword | - | The GPG signing key password |
-| gradlePortalKey | FIXERS_PUBLISH_GRADLE_PORTAL_KEY | fixers.publish.gradle.portal.key | - | Gradle Plugin Portal publish key — bridged to the `gradle.publish.key` system property that `com.gradle.plugin-publish` reads at task-execution time |
-| gradlePortalSecret | FIXERS_PUBLISH_GRADLE_PORTAL_SECRET | fixers.publish.gradle.portal.secret | - | Gradle Plugin Portal publish secret — bridged to the `gradle.publish.secret` system property |
+| gradlePortalKey | FIXERS_PUBLISH_GRADLE_PORTAL_KEY | fixers.publish.gradle.portal.key | - | Gradle Plugin Portal publish key — bridged to the `gradle.publish.key` Gradle project property |
+| gradlePortalSecret | FIXERS_PUBLISH_GRADLE_PORTAL_SECRET | fixers.publish.gradle.portal.secret | - | Gradle Plugin Portal publish secret — bridged to the `gradle.publish.secret` Gradle project property |
 | gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
