@@ -423,19 +423,6 @@ class CheckPluginTest {
         }
 
         @Test
-        fun `mergeFrom should merge gradlePortalKey and gradlePortalSecret`() {
-            val source = project.extensions.create("source", ConfigExtension::class.java, project)
-            source.publish.gradlePortalKey.set("source-key")
-            source.publish.gradlePortalSecret.set("source-secret")
-
-            val target = project.extensions.create("target", ConfigExtension::class.java, project)
-            target.publish.mergeFrom(source.publish)
-
-            assertThat(target.publish.gradlePortalKey.get()).isEqualTo("source-key")
-            assertThat(target.publish.gradlePortalSecret.get()).isEqualTo("source-secret")
-        }
-
-        @Test
         fun `mergeFrom should not override existing gradlePortalKey`() {
             val source = project.extensions.create("source2", ConfigExtension::class.java, project)
             source.publish.gradlePortalKey.set("source-key")

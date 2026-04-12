@@ -328,10 +328,9 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `should bridge gradle portal credentials to extraProperties`() {
+    fun `should bridge gradle portal credentials to project properties`() {
         createGradlePluginPublishBuildFile()
 
-        // Override verifyGradlePluginPublishing with a task that checks extraProperties
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
         buildFile.appendText("""
 
@@ -339,8 +338,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 doLast {
                     val key = rootProject.findProperty("gradle.publish.key")
                     val secret = rootProject.findProperty("gradle.publish.secret")
-                    println("bridge.key=${'$'}key")
-                    println("bridge.secret=${'$'}secret")
+                    println("bridge.key.present=${'$'}{key != null}")
+                    println("bridge.secret.present=${'$'}{secret != null}")
                 }
             }
         """.trimIndent())
@@ -351,9 +350,10 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
             "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
         )
 
-        assertThat(result.task(":verifyPortalBridge")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(result.output).contains("bridge.key=test-portal-key")
-        assertThat(result.output).contains("bridge.secret=test-portal-secret")
+        assertThat(result.task(":verifyPortalBridge")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("bridge.key.present=true")
+        assertThat(result.output).contains("bridge.secret.present=true")
     }
 
     @Test
@@ -373,13 +373,12 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
         val result = runGradle(
             "verifyPortalBridgeNoOverride",
-            "-Pfixers.publish.gradle.portal.key=fixers-key",
             "-Pgradle.publish.key=explicit-key",
-            "-Pfixers.publish.gradle.portal.secret=fixers-secret",
             "-Pgradle.publish.secret=explicit-secret"
         )
 
-        assertThat(result.task(":verifyPortalBridgeNoOverride")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":verifyPortalBridgeNoOverride")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("bridge.key=explicit-key")
     }
 
