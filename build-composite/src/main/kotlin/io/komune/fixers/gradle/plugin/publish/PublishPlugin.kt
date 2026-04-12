@@ -31,7 +31,7 @@ class PublishPlugin : Plugin<Project> {
 	private fun applyToRoot(root: Project) {
 		root.gradle.projectsEvaluated {
 			val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
-			bridgeGradlePortalCredentials(root, fixersConfig.publish)
+			bridgeGradlePortalCredentials(fixersConfig.publish)
 			val publishSubprojects = root.subprojects.filter {
 				it.pluginManager.hasPlugin(PLUGIN_ID)
 			}
@@ -58,7 +58,7 @@ class PublishPlugin : Plugin<Project> {
 	 * Only sets the property if it is not already set, so explicit
 	 * `-Dgradle.publish.key=...` always wins.
 	 */
-	private fun bridgeGradlePortalCredentials(root: Project, config: PublishConfig) {
+	private fun bridgeGradlePortalCredentials(config: PublishConfig) {
 		val portalKey = config.gradlePortalKey.orNull
 		val portalSecret = config.gradlePortalSecret.orNull
 
