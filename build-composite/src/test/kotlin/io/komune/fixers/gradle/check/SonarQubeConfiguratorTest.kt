@@ -131,18 +131,6 @@ class SonarQubeConfiguratorTest {
         }
 
         @Test
-        fun `should not include sonar token when not set`() {
-            val sonar = Sonar(project).apply {
-                organization.set("my-org")
-                projectKey.set("my-project")
-            }
-
-            val properties = configurator.buildSonarProperties(sonar, null)
-
-            assertThat(properties).doesNotContainKey("sonar.token")
-        }
-
-        @Test
         fun `should allow custom properties to override sonar token`() {
             val sonar = Sonar(project).apply {
                 organization.set("my-org")

@@ -337,8 +337,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             tasks.register("verifyPortalBridge") {
                 doLast {
-                    val key = rootProject.extensions.extraProperties.get("gradle.publish.key")
-                    val secret = rootProject.extensions.extraProperties.get("gradle.publish.secret")
+                    val key = rootProject.findProperty("gradle.publish.key")
+                    val secret = rootProject.findProperty("gradle.publish.secret")
                     println("bridge.key=${'$'}key")
                     println("bridge.secret=${'$'}secret")
                 }
@@ -365,7 +365,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             tasks.register("verifyPortalBridgeNoOverride") {
                 doLast {
-                    val key = rootProject.extensions.extraProperties.get("gradle.publish.key")
+                    val key = rootProject.findProperty("gradle.publish.key")
                     println("bridge.key=${'$'}key")
                 }
             }
