@@ -12,8 +12,8 @@ import org.gradle.work.DisableCachingByDefault
 
 class CheckPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        bridgeSonarToken()
         target.gradle.projectsEvaluated {
+            bridgeSonarToken()
             val config = target.rootProject.extensions.fixers
 
             // Use SonarQubeConfigurator for SonarQube setup

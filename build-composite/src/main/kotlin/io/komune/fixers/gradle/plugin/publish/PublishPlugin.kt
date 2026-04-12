@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.publish
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.PublishConfig
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -28,9 +29,9 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	private fun applyToRoot(root: Project) {
-		bridgeGradlePortalCredentials()
 		root.gradle.projectsEvaluated {
 			val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
+			bridgeGradlePortalCredentials(fixersConfig.publish)
 			val publishSubprojects = root.subprojects.filter {
 				it.pluginManager.hasPlugin(PLUGIN_ID)
 			}
@@ -41,21 +42,21 @@ class PublishPlugin : Plugin<Project> {
 	}
 
 	/**
-	 * Bridges `FIXERS_PUBLISH_GRADLE_PORTAL_KEY` / `FIXERS_PUBLISH_GRADLE_PORTAL_SECRET`
-	 * env vars (the `FIXERS_PUBLISH_*` namespace) to the `gradle.publish.key` /
+	 * Bridges `PublishConfig.gradlePortalKey` / `PublishConfig.gradlePortalSecret`
+	 * (env `FIXERS_PUBLISH_GRADLE_PORTAL_KEY/SECRET` or gradle prop
+	 * `fixers.publish.gradle.portal.key/secret`) to the `gradle.publish.key` /
 	 * `gradle.publish.secret` system properties that `com.gradle.plugin-publish` reads
 	 * at task-execution time.
 	 *
-	 * This is the only way to let users export `FIXERS_PUBLISH_GRADLE_PORTAL_*` locally
-	 * (or in CI) instead of the `GRADLE_PUBLISH_*` env var names — the plugin-publish
-	 * plugin's env var names are hard-coded and cannot be remapped.
+	 * Called inside `projectsEvaluated` so the `PublishConfig` properties are fully
+	 * resolved (env → gradle prop → DSL fallback chain).
 	 *
 	 * Only sets the system property if it is not already set, so explicit
 	 * `-Dgradle.publish.key=...` always wins.
 	 */
-	private fun bridgeGradlePortalCredentials() {
-		val portalKey = System.getenv("FIXERS_PUBLISH_GRADLE_PORTAL_KEY")
-		val portalSecret = System.getenv("FIXERS_PUBLISH_GRADLE_PORTAL_SECRET")
+	private fun bridgeGradlePortalCredentials(config: PublishConfig) {
+		val portalKey = config.gradlePortalKey.orNull
+		val portalSecret = config.gradlePortalSecret.orNull
 
 		if (!portalKey.isNullOrEmpty() && System.getProperty("gradle.publish.key") == null) {
 			System.setProperty("gradle.publish.key", portalKey)
