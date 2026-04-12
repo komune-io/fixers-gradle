@@ -347,8 +347,6 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
      */
     private fun createTokenWiringBuildFile() {
         writeBuildFile("""
-            import dev.petuska.npm.publish.extension.NpmPublishExtension
-
             plugins {
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.kotlin.mpp")
@@ -380,8 +378,8 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             tasks.register("verifyNpmRegistryTokens") {
-                val npmExt = extensions.getByType(NpmPublishExtension::class.java)
                 doLast {
+                    val npmExt = project.the<dev.petuska.npm.publish.extension.NpmPublishExtension>()
                     npmExt.registries.all {
                         val tokenValue = if (authToken.isPresent) authToken.get() else "<unset>"
                         println("registry=${'$'}{name} uri=${'$'}{uri.get()} token=${'$'}{tokenValue}")
