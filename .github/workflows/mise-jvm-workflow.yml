@@ -158,12 +158,12 @@ jobs:
       FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME }}
       FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD: ${{ secrets.FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD }}
       # Gradle Plugin Portal credentials: PublishPlugin.kt bridges these env vars
-      # to the `gradle.publish.key`/`gradle.publish.secret` system properties that
-      # `com.gradle.plugin-publish` reads at task-execution time.
+      # to the `gradle.publish.key`/`gradle.publish.secret` Gradle project properties
+      # (via extraProperties) that `com.gradle.plugin-publish` reads at task-execution time.
       FIXERS_PUBLISH_GRADLE_PORTAL_KEY: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_KEY }}
       FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET }}
-      # CheckPlugin.bridgeSonarToken() reads FIXERS_SONAR_TOKEN and sets the
-      # `sonar.token` system property for the gradle sonarqube plugin.
+      # SonarQubeConfigurator reads FIXERS_SONAR_TOKEN and sets sonar.token
+      # via the sonarqube extension DSL.
       FIXERS_SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
     steps:
       - name: Checkout Repository

@@ -123,6 +123,16 @@ class Sonar(
     )
 
     /**
+     * Authentication token for SonarQube/SonarCloud.
+     * Bridged to `sonar.token` via the sonarqube extension DSL in
+     * `SonarQubeConfigurator.buildSonarProperties()`.
+     */
+    val token: Property<String> = project.property(
+        envKey = "FIXERS_SONAR_TOKEN",
+        projectKey = "fixers.sonar.token"
+    )
+
+    /**
      * Custom Sonar properties that will be added to the configuration.
      */
     val customProperties: MutableMap<String, String> = mutableMapOf()
@@ -178,6 +188,7 @@ class Sonar(
         sources.mergeIfNotPresent(source.sources)
         verbose.mergeIfNotPresent(source.verbose)
         detektConfigPath.mergeIfNotPresent(source.detektConfigPath)
+        token.mergeIfNotPresent(source.token)
 
         // Merge custom properties (source properties are added only if not already present)
         source.customProperties.forEach { (key, value) ->
