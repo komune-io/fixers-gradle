@@ -121,8 +121,6 @@ on:
         required: false
       DOCKER_PROMOTE_PASSWORD:
         required: false
-      NPM_PKG_GITHUB_TOKEN:
-        required: false
       NPM_PKG_NPMJS_TOKEN:
         required: false
 
@@ -130,8 +128,6 @@ jobs:
   run-dev-tasks:
     if: (github.event_name == 'pull_request' && !startsWith(github.head_ref, inputs.excluded-versioning-branch)) || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    env:
-      NPM_PKG_GITHUB_TOKEN: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -151,7 +147,7 @@ jobs:
         id: setup_npm_github_pkg
         uses: komune-io/fixers-gradle/.github/actions/setup-npm-github-pkg@main
         with:
-          npm-auth-token: ${{ secrets.NPM_PKG_GITHUB_TOKEN }}
+          npm-auth-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Version from File
         uses: komune-io/fixers-gradle/.github/actions/version@main

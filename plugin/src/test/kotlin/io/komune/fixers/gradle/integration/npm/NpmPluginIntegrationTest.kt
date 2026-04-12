@@ -339,4 +339,92 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         assertThat(result.output).doesNotContain("tag: next")
         assertThat(result.output).doesNotContain("tag: <unset>")
     }
+
+    /**
+     * Creates a build file that exposes the per-registry `authToken` values configured by
+     * NpmPlugin on the `NpmPublishExtension`. Drives the assertion in
+     * [`should bind per-registry tokens from PublishConfig`].
+     */
+    private fun createTokenWiringBuildFile() {
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+                id("io.komune.fixers.gradle.kotlin.mpp")
+                id("io.komune.fixers.gradle.npm")
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            fixers {
+                bundle {
+                    id = "test-bundle"
+                    name = "Test Bundle"
+                    description = "A test bundle for integration testing"
+                    url = "https://github.com/komune-io/fixers-gradle"
+                }
+                npm {
+                    publish = true
+                    organization = "test-organization"
+                }
+            }
+
+            kotlin {
+                js(IR) {
+                    browser()
+                    nodejs()
+                }
+            }
+
+            tasks.register("verifyNpmRegistryTokens") {
+                doLast {
+                    val npmExt = project.the<dev.petuska.npm.publish.extension.NpmPublishExtension>()
+                    npmExt.registries.all {
+                        val tokenValue = if (authToken.isPresent) authToken.get() else "<unset>"
+                        println("registry=${'$'}{name} uri=${'$'}{uri.get()} token=${'$'}{tokenValue}")
+                    }
+                }
+            }
+        """.trimIndent())
+    }
+
+    /**
+     * Test that NpmPlugin binds `config.publish.npmjsToken` to the `npmjs` registry and
+     * `config.publish.npmGithubToken` to the `github` registry, rather than the legacy
+     * single-`NPM_TOKEN`-for-both-registries wiring.
+     *
+     * Tokens are sourced via gradle properties (`fixers.publish.npmjs.token` /
+     * `fixers.publish.npm.github.token`), exercising the `project.property()` fallback
+     * chain from env → gradle prop. CI uses the env var path; this test uses the prop
+     * path because `GradleRunner` doesn't expose a clean way to set env vars per-run.
+     */
+    @Test
+    fun `should bind per-registry tokens from PublishConfig`() {
+        createJsSourceFile()
+        createBasicPackageJson()
+        createTokenWiringBuildFile()
+
+        val result = runGradle(
+            "verifyNpmRegistryTokens",
+            "-Pfixers.publish.npmjs.token=npmjs-token-value",
+            "-Pfixers.publish.npm.github.token=github-token-value"
+        )
+
+        assertThat(result.task(":verifyNpmRegistryTokens")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains(
+            "registry=npmjs uri=https://registry.npmjs.org token=npmjs-token-value"
+        )
+        assertThat(result.output).contains(
+            "registry=github uri=https://npm.pkg.github.com token=github-token-value"
+        )
+        // Neither registry should have the opposite token bound.
+        assertThat(result.output).doesNotContain(
+            "registry=npmjs uri=https://registry.npmjs.org token=github-token-value"
+        )
+        assertThat(result.output).doesNotContain(
+            "registry=github uri=https://npm.pkg.github.com token=npmjs-token-value"
+        )
+    }
 }
