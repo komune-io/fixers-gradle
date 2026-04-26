@@ -53,6 +53,6 @@ class MppJsPlugin : Plugin<Project> {
     private fun KotlinJsCompilerOptions.configureJsOptions() {
         target.set("es2015")
         freeCompilerArgs.add("-Xes-long-as-bigint")
-        freeCompilerArgs.add("-XXLanguage:+JsAllowExportingSuspendFunctions")
+        freeCompilerArgs.add("-Xenable-suspend-function-exporting")
     }
 }
