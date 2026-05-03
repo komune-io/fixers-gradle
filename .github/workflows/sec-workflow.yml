@@ -95,7 +95,7 @@ jobs:
             cat sonar-project.properties
           fi
       - name: Run SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
       - name: Check SonarQube Quality Gate
