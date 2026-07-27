@@ -91,23 +91,37 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
         ".d.mts" to listOf(
-            Regex("""    readonly __doNotUseOrImplementIt: \{[\s\S]*?\}(?:\s*&\s*[\w.<>]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
+            Regex("""    readonly __doNotUseOrImplementIt: \{[\s\S]*?\}"""
+                    + """(?:\s*&\s*[\w.<>]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
             Regex("""    readonly __doNotUseOrImplementIt: [\w.<>]*\["__doNotUseOrImplementIt"\];\n""") to "",
             Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
-            Regex("""export declare interface KtList<E>[\s\S]*?\nexport declare namespace KtList \{[\s\S]*?\n\}\n""") to "",
-            Regex("""KtList<([^>]*(?:<[^>]*>)*)>""") to "$1[]",
-            Regex("""KtList<([^>]*(?:<[^>]*>)*)>""") to "$1[]",
-            Regex("""export declare interface KtMap<K, V>[\s\S]*?\nexport declare namespace KtMap \{[\s\S]*?\n\}\n""") to "",
+            Regex("""export declare interface KtList<E>[\s\S]*?\n"""
+                    + """export declare namespace KtList \{[\s\S]*?\n\}\n""") to "",
+            // A nullable element type has to become a union inside the array; unwrap it before the
+            // collapse below, otherwise the property rule further down turns it into an optional
+            // property instead (`x?: T[]`, which says the property may be absent, not the elements).
+            Regex("""KtList<Nullable<((?:[^<>]|<[^<>]*>)*)>>""") to "KtList<($1 | undefined)>",
+            // Collapses one level of nesting per pass, hence the repetition: two passes cover
+            // `KtList<KtList<T>>` and `KtList<KtMap<K, V>>`. Deeper nesting needs a further copy.
+            Regex("""KtList<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
+            Regex("""KtList<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
+            Regex("""export declare interface KtMap<K, V>[\s\S]*?\n"""
+                    + """export declare namespace KtMap \{[\s\S]*?\n\}\n""") to "",
             Regex("""KtMap""") to "Record",
             // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
             // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
             // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
-            Regex("""export declare abstract class (\w+) \{\n    private constructor\(\);\n(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n        get ordinal\(\): \d+;\n    \};\n)*    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n\}\n""") to "export type $1 = $2;\n",
+            Regex("""export declare abstract class (\w+) \{\n    private constructor\(\);\n"""
+                    + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
+                    + """        get ordinal\(\): \d+;\n    \};\n)*"""
+                    + """    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n"""
+                    + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n\}\n"""
+            ) to "export type $1 = $2;\n",
             // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
             Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",
             Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
             Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
-            Regex("""get (\w+)\(\): Nullable<([^>]+)>""") to "get $1(): $2 | undefined",
+            Regex("""get (\w+)\(\): Nullable<((?:[^<>]|<[^<>]*>)*)>""") to "get $1(): $2 | undefined",
             Regex("""\): Nullable<([\w.<>, \[\]]*)>""") to "): $1 | undefined",
             Regex(""": bigint""") to ": number",
         ) + (additionalCleaningMap[".d.mts"] ?: emptyList()),
