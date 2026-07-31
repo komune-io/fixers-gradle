@@ -3,8 +3,8 @@ package io.komune.fixers.gradle.plugin.kotlin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
-import io.komune.fixers.gradle.dependencies.FixersDependencies
-import io.komune.fixers.gradle.dependencies.FixersPluginVersions
+import io.komune.fixers.gradle.dependencies.Dependencies
+import io.komune.fixers.gradle.dependencies.PluginVersions
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -45,7 +45,7 @@ class JvmPlugin : Plugin<Project> {
 			compilerOptions {
 				freeCompilerArgs.add("-Xjsr305=strict")
 				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-				val kotlinLangVersion = FixersPluginVersions.kotlin.substringBeforeLast(".")
+				val kotlinLangVersion = PluginVersions.kotlin.substringBeforeLast(".")
 				languageVersion.set(KotlinVersion.fromVersion(kotlinLangVersion))
 			}
 		}
@@ -63,10 +63,10 @@ class JvmPlugin : Plugin<Project> {
 		dependencies {
 			logger.info("Configuring dependencies for project: $name")
 			add("implementation", kotlin("reflect"))
-			FixersDependencies.Jvm.Kotlin.coroutines {
+			Dependencies.Jvm.Kotlin.coroutines {
 				add("implementation", it)
 			}
-			FixersDependencies.Jvm.Test.junit {
+			Dependencies.Jvm.Test.junit {
 				add("testImplementation", it)
 			}
 		}

@@ -1,7 +1,7 @@
 package io.komune.fixers.gradle.plugin.check
 
 import io.komune.fixers.gradle.config.model.Jacoco
-import io.komune.fixers.gradle.dependencies.FixersPluginVersions
+import io.komune.fixers.gradle.dependencies.PluginVersions
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.testing.Test
@@ -52,7 +52,7 @@ class JacocoConfigurator(
     fun applyJacocoPlugin() {
         project.plugins.apply("jacoco")
         project.extensions.configure(JacocoPluginExtension::class.java) {
-            toolVersion = FixersPluginVersions.jacoco
+            toolVersion = PluginVersions.jacoco
         }
     }
 

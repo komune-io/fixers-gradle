@@ -3,8 +3,8 @@ package io.komune.fixers.gradle.plugin.kotlin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
-import io.komune.fixers.gradle.dependencies.FixersDependencies
-import io.komune.fixers.gradle.dependencies.FixersPluginVersions
+import io.komune.fixers.gradle.dependencies.Dependencies
+import io.komune.fixers.gradle.dependencies.PluginVersions
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -36,12 +36,12 @@ class MppPlugin : Plugin<Project> {
 				maybeCreate("commonMain").dependencies {
 					logger.info("Configuring dependencies for commonMain")
 					implementation(kotlin("reflect"))
-					FixersDependencies.Common.Kotlin.coroutines(::api)
-					FixersDependencies.Common.Kotlin.serialization(::api)
+					Dependencies.Common.Kotlin.coroutines(::api)
+					Dependencies.Common.Kotlin.serialization(::api)
 				}
 				maybeCreate("commonTest").dependencies {
 					logger.info("Configuring dependencies for commonTest")
-					FixersDependencies.Common.test(::implementation)
+					Dependencies.Common.test(::implementation)
 				}
 			}
 		}
@@ -58,7 +58,7 @@ class MppPlugin : Plugin<Project> {
 					compileTaskProvider.configure {
 						compilerOptions {
 							jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-							val kotlinLangVersion = FixersPluginVersions.kotlin.substringBeforeLast(".")
+							val kotlinLangVersion = PluginVersions.kotlin.substringBeforeLast(".")
 							languageVersion.set(KotlinVersion.fromVersion(kotlinLangVersion))
 						}
 					}
@@ -68,13 +68,13 @@ class MppPlugin : Plugin<Project> {
 				dependencies {
 					logger.info("Configuring dependencies for jvmMain")
 					implementation(kotlin("reflect"))
-					FixersDependencies.Jvm.Kotlin.coroutines(::implementation)
+					Dependencies.Jvm.Kotlin.coroutines(::implementation)
 				}
 			}
 			sourceSets.getByName("jvmTest") {
 				dependencies {
 					logger.info("Configuring dependencies for jvmTest")
-					FixersDependencies.Jvm.Test.junit(::implementation)
+					Dependencies.Jvm.Test.junit(::implementation)
 				}
 			}
 		}
