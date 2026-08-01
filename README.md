@@ -70,9 +70,9 @@ fixers {
 
 ### io.komune.fixers.gradle.dependencies
 
-The Dependencies plugin registers Fixers dependencies versions for use in your project.
+Dependency versions are managed by consumers through the f2-bom, c2-bom or s2-bom, or the Fixers version catalog.
 
-> **Note:** The `FixersDependencies` API is deprecated. Use the Fixers version catalog instead:
+> **Note:** The `FixersDependencies`, `FixersVersions` and `FixersPluginVersions` APIs have been removed. Use the Fixers version catalog instead:
 >
 > ```kotlin
 > // In settings.gradle.kts

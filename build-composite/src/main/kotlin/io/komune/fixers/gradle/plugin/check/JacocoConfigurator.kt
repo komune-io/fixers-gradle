@@ -1,7 +1,6 @@
 package io.komune.fixers.gradle.plugin.check
 
 import io.komune.fixers.gradle.config.model.Jacoco
-import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.testing.Test
@@ -32,7 +31,7 @@ class JacocoConfigurator(
 
         // Configure JaCoCo for standard JVM projects (with JavaPlugin)
         project.plugins.withType(JavaPlugin::class.java) {
-            applyJacocoPlugin()
+            applyJacocoPlugin(jacocoConfig)
             configureJacocoReportTasks(jacocoConfig)
             project.tasks.withType<Test>().configureEach {
                 finalizedBy(project.tasks.named("jacocoTestReport"))
@@ -41,18 +40,23 @@ class JacocoConfigurator(
 
         // Configure JaCoCo for Kotlin Multiplatform projects (JVM target)
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
-            applyJacocoPlugin()
+            applyJacocoPlugin(jacocoConfig)
             configureJacocoForMultiplatform(jacocoConfig)
         }
     }
 
     /**
      * Applies the JaCoCo plugin to the project.
+     * The tool version can be overridden via `fixers { jacoco { version } }`
+     * (or the `fixers.jacoco.version` property / `FIXERS_JACOCO_VERSION` env);
+     * otherwise Gradle's bundled JaCoCo default is used.
      */
-    fun applyJacocoPlugin() {
+    fun applyJacocoPlugin(jacocoConfig: Jacoco? = null) {
         project.plugins.apply("jacoco")
-        project.extensions.configure(JacocoPluginExtension::class.java) {
-            toolVersion = FixersPluginVersions.jacoco
+        jacocoConfig?.version?.orNull?.let { jacocoVersion ->
+            project.extensions.configure(JacocoPluginExtension::class.java) {
+                toolVersion = jacocoVersion
+            }
         }
     }
 

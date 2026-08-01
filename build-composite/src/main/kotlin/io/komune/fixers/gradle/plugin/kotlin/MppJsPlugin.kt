@@ -1,6 +1,5 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
-import io.komune.fixers.gradle.dependencies.FixersPluginVersions
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompilerOptions
@@ -36,7 +35,7 @@ class MppJsPlugin : Plugin<Project> {
             }
             sourceSets.getByName("jsTest") {
                 dependencies {
-                    implementation("org.jetbrains.kotlin:kotlin-test-js:${FixersPluginVersions.kotlin}")
+                    implementation(kotlin("test-js"))
                 }
             }
         }
