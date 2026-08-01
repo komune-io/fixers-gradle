@@ -3,7 +3,6 @@ package io.komune.fixers.gradle.plugin.kotlin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
-import io.komune.fixers.gradle.dependencies.Dependencies
 import io.komune.fixers.gradle.dependencies.PluginVersions
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -36,12 +35,6 @@ class MppPlugin : Plugin<Project> {
 				maybeCreate("commonMain").dependencies {
 					logger.info("Configuring dependencies for commonMain")
 					implementation(kotlin("reflect"))
-					Dependencies.Common.Kotlin.coroutines(::api)
-					Dependencies.Common.Kotlin.serialization(::api)
-				}
-				maybeCreate("commonTest").dependencies {
-					logger.info("Configuring dependencies for commonTest")
-					Dependencies.Common.test(::implementation)
 				}
 			}
 		}
@@ -68,13 +61,6 @@ class MppPlugin : Plugin<Project> {
 				dependencies {
 					logger.info("Configuring dependencies for jvmMain")
 					implementation(kotlin("reflect"))
-					Dependencies.Jvm.Kotlin.coroutines(::implementation)
-				}
-			}
-			sourceSets.getByName("jvmTest") {
-				dependencies {
-					logger.info("Configuring dependencies for jvmTest")
-					Dependencies.Jvm.Test.junit(::implementation)
 				}
 			}
 		}

@@ -3,7 +3,6 @@ package io.komune.fixers.gradle.plugin.kotlin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
-import io.komune.fixers.gradle.dependencies.Dependencies
 import io.komune.fixers.gradle.dependencies.PluginVersions
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.gradle.api.Plugin
@@ -63,12 +62,6 @@ class JvmPlugin : Plugin<Project> {
 		dependencies {
 			logger.info("Configuring dependencies for project: $name")
 			add("implementation", kotlin("reflect"))
-			Dependencies.Jvm.Kotlin.coroutines {
-				add("implementation", it)
-			}
-			Dependencies.Jvm.Test.junit {
-				add("testImplementation", it)
-			}
 		}
 
 		configureJUnitPlatform()
