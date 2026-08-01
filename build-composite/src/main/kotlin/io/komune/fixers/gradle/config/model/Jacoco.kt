@@ -48,6 +48,15 @@ class Jacoco(
     )
 
     /**
+     * The JaCoCo tool version. Defaults to the version defined in gradle/libs.versions.toml.
+     */
+    val version: Property<String> = project.property(
+        envKey = "FIXERS_JACOCO_VERSION",
+        projectKey = "fixers.jacoco.version",
+        defaultValue = FixersToolVersions.jacoco
+    )
+
+    /**
      * Merges properties from the source Jacoco into this Jacoco.
      * Properties are only merged if the target property is not present and the source property is present.
      *
@@ -59,6 +68,7 @@ class Jacoco(
         htmlReport.mergeIfNotPresent(source.htmlReport)
         xmlReport.mergeIfNotPresent(source.xmlReport)
         xmlReportFilename.mergeIfNotPresent(source.xmlReportFilename)
+        version.mergeIfNotPresent(source.version)
 
         return this
     }
