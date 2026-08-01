@@ -46,9 +46,11 @@ class SonarQubeConfiguratorTest {
             assertThat(properties["sonar.projectKey"]).isEqualTo("my-project")
             assertThat(properties["sonar.host.url"]).isEqualTo("https://sonarcloud.io")
             assertThat(properties["sonar.language"]).isEqualTo("kotlin")
-            assertThat(properties["sonar.sources"]).isEqualTo("src/main")
+            // sources/inclusions must not reach the Gradle scanner: it derives them
+            // from module source sets, and setting them causes double indexing.
+            assertThat(properties).doesNotContainKey("sonar.sources")
+            assertThat(properties).doesNotContainKey("sonar.inclusions")
             assertThat(properties["sonar.exclusions"]).isEqualTo("**/generated/**")
-            assertThat(properties["sonar.inclusions"]).isEqualTo("**/*.kt")
             assertThat(properties["sonar.verbose"]).isEqualTo(true)
         }
 

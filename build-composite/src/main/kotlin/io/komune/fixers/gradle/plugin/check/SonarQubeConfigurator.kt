@@ -82,13 +82,16 @@ class SonarQubeConfigurator(
 
         bundle?.name?.orNull?.let { properties["sonar.projectName"] = it }
 
-        properties["sonar.sources"] = sonar.sources.get()
+        // sonar.sources/sonar.inclusions are intentionally NOT set here: the Gradle
+        // sonar scanner derives sources and tests from each module's source sets, and
+        // a root-level sources="." + inclusions pattern makes files indexed twice.
+        // They remain part of the generated sonar-project.properties used by the
+        // standalone scanner (see GenerateSonarPropertiesTask).
         properties["sonar.projectKey"] = sonar.projectKey.get()
         properties["sonar.organization"] = sonar.organization.get()
         properties["sonar.host.url"] = sonar.url.get()
         properties["sonar.language"] = sonar.language.get()
         properties["sonar.exclusions"] = sonar.exclusions.get()
-        properties["sonar.inclusions"] = sonar.inclusions.get()
         properties["sonar.kotlin.detekt.reportPaths"] = sonar.detekt.get()
         properties["sonar.pullrequest.github.summary_comment"] = sonar.githubSummaryComment.get()
         properties["sonar.coverage.jacoco.xmlReportPaths"] = sonar.jacoco.get()
