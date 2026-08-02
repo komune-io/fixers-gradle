@@ -57,6 +57,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Unit tests must be deterministic regardless of ambient release credentials:
+    // FIXERS_* env vars are read as property conventions by the config models.
+    setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") })
+    // Controlled env values for PropertyUtils env-priority tests
+    environment("PROPERTY_UTILS_TEST_STRING", "env-value")
+    environment("PROPERTY_UTILS_TEST_INT", "42")
+    environment("PROPERTY_UTILS_TEST_BOOL", "true")
+    environment("PROPERTY_UTILS_TEST_LIST", "a, b ,c")
     testLogging {
         events("passed", "skipped", "failed")
     }

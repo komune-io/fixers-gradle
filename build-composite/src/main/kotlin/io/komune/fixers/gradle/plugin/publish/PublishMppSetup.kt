@@ -25,7 +25,8 @@ object PublishMppSetup {
 	private fun Project.setupPublication(config: ConfigExtension) {
 		val projectName = name
 
-		//TODO Check correction of https://github.com/gradle/gradle/issues/26091
+		// Workaround for https://github.com/gradle/gradle/issues/26091:
+		// publish tasks must be ordered after signing tasks explicitly.
 		tasks.withType<AbstractPublishToMaven>().configureEach {
 			val signingTasks = tasks.withType<Sign>()
 			mustRunAfter(signingTasks)
