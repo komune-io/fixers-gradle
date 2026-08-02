@@ -169,6 +169,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          # Full history so the Sonar Gradle scanner can blame files and detect
+          # new code against the target branch during pull request analysis.
+          fetch-depth: 0
 
       - name: Add Firefox to Run Kotlin test
         uses: browser-actions/setup-firefox@v1
