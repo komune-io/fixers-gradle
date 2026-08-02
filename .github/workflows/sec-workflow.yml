@@ -25,6 +25,12 @@ on:
         required: false
         type: "string"
 
+      with-sonarcloud:
+        description: "Flag to run the SonarCloud analysis job. Disable when the repository runs the analysis via the Gradle sonar task instead."
+        required: false
+        default: true
+        type: "boolean"
+
     secrets:
       FIXERS_SONAR_TOKEN:
         required: true
@@ -61,6 +67,7 @@ jobs:
           build-scan-terms-of-use-agree: "yes"
 
   sonarcloud-analysis:
+    if: ${{ inputs.with-sonarcloud }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
