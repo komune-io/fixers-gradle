@@ -96,6 +96,68 @@ class PropertyUtilsTest {
     }
 
     @Nested
+    inner class EnvironmentPriorityTest {
+
+        @Test
+        fun `should prefer environment variable over project property and default`() {
+            val project = projectWithProperties("fixers.test.value" to "from-project")
+
+            val property = project.property<String>(
+                envKey = "PROPERTY_UTILS_TEST_STRING",
+                projectKey = "fixers.test.value",
+                defaultValue = "default"
+            )
+
+            assertThat(property.get()).isEqualTo("env-value")
+        }
+
+        @Test
+        fun `should convert environment variable to Int`() {
+            val project = projectWithProperties()
+
+            val property = project.property<Int>(envKey = "PROPERTY_UTILS_TEST_INT")
+
+            assertThat(property.get()).isEqualTo(42)
+        }
+
+        @Test
+        fun `should convert environment variable to Boolean`() {
+            val project = projectWithProperties()
+
+            val property = project.property<Boolean>(
+                envKey = "PROPERTY_UTILS_TEST_BOOL",
+                defaultValue = false
+            )
+
+            assertThat(property.get()).isTrue()
+        }
+
+        @Test
+        fun `should split environment variable for list properties`() {
+            val project = projectWithProperties("fixers.test.list" to "x,y")
+
+            val property = project.initListProperty<String>(
+                envKey = "PROPERTY_UTILS_TEST_LIST",
+                projectKey = "fixers.test.list"
+            )
+
+            assertThat(property.get()).containsExactly("a", "b", "c")
+        }
+
+        @Test
+        fun `should fall back to project property when env variable is missing`() {
+            val project = projectWithProperties("fixers.test.value" to "from-project")
+
+            val property = project.property<String>(
+                envKey = "PROPERTY_UTILS_TEST_MISSING",
+                projectKey = "fixers.test.value"
+            )
+
+            assertThat(property.get()).isEqualTo("from-project")
+        }
+    }
+
+    @Nested
     inner class ListPropertyTest {
 
         @Test
