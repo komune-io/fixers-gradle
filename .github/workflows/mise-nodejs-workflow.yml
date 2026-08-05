@@ -131,7 +131,7 @@ jobs:
     env:
       FIXERS_PUBLISH_NPM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

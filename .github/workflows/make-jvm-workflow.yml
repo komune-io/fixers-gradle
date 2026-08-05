@@ -168,7 +168,7 @@ jobs:
       FIXERS_PUBLISH_GRADLE_PORTAL_SECRET: ${{ secrets.FIXERS_PUBLISH_GRADLE_PORTAL_SECRET }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Full history so the Sonar Gradle scanner can blame files and detect
           # new code against the target branch during pull request analysis.
