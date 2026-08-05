@@ -6,7 +6,6 @@ Gradle plugins to facilitate the configuration of Kotlin modules. These plugins 
 - [Installation](#installation)
 - [Plugins](#plugins)
   - [io.komune.fixers.gradle.config](#iokomune-fixers-gradle-config)
-  - [io.komune.fixers.gradle.dependencies](#iokomune-fixers-gradle-dependencies)
   - [io.komune.fixers.gradle.kotlin.jvm](#iokomune-fixers-gradle-kotlin-jvm)
   - [io.komune.fixers.gradle.kotlin.mpp](#iokomune-fixers-gradle-kotlin-mpp)
   - [io.komune.fixers.gradle.publish](#iokomune-fixers-gradle-publish)
@@ -67,29 +66,6 @@ fixers {
     // Additional configuration options
 }
 ```
-
-### io.komune.fixers.gradle.dependencies
-
-Dependency versions are managed by consumers through the f2-bom, c2-bom or s2-bom, or the Fixers version catalog.
-
-> **Note:** The `FixersDependencies`, `FixersVersions` and `FixersPluginVersions` APIs have been removed. Use the Fixers version catalog instead:
->
-> ```kotlin
-> // In settings.gradle.kts
-> dependencyResolutionManagement {
->     versionCatalogs {
->         create("fixers") {
->             from("io.komune.fixers.gradle:catalog:x.y.z")
->         }
->     }
-> }
->
-> // In build.gradle.kts
-> dependencies {
->     implementation(fixers.bundles.kotlin.coroutines.jvm)
->     testImplementation(fixers.bundles.test.junit)
-> }
-> ```
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -363,7 +339,7 @@ This project uses a composite build to facilitate the development and testing of
 
 - **`build-composite/`**: Contains the source code for all the plugins as "convention plugins". This allows for a better developer experience within this repository, including features like code completion and easy navigation in the IDE.
 
-- **`config/`**, **`dependencies/`**, **`plugin/`**: Standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite/` directory during the build process.
+- **`config/`**, **`plugin/`**: Standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite/` directory during the build process.
 
 - **`sandbox/`**: Test environment for validating plugins locally.
 

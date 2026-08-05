@@ -26,7 +26,7 @@ fixers {
 		organization = "komune-io"
 		projectKey = "komune-io_fixers-gradle"
 		properties {
-			property("sonar.coverage.exclusions", "config/**,dependencies/**,plugin/**")
+			property("sonar.coverage.exclusions", "config/**,plugin/**")
 		}
 	}
 }
@@ -45,20 +45,6 @@ tasks.register<Delete>("cleanConfigSources") {
 	description = "Clean configuration sources from the config module"
 	logger.lifecycle("Cleaning configuration sources")
 	delete("config/src/main/kotlin/io/komune/fixers/gradle/config")
-}
-
-tasks.register<Copy>("copyDependenciesSources") {
-	group = "fixers"
-	description = "Copy dependencies sources to the dependencies module"
-	logger.lifecycle("Copying dependencies sources")
-	from("build-composite/src/main/kotlin/io/komune/fixers/gradle/dependencies")
-	into("dependencies/src/main/kotlin/io/komune/fixers/gradle/dependencies")
-}
-
-tasks.register<Delete>("cleanDependenciesSources") {
-	group = "fixers"
-	description = "Clean dependencies sources from the dependencies module"
-	delete("dependencies/src/main/kotlin/io/komune/fixers/gradle/dependencies")
 }
 
 tasks.register<Copy>("copyPluginSources") {
@@ -91,21 +77,6 @@ gradle.projectsEvaluated {
 			dependsOn(rootProject.tasks.named("copyConfigSources"))
 		}
 	}
-	project(":dependencies") {
-		tasks.named("clean") {
-			dependsOn(rootProject.tasks.named("cleanDependenciesSources"))
-		}
-		tasks.named("compileKotlin") {
-			dependsOn(rootProject.tasks.named("copyDependenciesSources"))
-		}
-		tasks.named("sourcesJar") {
-			dependsOn(rootProject.tasks.named("copyDependenciesSources"))
-		}
-		tasks.named("detekt") {
-			dependsOn(rootProject.tasks.named("copyDependenciesSources"))
-		}
-	}
-
 	project(":plugin") {
 		tasks.named("clean") {
 			dependsOn(rootProject.tasks.named("cleanPluginSources"))

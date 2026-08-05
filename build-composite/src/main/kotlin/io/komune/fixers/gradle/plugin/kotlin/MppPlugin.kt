@@ -3,7 +3,6 @@ package io.komune.fixers.gradle.plugin.kotlin
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
-import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -44,7 +43,7 @@ class MppPlugin : Plugin<Project> {
 		logger.info("Setting up JVM Target for project: $name")
 		val fixersConfig = rootProject.extensions.fixers
 		val jdkVersion = fixersConfig?.jdk?.version?.orNull ?: Jdk.VERSION_DEFAULT
-		kotlin {
+		extensions.configure(KotlinMultiplatformExtension::class.java) {
 			jvm {
 				logger.info("Configuring JVM compilation with JDK version: $jdkVersion")
 				compilations.all {
@@ -71,9 +70,5 @@ class MppPlugin : Plugin<Project> {
 	private fun Project.setupJsTarget() {
 		logger.info("Setting up JS Target for project: $name")
 		apply<MppJsPlugin>()
-	}
-
-	private fun Project.kotlin(action: Action<KotlinMultiplatformExtension>) {
-		extensions.configure(KotlinMultiplatformExtension::class.java, action)
 	}
 }

@@ -41,7 +41,6 @@ dependencies {
     implementation(kotlin("gradle-plugin", embeddedKotlinVersion))
 
     implementation(libs.detektGradlePlugin)
-    implementation(libs.mavenPublishGradlePlugin)
     implementation(libs.npmPublishGradlePlugin)
     implementation(libs.sonarqubeGradlePlugin)
     implementation(libs.kotlinx.coroutines.core)
