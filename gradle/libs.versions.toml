@@ -4,7 +4,6 @@ kotlin = "2.2.20"
 sonarQube = "7.3.0.8198"
 npmPublish = "3.5.3"
 gradlePublish = "2.1.1"
-mavenPublish = "0.36.0"
 junit-jupiter = "6.1.1"
 assertj = "3.27.7"
 mockito = "5.23.0"
@@ -18,7 +17,6 @@ kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ver
 npmPublishGradlePlugin = { module = "dev.petuska.npm.publish:dev.petuska.npm.publish.gradle.plugin", version.ref = "npmPublish" }
 detektGradlePlugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 sonarqubeGradlePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarQube" }
-mavenPublishGradlePlugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "mavenPublish" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
