@@ -88,7 +88,7 @@ jobs:
       FIXERS_PUBLISH_GITHUB_USERNAME: ${{ secrets.FIXERS_PUBLISH_GITHUB_USERNAME }}
       FIXERS_PUBLISH_GITHUB_TOKEN: ${{ secrets.FIXERS_PUBLISH_GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Mise
         uses: jdx/mise-action@v4
