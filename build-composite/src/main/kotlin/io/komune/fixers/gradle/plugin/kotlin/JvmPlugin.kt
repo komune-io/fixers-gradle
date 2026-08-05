@@ -60,7 +60,6 @@ class JvmPlugin : Plugin<Project> {
 		}
 
 		dependencies {
-			logger.info("Configuring dependencies for project: $name")
 			add("implementation", kotlin("reflect"))
 		}
 

@@ -14,7 +14,6 @@ dependencies {
 	implementation(libs.sonarqubeGradlePlugin)
 	implementation(libs.kotlinx.coroutines.core)
 
-	api(project(":dependencies"))
 	api(project(":config"))
 
 	implementation(libs.bundles.test)
@@ -30,13 +29,6 @@ gradlePlugin {
 			implementationClass = "io.komune.fixers.gradle.plugin.config.ConfigPlugin"
 			displayName = "Komune FixersGradle Config"
 			description = "Convention plugin providing a central DSL to configure Kotlin JVM and Multiplatform projects with sensible defaults."
-			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
-		}
-		create("io.komune.fixers.gradle.dependencies") {
-			id = "io.komune.fixers.gradle.dependencies"
-			implementationClass = "io.komune.fixers.gradle.plugin.dependencies.DependenciesPlugin"
-			displayName = "Komune FixersGradle Dependencies"
-			description = "Registers a curated set of dependency versions for Kotlin JVM and Multiplatform projects."
 			tags = listOf("Komune", "Fixers", "kotlin", "mpp", "jvm", "js", "wasm")
 		}
 		create("io.komune.fixers.gradle.kotlin.jvm") {
