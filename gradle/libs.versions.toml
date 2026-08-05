@@ -1,5 +1,5 @@
 [versions]
-detekt = "2.0.0-alpha.3"
+detekt = "2.0.0-alpha.5"
 kotlin = "2.2.20"
 sonarQube = "7.3.0.8198"
 npmPublish = "3.5.3"
