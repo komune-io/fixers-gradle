@@ -232,7 +232,10 @@ jobs:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
       - name: Execute Make Check Task
-        if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
+        # Skip whenever FIXERS_SONAR_TOKEN is unavailable (e.g. Dependabot PRs,
+        # fork PRs, or repos that haven't configured Sonar) — GitHub withholds
+        # repo secrets from those workflow runs, so `sonar` would just fail auth.
+        if: secrets.FIXERS_SONAR_TOKEN != '' && ((contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/')))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}

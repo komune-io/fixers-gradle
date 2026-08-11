@@ -59,6 +59,10 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
       - name: Submit Dependency Graph
+        # Dependabot-triggered pull_request runs always get a read-only
+        # GITHUB_TOKEN regardless of the `permissions:` block above, so this
+        # write-requiring step would fail auth on those PRs. Skip it there.
+        if: github.actor != 'dependabot[bot]'
         uses: gradle/actions/dependency-submission@v6
         with:
           additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
@@ -67,7 +71,10 @@ jobs:
           build-scan-terms-of-use-agree: "yes"
 
   sonarcloud-analysis:
-    if: ${{ inputs.with-sonarcloud }}
+    # Also skip when FIXERS_SONAR_TOKEN is unavailable (e.g. Dependabot PRs,
+    # fork PRs) — GitHub withholds repo secrets from those workflow runs, so
+    # the Sonar scan/quality-gate steps below would just fail auth.
+    if: ${{ inputs.with-sonarcloud && secrets.FIXERS_SONAR_TOKEN != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
