@@ -59,9 +59,6 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
       - name: Submit Dependency Graph
-        # Dependabot-triggered pull_request runs always get a read-only
-        # GITHUB_TOKEN regardless of the `permissions:` block above, so this
-        # write-requiring step would fail auth on those PRs. Skip it there.
         if: github.actor != 'dependabot[bot]'
         uses: gradle/actions/dependency-submission@v6
         with:
