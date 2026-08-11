@@ -4,6 +4,10 @@ inputs:
   mise-task:
     description: "The base mise task to execute along with its optional pre and post tasks"
     required: true
+  skip:
+    description: "Set to 'true' to skip the task and its pre/post tasks entirely."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -12,13 +16,16 @@ runs:
       uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}:pre
+        skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.mise-task }} optionally
       uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}
+        skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.mise-task }}:post optionally
       uses: komune-io/fixers-gradle/.github/actions/mise-step-optional@main
       with:
         mise-task: ${{ inputs.mise-task }}:post
+        skip: ${{ inputs.skip }}

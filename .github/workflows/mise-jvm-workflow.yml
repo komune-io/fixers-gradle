@@ -63,6 +63,12 @@ on:
         type: "string"
         default: "check"
 
+      skip-check-task:
+        description: "Set to 'true' to skip the check task entirely, e.g. when the caller knows a secret it needs (like a Sonar token) is unavailable for this run."
+        required: false
+        type: "string"
+        default: "false"
+
       mise-promote-task:
         description: "The mise task to execute for promote."
         required: false
@@ -231,6 +237,7 @@ jobs:
         uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-check-task }}
+          skip: ${{ inputs.skip-check-task }}
 
       - name: Docker Registry Login To Promote
         if: (inputs.with-promote-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))

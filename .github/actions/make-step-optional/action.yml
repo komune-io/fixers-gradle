@@ -9,6 +9,10 @@ inputs:
   make-step:
     description: 'The make step to conditionally execute'
     required: true
+  skip:
+    description: "Set to 'true' to skip this step entirely, even if it exists in the Makefile."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -27,7 +31,7 @@ runs:
       shell: bash
 
     - name: Run ${{ inputs.make-step }}
-      if: ${{ steps.check_step.outputs.exists == 'true' }}
+      if: ${{ steps.check_step.outputs.exists == 'true' && inputs.skip != 'true' }}
       env:
         MAKE_FILE: ${{ inputs.make-file }}
         MAKE_STEP: ${{ inputs.make-step }}
