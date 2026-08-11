@@ -69,6 +69,12 @@ on:
         type: "string"
         default: "check"
 
+      skip-tasks:
+        description: "Comma-separated list of task names (matching the values of the make-*-task inputs, e.g. 'check' or 'check,promote') to skip entirely for this run — e.g. when a caller knows a task's secret dependency is unavailable."
+        required: false
+        type: "string"
+        default: ""
+
       make-promote-task:
         description: "The Make command to execute for promote."
         required: false
@@ -192,6 +198,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-lint-task) }}
 
       - name: Setup Docker Buildx for Specified Platforms
         if: inputs.docker-buildx-platform != ''
@@ -204,6 +211,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-build-task) }}
 
       - name: Execute Make Test Task
         if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
@@ -211,6 +219,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-test-task) }}
 
       - name: Upload Analysis Reports
         uses: komune-io/fixers-gradle/.github/actions/upload-analysis-reports@main
@@ -231,12 +240,14 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-stage-task) }}
       - name: Execute Make Check Task
         if: (contains(inputs.on-tag, inputs.make-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
         uses: komune-io/fixers-gradle/.github/actions/make-step-prepost@main
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-check-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-check-task) }}
 
       - name: Docker Registry Login To Promote
         if: (inputs.with-promote-docker-registry-login == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/')) ))
@@ -252,6 +263,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
+          skip: ${{ contains(inputs.skip-tasks, inputs.make-promote-task) }}
 
       - name: Upload Artifact if Specified
         if: inputs.artifact-name != '' && inputs.artifact-path != ''

@@ -4,6 +4,10 @@ inputs:
   mise-task:
     description: 'The mise task to conditionally execute'
     required: true
+  skip:
+    description: "Set to 'true' to skip this step entirely, even if the task exists."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -21,7 +25,7 @@ runs:
       shell: bash
 
     - name: Run ${{ inputs.mise-task }}
-      if: ${{ steps.check_step.outputs.exists == 'true' }}
+      if: ${{ steps.check_step.outputs.exists == 'true' && inputs.skip != 'true' }}
       env:
         MISE_TASK: ${{ inputs.mise-task }}
       run: |

@@ -8,6 +8,10 @@ inputs:
   make-step:
     description: "The base make step to execute along with its optional pre and post steps"
     required: true
+  skip:
+    description: "Set to 'true' to skip the step and its pre/post steps entirely."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -17,15 +21,18 @@ runs:
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-pre
+        skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.make-step }} optionally
       uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}
+        skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.make-step }}-post optionally
       uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-post
+        skip: ${{ inputs.skip }}
