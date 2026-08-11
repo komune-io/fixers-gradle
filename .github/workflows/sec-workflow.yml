@@ -71,10 +71,7 @@ jobs:
           build-scan-terms-of-use-agree: "yes"
 
   sonarcloud-analysis:
-    # Also skip when FIXERS_SONAR_TOKEN is unavailable (e.g. Dependabot PRs,
-    # fork PRs) — GitHub withholds repo secrets from those workflow runs, so
-    # the Sonar scan/quality-gate steps below would just fail auth.
-    if: ${{ inputs.with-sonarcloud && secrets.FIXERS_SONAR_TOKEN != '' }}
+    if: ${{ inputs.with-sonarcloud }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -99,10 +99,7 @@ jobs:
       DOCKER_PROMOTE_PASSWORD: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
 
   publish-chromatic:
-    # Also skip when FIXERS_CHROMATIC_PROJECT_TOKEN is unavailable (e.g.
-    # Dependabot PRs, fork PRs) — GitHub withholds repo secrets from those
-    # workflow runs, so the Chromatic publish step below would just fail auth.
-    if: inputs.with-chromatic && secrets.FIXERS_CHROMATIC_PROJECT_TOKEN != ''
+    if: inputs.with-chromatic
     runs-on: ubuntu-latest
     name: Publish to Chromatic
     needs: [package-storybook]
