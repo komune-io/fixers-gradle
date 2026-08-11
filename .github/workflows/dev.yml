@@ -39,6 +39,8 @@ jobs:
     permissions:
       contents: write  # Required for gradle dependency-submission
       pull-requests: read  # Required for sonarcloud PR analysis
+    with:
+      with-sonarcloud: ${{ github.actor != 'dependabot[bot]' }}
     secrets:
       FIXERS_SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
 
