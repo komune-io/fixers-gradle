@@ -68,6 +68,12 @@ on:
         type: "string"
         default: "make_docs.mk"
 
+      skip-tasks:
+        description: "Comma-separated list of task names (matching the values of the make-*-task inputs of make-nodejs-workflow, e.g. 'check' or 'check,promote') to skip entirely for this run — e.g. when a caller knows a task's secret dependency is unavailable."
+        required: false
+        type: "string"
+        default: ""
+
     secrets:
       FIXERS_CHROMATIC_PROJECT_TOKEN:
         required: false
@@ -92,6 +98,7 @@ jobs:
       docker-stage-repository: ${{ inputs.docker-stage-repository }}
       docker-promote-repository: ${{ inputs.docker-promote-repository }}
       on-tag: ${{ inputs.on-tag }}
+      skip-tasks: ${{ inputs.skip-tasks }}
     secrets:
       DOCKER_STAGE_USERNAME: ${{ secrets.DOCKER_STAGE_USERNAME }}
       DOCKER_STAGE_PASSWORD: ${{ secrets.DOCKER_STAGE_PASSWORD }}
