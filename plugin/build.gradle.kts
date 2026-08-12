@@ -1,5 +1,8 @@
+import org.gradle.api.component.AdhocComponentWithVariants
+
 plugins {
 	`kotlin-dsl`
+	`java-test-fixtures`
 	id("com.gradle.plugin-publish")
 	id("io.komune.fixers.gradle.publish")
 }
@@ -17,6 +20,17 @@ dependencies {
 
 	implementation(libs.bundles.test)
 	testRuntimeOnly(libs.junit.platform.launcher)
+
+	// BaseIntegrationTest is shared with :integration-tests
+	testFixturesImplementation(gradleTestKit())
+	testFixturesImplementation(libs.bundles.test)
+}
+
+// The test fixtures exist only to be shared with :integration-tests. Keep their
+// variants out of the published plugin artifacts and Gradle module metadata.
+(components["java"] as AdhocComponentWithVariants).let { javaComponent ->
+	javaComponent.withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+	javaComponent.withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
 }
 
 gradlePlugin {
@@ -80,4 +94,7 @@ gradlePlugin.plugins.configureEach {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	// Tests must be deterministic regardless of ambient release credentials:
+	// FIXERS_* env vars are read as property conventions by the config models.
+	setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") })
 }
