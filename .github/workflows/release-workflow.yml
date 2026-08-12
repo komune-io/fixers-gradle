@@ -19,6 +19,9 @@ on:
 jobs:
   create-release-branch:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the release branch and the release tag
+      pull-requests: write   # gh pr create
     env:
       RELEASE_BRANCH: versioning/${{ inputs.version }}
       RELEASE_TAG: refs/tags/${{ inputs.version }}
