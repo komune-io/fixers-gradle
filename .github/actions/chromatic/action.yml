@@ -22,13 +22,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+    # The caller is expected to have checked out the repository with
+    # fetch-depth: 0 already — Chromatic needs the full history to diff builds.
     - name: Download artifacts
       uses: actions/download-artifact@v8
       with:
-        name: storybook-static
+        name: ${{ inputs.storybook-static-dir }}
         path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
     - name: Publish to Chromatic
       id: chromatic
