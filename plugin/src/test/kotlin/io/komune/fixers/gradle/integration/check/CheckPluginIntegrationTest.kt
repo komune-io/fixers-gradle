@@ -113,7 +113,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -144,7 +144,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin and Detekt disabled
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -179,7 +179,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin and SonarQube configuration
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -284,7 +284,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -320,7 +320,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -350,7 +350,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -492,7 +492,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should configure Sonar JaCoCo path with correct default pattern`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -538,7 +538,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should configure Sonar Detekt path to merged report`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -578,7 +578,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should allow customizing all Sonar properties`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -633,7 +633,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should allow customizing Sonar JaCoCo path`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -672,7 +672,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should not generate sonar config when sonar is not configured`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -707,7 +707,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should generate sonar-project properties file`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -749,7 +749,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should include custom properties in generated sonar-project properties file`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -793,7 +793,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should allow accessing custom properties programmatically`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }

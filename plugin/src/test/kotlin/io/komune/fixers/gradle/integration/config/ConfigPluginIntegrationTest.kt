@@ -19,7 +19,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the ConfigPlugin
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
             }
 
@@ -191,7 +191,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the ConfigPlugin and all extension properties
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
             }
 
