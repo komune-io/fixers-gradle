@@ -57,6 +57,12 @@ on:
         type: "string"
         default: "promote"
 
+      skip-tasks:
+        description: "Comma-separated list of task names (matching the values of the make-*-task inputs, e.g. 'check' or 'check,promote') to skip entirely for this run — e.g. when a caller knows a task's secret dependency is unavailable."
+        required: false
+        type: "string"
+        default: ""
+
       docker-buildx-platform:
         description: "Specify the target platforms for Docker buildx, such as 'linux/amd64,linux/arm64'. Leave empty to use the default platform."
         required: false
@@ -132,6 +138,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-lint-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-lint-task)) }}
 
       - if: inputs.docker-buildx-platform != ''
         name: Setup Docker Buildx for Specified Platforms
@@ -144,6 +151,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-build-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-build-task)) }}
 
       - name: Execute Make Test Task
         if: (contains(inputs.on-tag, inputs.make-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
@@ -151,6 +159,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-test-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-test-task)) }}
 
       - name: Execute Make Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
@@ -158,6 +167,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-stage-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-stage-task)) }}
         env:
           FIXERS_PUBLISH_NPM_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -167,6 +177,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-check-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-check-task)) }}
 
       - name: Execute Make Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
@@ -174,6 +185,7 @@ jobs:
         with:
           make-file: ${{ inputs.make-file }}
           make-step: ${{ inputs.make-promote-task }}
+          skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.make-promote-task)) }}
         env:
           FIXERS_PUBLISH_NPMJS_TOKEN: ${{ secrets.FIXERS_PUBLISH_NPMJS_TOKEN }}
 
