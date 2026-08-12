@@ -29,6 +29,15 @@ class PublishPluginUploadTest {
     @BeforeEach
     fun startServer() {
         server = HttpServer.create(InetSocketAddress(0), 0)
+        // The Central Portal deployment status endpoint: answer terminal straight away so the
+        // promote test does not sit in the polling loop.
+        server.createContext("/status") { exchange ->
+            requests.add("${exchange.requestMethod} ${exchange.requestURI}")
+            exchange.requestBody.readBytes()
+            val response = """{"deploymentState":"PUBLISHED"}""".toByteArray()
+            exchange.sendResponseHeaders(200, response.size.toLong())
+            exchange.responseBody.use { it.write(response) }
+        }
         server.createContext("/") { exchange ->
             requests.add("${exchange.requestMethod} ${exchange.requestURI}")
             exchange.requestBody.readBytes()

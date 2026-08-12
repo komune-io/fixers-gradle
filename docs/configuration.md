@@ -301,6 +301,8 @@ The `PublishConfig` class contains configuration for publishing settings.
 |----------|---------------------|------------------|---------------|-------------|
 | mavenCentralUrl | FIXERS_PUBLISH_MAVEN_CENTRAL_URL | fixers.publish.maven.central.url | "https://central.sonatype.com/api/v1/publisher" | The URL for Maven Central |
 | mavenSnapshotsUrl | FIXERS_PUBLISH_MAVEN_SNAPSHOTS_URL | fixers.publish.maven.snapshots.url | "https://central.sonatype.com/repository/maven-snapshots/" | The URL for Maven Snapshots |
+| mavenCentralPublishingType | FIXERS_PUBLISH_MAVEN_CENTRAL_PUBLISHING_TYPE | fixers.publish.maven.central.publishingType | "AUTOMATIC" | Central Portal publishing type. `AUTOMATIC` publishes once validation passes; `USER_MANAGED` stops at `VALIDATED` and waits for a manual release from the portal UI |
+| mavenCentralStatusPollTimeoutSeconds | FIXERS_PUBLISH_MAVEN_CENTRAL_STATUS_POLL_TIMEOUT_SECONDS | fixers.publish.maven.central.statusPollTimeoutSeconds | 600 | How long `promote` waits for a Central Portal deployment to reach a terminal state. A `FAILED` deployment fails the build; running out of time only warns. Set to `0` to skip polling entirely |
 | mavenCentralUsername | FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME | fixers.publish.maven.central.username | - | The Maven Central username |
 | mavenCentralPassword | FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD | fixers.publish.maven.central.password | - | The Maven Central password |
 | pkgGithubUsername | FIXERS_PUBLISH_GITHUB_USERNAME | fixers.publish.github.username | - | The GitHub username for package deployment |

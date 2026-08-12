@@ -16,6 +16,9 @@ open class PublishConfig(
 ) {
     companion object {
         private const val USERNAME_PREVIEW_LENGTH = 3
+
+        /** 10 minutes: generous enough for Central Portal validation, short enough to not stall CI. */
+        private const val DEFAULT_STATUS_POLL_TIMEOUT_SECONDS = 600
     }
 
     override fun toString(): String {
@@ -23,6 +26,8 @@ open class PublishConfig(
             PublishConfig(
                 mavenCentralUrl=${mavenCentralUrl.orNull},
                 mavenSnapshotsUrl=${mavenSnapshotsUrl.orNull},
+                mavenCentralPublishingType=${mavenCentralPublishingType.orNull},
+                mavenCentralStatusPollTimeoutSeconds=${mavenCentralStatusPollTimeoutSeconds.orNull},
                 mavenCentralUsername=${mavenCentralUsername.orNull?.take(USERNAME_PREVIEW_LENGTH)}***,
                 pkgGithubUsername=${pkgGithubUsername.orNull},
                 pkgGithubToken=******,
@@ -55,6 +60,26 @@ open class PublishConfig(
         envKey = "FIXERS_PUBLISH_MAVEN_SNAPSHOTS_URL",
         projectKey = "fixers.publish.maven.snapshots.url",
         defaultValue = "https://central.sonatype.com/repository/maven-snapshots/"
+    )
+
+    /**
+     * Central Portal publishing type: `AUTOMATIC` publishes as soon as validation passes,
+     * `USER_MANAGED` stops at `VALIDATED` and waits for a manual release from the portal UI.
+     */
+    val mavenCentralPublishingType: Property<String> = project.property(
+        envKey = "FIXERS_PUBLISH_MAVEN_CENTRAL_PUBLISHING_TYPE",
+        projectKey = "fixers.publish.maven.central.publishingType",
+        defaultValue = "AUTOMATIC"
+    )
+
+    /**
+     * How long to wait for a Central Portal deployment to reach a terminal state, in seconds.
+     * Set to `0` to skip status polling and return as soon as the bundle has been uploaded.
+     */
+    val mavenCentralStatusPollTimeoutSeconds: Property<Int> = project.property(
+        envKey = "FIXERS_PUBLISH_MAVEN_CENTRAL_STATUS_POLL_TIMEOUT_SECONDS",
+        projectKey = "fixers.publish.maven.central.statusPollTimeoutSeconds",
+        defaultValue = DEFAULT_STATUS_POLL_TIMEOUT_SECONDS
     )
 
     /**
@@ -208,6 +233,8 @@ open class PublishConfig(
     fun mergeFrom(source: PublishConfig): PublishConfig {
         mavenCentralUrl.mergeIfNotPresent(source.mavenCentralUrl)
         mavenSnapshotsUrl.mergeIfNotPresent(source.mavenSnapshotsUrl)
+        mavenCentralPublishingType.mergeIfNotPresent(source.mavenCentralPublishingType)
+        mavenCentralStatusPollTimeoutSeconds.mergeIfNotPresent(source.mavenCentralStatusPollTimeoutSeconds)
         mavenCentralUsername.mergeIfNotPresent(source.mavenCentralUsername)
         mavenCentralPassword.mergeIfNotPresent(source.mavenCentralPassword)
         pkgGithubUsername.mergeIfNotPresent(source.pkgGithubUsername)

@@ -18,6 +18,7 @@ class PublishPlugin : Plugin<Project> {
 	companion object {
 		const val PLUGIN_ID = "io.komune.fixers.gradle.publish"
 		const val GRADLE_PLUGIN_PUBLISH_ID = "com.gradle.plugin-publish"
+		private const val MILLIS_PER_SECOND = 1000L
 	}
 
 	override fun apply(project: Project) {
@@ -197,6 +198,8 @@ class PublishPlugin : Plugin<Project> {
 		val centralUrlProvider = fixersConfig.publish.mavenCentralUrl
 		val centralUsernameProvider = fixersConfig.publish.mavenCentralUsername
 		val centralPasswordProvider = fixersConfig.publish.mavenCentralPassword
+		val centralPublishingTypeProvider = fixersConfig.publish.mavenCentralPublishingType
+		val centralPollTimeoutProvider = fixersConfig.publish.mavenCentralStatusPollTimeoutSeconds
 		val bundleName = "${root.name}-$version"
 
 		val cleanStagingTask = root.tasks.register("cleanStaging") {
@@ -260,7 +263,12 @@ class PublishPlugin : Plugin<Project> {
 				doLast {
 					uploadToCentralPortal(
 						stagingDirProvider.get().asFile, centralUrlProvider.get(),
-						centralUsernameProvider.orNull, centralPasswordProvider.orNull, bundleName
+						centralUsernameProvider.orNull, centralPasswordProvider.orNull, bundleName,
+						CentralPortalUploader.Options(
+							publishingType = centralPublishingTypeProvider.get(),
+							statusPollTimeoutMillis = centralPollTimeoutProvider.get()
+								.toLong() * MILLIS_PER_SECOND,
+						)
 					)
 				}
 			}
@@ -301,6 +309,7 @@ class PublishPlugin : Plugin<Project> {
 		username: String?,
 		password: String?,
 		bundleName: String,
+		options: CentralPortalUploader.Options,
 	) {
 		val resolvedUsername = username
 			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME is not set")
@@ -312,6 +321,7 @@ class PublishPlugin : Plugin<Project> {
 			username = resolvedUsername,
 			password = resolvedPassword,
 			bundleName = bundleName,
+			options = options,
 		)
 	}
 }

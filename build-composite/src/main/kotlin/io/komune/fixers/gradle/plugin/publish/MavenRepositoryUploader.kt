@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -20,6 +21,21 @@ object MavenRepositoryUploader {
 
     private const val MAX_CONCURRENT_UPLOADS = 10
 
+    private const val DEFAULT_MAX_ATTEMPTS = 3
+    private const val DEFAULT_INITIAL_BACKOFF_MS = 1_000L
+    private const val BACKOFF_FACTOR = 2
+    private const val HTTP_TOO_MANY_REQUESTS = 429
+    private const val HTTP_SERVER_ERROR = 500
+    private const val HTTP_LAST_SERVER_ERROR = 599
+
+    /**
+     * A repository that is briefly overloaded or rate-limiting should not abort a release
+     * that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
+     * and is returned as-is.
+     */
+    private fun HttpPutResult.Error.isTransient(): Boolean =
+        code == HTTP_TOO_MANY_REQUESTS || code in HTTP_SERVER_ERROR..HTTP_LAST_SERVER_ERROR
+
     fun to(repoName: String): Builder = Builder(repoName)
 
     class Builder(private val repoName: String) {
@@ -29,12 +45,37 @@ object MavenRepositoryUploader {
         private lateinit var token: String
         private var httpClient: HttpPutClient = DefaultHttpPutClient()
         private var concurrency: Int = MAX_CONCURRENT_UPLOADS
+        private var maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
+        private var initialBackoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS
 
         fun from(dir: File) = apply { stagingDir = dir }
         fun at(url: String) = apply { baseUrl = url }
         fun withCredentials(user: String, tok: String) = apply { username = user; token = tok }
         fun withHttpClient(client: HttpPutClient) = apply { httpClient = client }
         fun withConcurrency(n: Int) = apply { concurrency = n }
+        fun withRetry(attempts: Int, backoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS) =
+            apply { maxAttempts = attempts; initialBackoffMillis = backoffMillis }
+
+        /**
+         * Uploads a single file, retrying transient failures with exponential backoff.
+         * Returns the last result once the attempts are exhausted, so a persistent failure
+         * still lands in the summary exactly as it did before.
+         */
+        private suspend fun putWithRetry(url: String, authHeader: String, file: File, label: String): HttpPutResult {
+            var backoff = initialBackoffMillis
+            var attempt = 1
+            while (true) {
+                val result = httpClient.put(url, authHeader, file)
+                if (result !is HttpPutResult.Error || !result.isTransient() || attempt >= maxAttempts) {
+                    return result
+                }
+                println("  ↻ [$label] HTTP ${result.code}, retrying in ${backoff}ms " +
+                    "(attempt ${attempt + 1}/$maxAttempts)")
+                delay(backoff)
+                backoff *= BACKOFF_FACTOR
+                attempt++
+            }
+        }
 
         fun upload(): UploadSummary {
             if (!stagingDir.exists() || stagingDir.listFiles()?.isEmpty() != false) {
@@ -63,7 +104,7 @@ object MavenRepositoryUploader {
                         semaphore.withPermit {
                             val relativePath = file.relativeTo(stagingDir).path
                             val url = "${baseUrl.trimEnd('/')}/$relativePath"
-                            val result = httpClient.put(url, authHeader, file)
+                            val result = putWithRetry(url, authHeader, file, relativePath)
                             val progress = "${completed.incrementAndGet()}/$totalFiles"
                             when (result) {
                                 HttpPutResult.Success -> {
