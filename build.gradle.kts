@@ -32,7 +32,10 @@ fixers {
 }
 
 
-tasks.register<Copy>("copyConfigSources") {
+// Sync, not Copy: the destination must mirror the source exactly, otherwise a file
+// deleted or renamed in build-composite leaves a stale copy behind that still
+// compiles and ships in the published jar.
+tasks.register<Sync>("copyConfigSources") {
 	group = "fixers"
 	description = "Copy configuration sources to the config module"
 	logger.lifecycle("Copying configuration sources")
@@ -47,7 +50,7 @@ tasks.register<Delete>("cleanConfigSources") {
 	delete("config/src/main/kotlin/io/komune/fixers/gradle/config")
 }
 
-tasks.register<Copy>("copyPluginSources") {
+tasks.register<Sync>("copyPluginSources") {
 	group = "fixers"
 	description = "Copy plugin sources to the plugin module"
 	logger.lifecycle("Copying plugin sources")
