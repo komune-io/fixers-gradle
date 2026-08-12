@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "github-actions"
-    directory: "/"
+    # "/" only covers .github/workflows; the composite actions under
+    # .github/actions/*/action.yml need to be listed explicitly so their
+    # SHA-pinned `uses:` are kept up to date too.
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
