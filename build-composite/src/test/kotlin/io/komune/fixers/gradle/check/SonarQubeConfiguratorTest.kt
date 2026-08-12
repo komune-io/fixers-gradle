@@ -3,6 +3,7 @@ package io.komune.fixers.gradle.check
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Sonar
 import io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -106,6 +107,76 @@ class SonarQubeConfiguratorTest {
                 .isNotNull
                 .asString()
                 .contains("merge.xml")
+        }
+
+        @Test
+        fun `should make detekt report path absolute so every module resolves the root merged report`() {
+            val sonar = Sonar(project)
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            val detektPath = properties["sonar.kotlin.detekt.reportPaths"] as String
+            assertThat(File(detektPath).isAbsolute).isTrue()
+            assertThat(detektPath).isEqualTo(
+                File(project.rootDir, "build/reports/detekt/merge.xml").path
+            )
+        }
+
+        @Test
+        fun `should resolve detekt report path of a subproject against the root project`() {
+            val subproject = ProjectBuilder.builder().withParent(project).withName("sub").build()
+            val subConfigurator = SonarQubeConfigurator(subproject)
+
+            val properties = subConfigurator.buildSonarProperties(Sonar(subproject), null)
+
+            // The merged report only exists in the root build directory: a path relative to the
+            // subproject would make Sonar log "Unable to import detekt report file(s)".
+            assertThat(properties["sonar.kotlin.detekt.reportPaths"]).isEqualTo(
+                File(project.rootDir, "build/reports/detekt/merge.xml").path
+            )
+        }
+
+        @Test
+        fun `should keep an absolute detekt report path unchanged`() {
+            val absolutePath = File(System.getProperty("java.io.tmpdir"), "custom/detekt.xml").path
+            val sonar = Sonar(project).apply { detekt.set(absolutePath) }
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            assertThat(properties["sonar.kotlin.detekt.reportPaths"]).isEqualTo(absolutePath)
+        }
+
+        @Test
+        fun `should resolve every entry of a comma separated detekt report path`() {
+            val sonar = Sonar(project).apply {
+                detekt.set("build/reports/detekt/merge.xml, build/reports/detekt/detekt.xml")
+            }
+
+            val properties = configurator.buildSonarProperties(sonar, null)
+
+            assertThat(properties["sonar.kotlin.detekt.reportPaths"]).isEqualTo(
+                listOf("build/reports/detekt/merge.xml", "build/reports/detekt/detekt.xml")
+                    .joinToString(",") { File(project.rootDir, it).path }
+            )
+        }
+
+        @Test
+        fun `should match jacoco reports of both the jvm and the multiplatform layout`() {
+            val sonar = Sonar(project)
+            val pattern = configurator.buildSonarProperties(sonar, null)["sonar.coverage.jacoco.xmlReportPaths"] as String
+
+            // Reproduces how Sonar resolves the pattern: relative to the base directory of each
+            // module, with an Ant-style matcher where "**/" also matches zero directories.
+            val moduleDir = project.projectDir
+            listOf("test", "jvmTest").forEach { testTaskDir ->
+                val report = File(moduleDir, "build/reports/jacoco/$testTaskDir/jacocoTestReport.xml")
+                report.parentFile.mkdirs()
+                report.writeText("<report/>")
+            }
+
+            val matched = project.fileTree(moduleDir).matching { include(pattern) }.files.map { it.name }
+
+            assertThat(matched).hasSize(2).containsOnly("jacocoTestReport.xml")
         }
 
         @Test
