@@ -151,8 +151,32 @@ abstract class BaseIntegrationTest {
     }
 
     /**
+     * Run a Gradle build in a TestKit daemon dedicated to this test.
+     *
+     * By default TestKit reuses a single daemon across every integration test class, and the
+     * Tooling API propagates the test JVM system properties into it without ever clearing the
+     * ones a previous build left behind. A test that asserts on daemon JVM state therefore
+     * depends on execution order. Giving it its own TestKit directory gives it its own daemon
+     * and a deterministic starting point.
+     *
+     * @param testKitDir A directory, unique to the test, for TestKit's working storage.
+     * @param arguments The Gradle arguments to pass.
+     * @return The build result.
+     */
+    protected fun runGradleInIsolatedDaemon(testKitDir: Path, vararg arguments: String): BuildResult {
+        val runner = GradleRunner.create()
+            .withProjectDir(testProjectDir.toFile())
+            .withArguments(*arguments, STACKTRACE_ARG)
+            .withPluginClasspath()
+            .withTestKitDir(testKitDir.toFile())
+            .forwardOutput()
+
+        return runner.build()
+    }
+
+    /**
      * Run a Gradle build with the specified Gradle version and arguments.
-     * 
+     *
      * @param gradleVersion The Gradle version to use.
      * @param arguments The Gradle arguments to pass.
      * @return The build result.
