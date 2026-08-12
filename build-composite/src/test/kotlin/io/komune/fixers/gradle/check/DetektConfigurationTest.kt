@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.check
 
 import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
+import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
@@ -100,6 +101,55 @@ class DetektConfigurationTest {
             assertThat(task.reports.html.required.get()).isTrue()
             assertThat(task.reports.markdown.required.get()).isTrue()
         }
+    }
+
+    @Test
+    fun `should name reports after the task so several detekt tasks do not overwrite each other`(
+        @TempDir dir: File
+    ) {
+        val (root, _) = rootWithConfig(dir)
+
+        root.configureDetekt()
+        root.tasks.register("detektJvmMain", Detekt::class.java)
+
+        val outputs = root.tasks.withType(Detekt::class.java).map { task ->
+            task.reports.checkstyle.outputLocation.get().asFile.path
+        }
+        assertThat(outputs).hasSizeGreaterThan(1)
+        assertThat(outputs.distinct()).hasSameSizeAs(outputs)
+        assertThat(outputs).anyMatch { it.endsWith("reports/detekt/detekt.xml") }
+        assertThat(outputs).anyMatch { it.endsWith("reports/detekt/detektJvmMain.xml") }
+    }
+
+    @Test
+    fun `should merge every detekt report of every project except the merged ones`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("child")
+            .withProjectDir(File(dir, "child").apply { mkdirs() })
+            .build()
+
+        root.configureDetekt()
+
+        val rootReport = writeReport(root, "detekt.xml")
+        val rootKmpReport = writeReport(root, "detektJvmMain.xml")
+        val childReport = writeReport(child, "detekt.xml")
+        val mergedReport = writeReport(root, "merge.xml")
+        val htmlReport = writeReport(root, "detekt.html")
+
+        val mergeTask = root.tasks.getByName("detektReportMergeXml") as ReportMergeTask
+
+        assertThat(mergeTask.input.files)
+            .contains(rootReport, rootKmpReport, childReport)
+            .doesNotContain(mergedReport, htmlReport)
+    }
+
+    private fun writeReport(project: Project, name: String): File {
+        val file = project.layout.buildDirectory.file("reports/detekt/$name").get().asFile
+        file.parentFile.mkdirs()
+        file.writeText("<checkstyle version=\"4.3\"/>")
+        return file
     }
 
     @Test
