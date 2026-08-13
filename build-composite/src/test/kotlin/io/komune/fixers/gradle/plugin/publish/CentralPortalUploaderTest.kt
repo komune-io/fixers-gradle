@@ -228,6 +228,19 @@ class CentralPortalUploaderTest {
         assertThat(statusRequests).isNotEmpty()
     }
 
+    @Test
+    fun `should reject a negative poll timeout instead of silently skipping verification`() {
+        createStagingFile("artifact.jar")
+
+        assertThatThrownBy {
+            CentralPortalUploader.upload(
+                stagingDir, baseUrl(), "user", "pass",
+                options = CentralPortalUploader.Options(statusPollTimeoutMillis = -1)
+            )
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("statusPollTimeoutSeconds")
+    }
+
     private fun extractZipFromMultipart(body: ByteArray): ByteArray {
         // Zip content starts after the multipart headers (double CRLF) and
         // ends before the trailing CRLF + closing boundary.

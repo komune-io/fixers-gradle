@@ -80,7 +80,11 @@ object CentralPortalUploader {
 		val deploymentId = uploadBundle(baseUrl, token, zipBytes, filename, options.publishingType)
 		println("Deployment initiated: $deploymentId (publishingType=${options.publishingType})")
 
-		if (options.statusPollTimeoutMillis <= 0) {
+		require(options.statusPollTimeoutMillis >= 0) {
+			"statusPollTimeoutSeconds must be zero (polling disabled) or positive, " +
+				"got ${options.statusPollTimeoutMillis / MILLIS_PER_SECOND}"
+		}
+		if (options.statusPollTimeoutMillis == 0L) {
 			println("Status polling disabled — check the deployment at $DEPLOYMENTS_URL")
 			return
 		}
@@ -140,8 +144,12 @@ object CentralPortalUploader {
 		val deadline = System.currentTimeMillis() + options.statusPollTimeoutMillis
 		var lastState: String? = null
 
-		while (System.currentTimeMillis() < deadline) {
-			val state = fetchDeploymentState(baseUrl, token, deploymentId)
+		while (true) {
+			val remainingMillis = deadline - System.currentTimeMillis()
+			if (remainingMillis <= 0) break
+
+			val readTimeoutMillis = minOf(remainingMillis, STATUS_READ_TIMEOUT_MS.toLong()).toInt()
+			val state = fetchDeploymentState(baseUrl, token, deploymentId, readTimeoutMillis)
 			if (state != null && state != lastState) {
 				println("  Deployment $deploymentId state: $state")
 				lastState = state
@@ -155,7 +163,13 @@ object CentralPortalUploader {
 					println("Central Portal deployment '$deploymentId' reached $successState.")
 					return
 				}
-				else -> Thread.sleep(options.statusPollIntervalMillis)
+				else -> {
+					val sleepMillis = minOf(
+						options.statusPollIntervalMillis,
+						deadline - System.currentTimeMillis()
+					)
+					if (sleepMillis > 0) Thread.sleep(sleepMillis)
+				}
 			}
 		}
 
@@ -171,17 +185,26 @@ object CentralPortalUploader {
 	 * Returns the current `deploymentState`, or `null` when the portal could not be reached
 	 * or answered with something unparseable. `null` means "unknown, try again", never "failed".
 	 */
-	private fun fetchDeploymentState(baseUrl: String, token: String, deploymentId: String): String? {
+	private fun fetchDeploymentState(
+		baseUrl: String,
+		token: String,
+		deploymentId: String,
+		readTimeoutMillis: Int = STATUS_READ_TIMEOUT_MS,
+	): String? {
 		val url = URI("$baseUrl/status?id=$deploymentId").toURL()
 		return try {
-			val connection = openPostConnection(url, token, STATUS_READ_TIMEOUT_MS)
+			val connection = openPostConnection(url, token, readTimeoutMillis)
 			val responseCode = connection.responseCode
 			if (responseCode !in HTTP_SUCCESS) {
 				println("  Central Portal status check returned HTTP $responseCode, retrying")
 				return null
 			}
 			val body = connection.inputStream.bufferedReader().use { it.readText() }
-			DEPLOYMENT_STATE_REGEX.find(body)?.groupValues?.get(1)
+			val state = DEPLOYMENT_STATE_REGEX.find(body)?.groupValues?.get(1)
+			if (state == null) {
+				println("  Central Portal status response had no deploymentState, retrying")
+			}
+			state
 		} catch (e: IOException) {
 			println("  Central Portal status check failed (${e.message}), retrying")
 			null
