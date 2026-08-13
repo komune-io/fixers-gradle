@@ -11,6 +11,10 @@ class DefaultHttpPutClient : HttpPutClient {
         const val HTTP_LAST_SUCCESS = 299
         const val HTTP_CONFLICT = 409
         val HTTP_SUCCESS = HTTP_OK..HTTP_LAST_SUCCESS
+
+        // Without these, an unresponsive repository endpoint hangs the build forever.
+        const val CONNECT_TIMEOUT_MS = 30_000
+        const val READ_TIMEOUT_MS = 120_000
     }
 
     override fun put(url: String, authHeader: String, file: File): HttpPutResult {
@@ -18,6 +22,8 @@ class DefaultHttpPutClient : HttpPutClient {
         connection.requestMethod = "PUT"
         connection.setRequestProperty("Authorization", authHeader)
         connection.setRequestProperty("Content-Type", "application/octet-stream")
+        connection.connectTimeout = CONNECT_TIMEOUT_MS
+        connection.readTimeout = READ_TIMEOUT_MS
         connection.doOutput = true
 
         connection.outputStream.use { os ->

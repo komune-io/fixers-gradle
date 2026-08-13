@@ -93,4 +93,25 @@ class FixersExtensionTest {
         assertThat(str).contains("pkgGithubToken=******")
         assertThat(str).contains("npmjsToken=******")
     }
+
+    @Test
+    fun `PublishConfig central portal defaults should preserve the previous publishing behaviour`() {
+        val project = ProjectBuilder.builder().build()
+        val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+
+        assertThat(config.publish.mavenCentralPublishingType.get()).isEqualTo("AUTOMATIC")
+        assertThat(config.publish.mavenCentralStatusPollTimeoutSeconds.get()).isEqualTo(600)
+    }
+
+    @Test
+    fun `PublishConfig should accept an overridden central portal publishing type`() {
+        val project = ProjectBuilder.builder().build()
+        val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+
+        config.publish.mavenCentralPublishingType.set("USER_MANAGED")
+        config.publish.mavenCentralStatusPollTimeoutSeconds.set(0)
+
+        assertThat(config.publish.mavenCentralPublishingType.get()).isEqualTo("USER_MANAGED")
+        assertThat(config.publish.mavenCentralStatusPollTimeoutSeconds.get()).isZero()
+    }
 }
