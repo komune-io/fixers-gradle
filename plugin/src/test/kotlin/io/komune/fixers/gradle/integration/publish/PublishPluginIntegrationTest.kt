@@ -2,9 +2,11 @@ package io.komune.fixers.gradle.integration.publish
 
 import io.komune.fixers.gradle.integration.BaseIntegrationTest
 import java.io.File
+import java.nio.file.Path
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
 /**
  * Integration tests for the PublishPlugin.
@@ -327,8 +329,14 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         assertThat(result.output).contains("Has testPluginPluginMarkerMaven publication: true")
     }
 
+    /**
+     * PublishPlugin bridges the portal credentials with `System.setProperty`, guarded by a
+     * `== null` check, inside the build JVM. Run in a dedicated TestKit daemon so the bridge
+     * is evaluated against a clean JVM instead of whatever a previously executed test left in
+     * the shared daemon.
+     */
     @Test
-    fun `should bridge gradle portal credentials to system properties`() {
+    fun `should bridge gradle portal credentials to system properties`(@TempDir testKitDir: Path) {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
@@ -344,25 +352,26 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
             }
         """.trimIndent())
 
-        try {
-            val result = runGradle(
-                "verifyPortalBridge",
-                "-Pfixers.publish.gradle.portal.key=test-portal-key",
-                "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
-            )
+        val result = runGradleInIsolatedDaemon(
+            testKitDir,
+            "verifyPortalBridge",
+            "-Pfixers.publish.gradle.portal.key=test-portal-key",
+            "-Pfixers.publish.gradle.portal.secret=test-portal-secret"
+        )
 
-            assertThat(result.task(":verifyPortalBridge")?.outcome)
-                .isEqualTo(TaskOutcome.SUCCESS)
-            assertThat(result.output).contains("bridge.key.present=true")
-            assertThat(result.output).contains("bridge.secret.present=true")
-        } finally {
-            System.clearProperty("gradle.publish.key")
-            System.clearProperty("gradle.publish.secret")
-        }
+        assertThat(result.task(":verifyPortalBridge")?.outcome)
+            .isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output).contains("bridge.key.present=true")
+        assertThat(result.output).contains("bridge.secret.present=true")
     }
 
+    /**
+     * Also runs in a dedicated TestKit daemon: the test JVM system properties it sets are
+     * propagated to the build JVM, so without isolation they would leak into the daemon the
+     * other integration tests share.
+     */
     @Test
-    fun `should not override explicit gradle publish key system property`() {
+    fun `should not override explicit gradle publish key system property`(@TempDir testKitDir: Path) {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
@@ -380,7 +389,8 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         System.setProperty("gradle.publish.key", "explicit-key")
         System.setProperty("gradle.publish.secret", "explicit-secret")
         try {
-            val result = runGradle(
+            val result = runGradleInIsolatedDaemon(
+                testKitDir,
                 "verifyPortalBridgeNoOverride",
                 "-Pfixers.publish.gradle.portal.key=should-not-override",
                 "-Pfixers.publish.gradle.portal.secret=should-not-override"
