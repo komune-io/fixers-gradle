@@ -113,7 +113,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -144,7 +144,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin and Detekt disabled
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -179,7 +179,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         // Set up the build file with the CheckPlugin and SonarQube configuration
         writeBuildFile("""
             plugins {
-                kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.check")
             }
@@ -284,7 +284,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -320,7 +320,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -350,7 +350,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}" apply false
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION" apply false
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -492,7 +492,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should configure Sonar JaCoCo path with correct default pattern`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -538,7 +538,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should configure Sonar Detekt path to merged report`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -572,13 +572,75 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         }
 
         /**
+         * Test that the Detekt report path handed to the scanner is absolute in every module:
+         * Sonar resolves relative report paths against the base directory of each analysed module,
+         * where the merged report - written in the root build directory - does not exist.
+         */
+        @Test
+        fun `should hand an absolute detekt report path to every module`() {
+            settingsFile.writeText("""
+                rootProject.name = "integration-test-project"
+                include("subproject")
+            """.trimIndent())
+
+            val subprojectDir = testProjectDir.resolve("subproject").toFile()
+            subprojectDir.mkdirs()
+            File(subprojectDir, "build.gradle.kts").writeText("""
+                plugins {
+                    kotlin("jvm")
+                }
+
+                repositories {
+                    mavenCentral()
+                }
+
+                tasks.register("verifyModuleDetektPath") {
+                    doLast {
+                        val config = rootProject.extensions.getByName("fixers")
+                            as io.komune.fixers.gradle.config.ConfigExtension
+                        val properties = io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator(project)
+                            .buildSonarProperties(config.sonar, null)
+                        val detektPath = properties["sonar.kotlin.detekt.reportPaths"].toString()
+                        val expected = rootProject.rootDir.resolve("build/reports/detekt/merge.xml").path
+                        println("Module detekt path: ${'$'}detektPath")
+                        println("Module detekt path is the root merged report: ${'$'}{detektPath == expected}")
+                    }
+                }
+            """.trimIndent())
+
+            writeBuildFile("""
+                plugins {
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
+                    id("io.komune.fixers.gradle.config")
+                    id("io.komune.fixers.gradle.check")
+                }
+
+                repositories {
+                    mavenCentral()
+                }
+
+                fixers {
+                    sonar {
+                        projectKey = "test-project"
+                        organization = "test-org"
+                    }
+                }
+            """.trimIndent())
+
+            val result = runGradle(":subproject:verifyModuleDetektPath")
+
+            assertThat(result.task(":subproject:verifyModuleDetektPath")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(result.output).contains("Module detekt path is the root merged report: true")
+        }
+
+        /**
          * Test that all Sonar configuration properties can be customized.
          */
         @Test
         fun `should allow customizing all Sonar properties`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -633,7 +695,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should allow customizing Sonar JaCoCo path`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -672,7 +734,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should not generate sonar config when sonar is not configured`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -707,7 +769,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should generate sonar-project properties file`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -749,7 +811,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should include custom properties in generated sonar-project properties file`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
@@ -793,7 +855,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should allow accessing custom properties programmatically`() {
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }

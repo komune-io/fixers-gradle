@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.check
 
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Sonar
+import java.io.File
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.register
 import org.sonarqube.gradle.SonarExtension
@@ -92,7 +93,7 @@ class SonarQubeConfigurator(
         properties["sonar.host.url"] = sonar.url.get()
         properties["sonar.language"] = sonar.language.get()
         properties["sonar.exclusions"] = sonar.exclusions.get()
-        properties["sonar.kotlin.detekt.reportPaths"] = sonar.detekt.get()
+        properties["sonar.kotlin.detekt.reportPaths"] = resolveDetektReportPaths(sonar.detekt.get())
         properties["sonar.pullrequest.github.summary_comment"] = sonar.githubSummaryComment.get()
         properties["sonar.coverage.jacoco.xmlReportPaths"] = sonar.jacoco.get()
         properties["detekt.sonar.kotlin.config.path"] = "${project.rootDir}/${sonar.detektConfigPath.get()}"
@@ -106,5 +107,32 @@ class SonarQubeConfigurator(
         }
 
         return properties
+    }
+
+    /**
+     * Makes the Detekt report path(s) module-independent.
+     *
+     * Detekt reports are merged into a single file living in the **root** project's build
+     * directory (see [getDetektReportMergeXmlFile]), but Sonar resolves relative report paths
+     * against the base directory of *each analysed module*. A relative path therefore makes every
+     * non-root module look for `<module>/build/reports/detekt/merge.xml`, a file that never
+     * exists, and the analysis logs `Unable to import detekt report file(s)` for each of them
+     * while no Detekt issue is ever imported.
+     *
+     * Relative paths are resolved against the root project directory; absolute paths are kept
+     * as-is so a project with a non-standard layout can still point Sonar wherever it wants
+     * (via `fixers.sonar.detekt.reportPaths` / `FIXERS_SONAR_DETEKT_REPORT_PATHS`).
+     *
+     * @param paths comma-separated report paths, as configured on the Sonar model
+     * @return the same list with every relative entry made absolute
+     */
+    internal fun resolveDetektReportPaths(paths: String): String {
+        return paths.split(",")
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .joinToString(",") { path ->
+                val file = File(path)
+                if (file.isAbsolute) file.path else File(project.rootDir, path).path
+            }
     }
 }

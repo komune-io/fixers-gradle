@@ -57,10 +57,10 @@ jobs:
           java-distribution: ${{ inputs.java-distribution }}
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - name: Submit Dependency Graph
         if: github.actor != 'dependabot[bot]'
-        uses: gradle/actions/dependency-submission@v6
+        uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
           build-scan-publish: true
@@ -103,11 +103,11 @@ jobs:
             cat sonar-project.properties
           fi
       - name: Run SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v8
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
       - name: Check SonarQube Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@v1.2.1
+        uses: SonarSource/sonarqube-quality-gate-action@7a5fffe8e523c40e0c740b6bc2712ab503e52efa # v1.2.1
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}

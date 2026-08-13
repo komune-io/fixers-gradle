@@ -5,6 +5,7 @@ import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
 import org.gradle.api.Project
+import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.register
@@ -12,6 +13,23 @@ import org.gradle.kotlin.dsl.withType
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
     return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
+}
+
+/**
+ * All Detekt reports of this project with the given extension, excluding the merged report itself
+ * (the root project writes `merge.xml`/`merge.sarif` in the very same directory).
+ *
+ * A project can hold several Detekt tasks - Kotlin Multiplatform registers one per source set and
+ * per compilation - so the merge tasks must collect every report, not only the one produced by the
+ * default `detekt` task.
+ */
+internal fun Project.detektReportsWithExtension(extension: String): Provider<FileTree> {
+    return layout.buildDirectory.dir("reports/detekt").map { reportsDir ->
+        reportsDir.asFileTree.matching {
+            include("*.$extension")
+            exclude("merge.$extension")
+        }
+    }
 }
 
 fun Project.configureDetekt() {
@@ -29,8 +47,6 @@ fun Project.configureDetekt() {
         plugins.apply("dev.detekt")
 
         pluginManager.withPlugin("dev.detekt") {
-            val detectXmlPath = layout.buildDirectory.file("reports/detekt/detekt.xml")
-            val detectSarifPath = layout.buildDirectory.file("reports/detekt/detekt.sarif")
             extensions.configure(DetektExtension::class.java) {
                 buildUponDefaultConfig.set(fixersDetekt?.buildUponDefaultConfig?.get() ?: true)
 
@@ -51,15 +67,21 @@ fun Project.configureDetekt() {
                 val sarifEnabled = fixersDetekt?.sarifReport?.get() ?: true
                 val markdownEnabled = fixersDetekt?.markdownReport?.get() ?: true
 
+                // Reports are named after the task: a project may run several Detekt tasks
+                // (Kotlin Multiplatform registers one per source set / compilation) and a shared
+                // output location makes them overwrite each other's report.
+                val detektXmlPath = layout.buildDirectory.file("reports/detekt/$name.xml")
+                val detektSarifPath = layout.buildDirectory.file("reports/detekt/$name.sarif")
+
                 reports {
                     checkstyle.required.set(checkstyleEnabled)
                     if (checkstyleEnabled) {
-                        checkstyle.outputLocation.set(file(detectXmlPath))
+                        checkstyle.outputLocation.set(file(detektXmlPath))
                     }
                     html.required.set(htmlEnabled)
                     sarif.required.set(sarifEnabled)
                     if (sarifEnabled) {
-                        sarif.outputLocation.set(file(detectSarifPath))
+                        sarif.outputLocation.set(file(detektSarifPath))
                     }
                     markdown.required.set(markdownEnabled)
                 }
@@ -68,11 +90,11 @@ fun Project.configureDetekt() {
             }
 
             detektReportMergeSarif.configure {
-                input.from(detectSarifPath)
+                input.from(detektReportsWithExtension("sarif"))
             }
 
             detektReportMergeXml.configure {
-                input.from(detectXmlPath)
+                input.from(detektReportsWithExtension("xml"))
             }
         }
     }

@@ -41,7 +41,11 @@ class Sonar(
 
     /**
      * The path to the JaCoCo XML report.
-     * Includes paths for both standard JVM projects (test/) and Kotlin Multiplatform projects (jvmTest/).
+     *
+     * Sonar resolves this Ant-style pattern against the base directory of each analysed module,
+     * where `**` also matches zero directories: it therefore covers both standard JVM projects
+     * (`build/reports/jacoco/test/`) and Kotlin Multiplatform projects
+     * (`build/reports/jacoco/jvmTest/`, written by the `jacocoJvmTestReport` task).
      */
     val jacoco: Property<String> = project.property(
         envKey = "FIXERS_SONAR_JACOCO",
@@ -60,7 +64,12 @@ class Sonar(
 
     /**
      * The path to the Detekt XML report.
-     * Uses the merged report from the root project.
+     *
+     * Uses the merged report produced by the `detektReportMergeXml` task of the root project.
+     * A relative path is resolved against the root project directory before being handed to the
+     * Gradle scanner, so that every analysed module points at that single merged report instead of
+     * looking for a non-existing `<module>/build/reports/detekt/merge.xml`
+     * (see `SonarQubeConfigurator.resolveDetektReportPaths`). Absolute paths are used as-is.
      */
     val detekt: Property<String> = project.property(
         envKey = "FIXERS_SONAR_DETEKT_REPORT_PATHS",
