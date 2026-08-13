@@ -610,7 +610,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
             writeBuildFile("""
                 plugins {
-                    kotlin("jvm") version "${getCompatibleKotlinVersion(null)}"
+                    kotlin("jvm") version "$TEST_KOTLIN_VERSION"
                     id("io.komune.fixers.gradle.config")
                     id("io.komune.fixers.gradle.check")
                 }
