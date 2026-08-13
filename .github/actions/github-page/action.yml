@@ -20,7 +20,7 @@ runs:
         path: ./${{ inputs.artifact-name }}
 
     - name: Package and upload Pages artifact
-      uses: actions/upload-pages-artifact@v4
+      uses: actions/upload-pages-artifact@v5
       with:
         path: ./${{ inputs.artifact-name }}
 
