@@ -49,8 +49,9 @@ name: Dependabot Verification Metadata
 #     (a fine-grained PAT with contents:write): a PAT push triggers a normal
 #     pull_request run with full PR context. The synchronize event also re-fires
 #     this workflow, which finds zero delta and no-ops — no loop. Without the
-#     secret, the push falls back to GITHUB_TOKEN and the PR comment explains
-#     that checks will not re-run automatically;
+#     secret, the push falls back to GITHUB_TOKEN and the PR comment tells the
+#     reviewer to add any label — dev.yml listens to `labeled`, and a human
+#     label event triggers a genuine fresh pull_request run;
 #   - after this pushes, Dependabot refuses `@dependabot rebase`; use
 #     `@dependabot recreate`.
 
@@ -197,7 +198,7 @@ jobs:
           if [ "$AUTO_CI" = "true" ]; then
             note="CI re-runs automatically on the new commit."
           else
-            note="No push-token secret is configured, so checks will NOT re-run automatically on the new commit (GITHUB_TOKEN pushes trigger no workflows, and a rerun of the old check would build the stale merge commit). Configure the DEPENDABOT_REGEN_PUSH_TOKEN secret, or verify locally before merging."
+            note="Checks do NOT re-run automatically on this commit (GITHUB_TOKEN pushes trigger no workflows, and re-running the old check would build the stale merge commit). To re-run them: **add any label to this PR** — a human label event triggers a fresh pull_request run with the new metadata. (Optional alternative for full automation: configure the push-token secret.)"
           fi
           gh pr comment "${{ github.event.pull_request.number }}" -R "${{ github.repository }}" --body \
           "Dependency verification metadata regenerated and committed for this bump. $note Review the metadata delta before merging. Note: with this extra commit, \`@dependabot rebase\` will be refused — use \`@dependabot recreate\` if the PR needs rebuilding."
