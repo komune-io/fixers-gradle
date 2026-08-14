@@ -23,6 +23,8 @@ name: Dependabot Verification Metadata
 #     packages: read
 #   jobs:
 #     regenerate:
+#       secrets:
+#         push-token: ${{ secrets.DEPENDABOT_REGEN_PUSH_TOKEN }}
 #       # Org-internal reusable, deliberately tracked @main like every komune-io
 #       # workflow reference: central fixes must propagate to all callers
 #       # without a pin-bump wave.
@@ -40,8 +42,16 @@ name: Dependabot Verification Metadata
 # Trust caveat: the regen pins what the repositories serve at PR time
 # (trust-on-first-use, same model as the original generation).
 # Operational notes:
-#   - pushes made with GITHUB_TOKEN do not trigger workflows, hence the explicit
-#     dispatch of the caller's CI — this same property makes loops impossible;
+#   - pushes made with GITHUB_TOKEN do not trigger workflows, and neither a
+#     rerun (uses the ORIGINAL merge SHA per GitHub docs) nor a dispatch (loses
+#     PR context; Sonar then reports against the default branch) can produce a
+#     correct fresh run. The push therefore uses the optional push-token secret
+#     (a fine-grained PAT with contents:write): a PAT push triggers a normal
+#     pull_request run with full PR context. The synchronize event also re-fires
+#     this workflow, which finds zero delta and no-ops — no loop. Without the
+#     secret, the push falls back to GITHUB_TOKEN and the PR comment tells the
+#     reviewer to add any label — dev.yml listens to `labeled`, and a human
+#     label event triggers a genuine fresh pull_request run;
 #   - after this pushes, Dependabot refuses `@dependabot rebase`; use
 #     `@dependabot recreate`.
 
@@ -59,7 +69,7 @@ on:
         type: string
         default: "verify-metadata"
       dispatch-workflow:
-        description: "Workflow file to dispatch on the branch after pushing (must have workflow_dispatch)"
+        description: "Workflow whose latest pull_request run is re-run after pushing (rerun re-resolves the PR merge ref, preserving PR context for SonarCloud decoration)"
         required: false
         type: string
         default: "dev.yml"
@@ -68,6 +78,10 @@ on:
         required: false
         type: string
         default: "17"
+    secrets:
+      push-token:
+        description: "Fine-grained PAT (contents:write) used to push the metadata commit so that a normal pull_request run triggers. Falls back to GITHUB_TOKEN (no automatic CI re-run) when absent."
+        required: false
 
 jobs:
   # Job 1 — runs the untrusted build. No token anywhere: not on disk
@@ -156,25 +170,35 @@ jobs:
           path: gradle/
 
       - name: Commit and push metadata
+        id: push
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          GH_TOKEN: ${{ github.token }}
+          PUSH_TOKEN: ${{ secrets.push-token }}
+          FALLBACK_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add gradle/verification-metadata.xml gradle/verification-keyring.keys gradle/verification-keyring.gpg
           git commit -m "build: regenerate dependency verification metadata for dependabot bump"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
-
-      - name: Re-trigger CI on the updated branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: gh workflow run ${{ inputs.dispatch-workflow }} --ref "$HEAD_REF" -R "${{ github.repository }}"
+          if [ -n "$PUSH_TOKEN" ]; then
+            # PAT push: triggers a normal pull_request run with full PR context
+            git push "https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
+            echo "auto_ci=true" >> "$GITHUB_OUTPUT"
+          else
+            # GITHUB_TOKEN push: no workflow will trigger; the PR comment explains
+            git push "https://x-access-token:${FALLBACK_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
+            echo "auto_ci=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Explain on the PR
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTO_CI: ${{ steps.push.outputs.auto_ci }}
         run: |
+          if [ "$AUTO_CI" = "true" ]; then
+            note="CI re-runs automatically on the new commit."
+          else
+            note="Checks do NOT re-run automatically on this commit (GITHUB_TOKEN pushes trigger no workflows, and re-running the old check would build the stale merge commit). To re-run them: **add any label to this PR** — a human label event triggers a fresh pull_request run with the new metadata. (Optional alternative for full automation: configure the push-token secret.)"
+          fi
           gh pr comment "${{ github.event.pull_request.number }}" -R "${{ github.repository }}" --body \
-          "Dependency verification metadata regenerated and committed for this bump; a fresh CI run was dispatched on the branch. Review the metadata delta before merging. Note: with this extra commit, \`@dependabot rebase\` will be refused — use \`@dependabot recreate\` if the PR needs rebuilding."
+          "Dependency verification metadata regenerated and committed for this bump. $note Review the metadata delta before merging. Note: with this extra commit, \`@dependabot rebase\` will be refused — use \`@dependabot recreate\` if the PR needs rebuilding."
