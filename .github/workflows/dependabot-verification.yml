@@ -1,0 +1,26 @@
+name: Dependabot Verification Metadata
+
+# Thin caller: all logic lives in the shared reusable workflow (this repo's own
+# dependabot-verification-workflow.yml, referenced @main like every other
+# consumer). The pull_request_target trigger, permissions grant and concurrency
+# group must stay here — they cannot be declared by a reusable workflow. Safety
+# model and operational notes are documented in the reusable's header.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    # Org-internal reusable, deliberately tracked @main like every komune-io workflow
+    # reference: central fixes must propagate to all callers without a pin-bump wave.
+    uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@main # NOSONAR(githubactions:S7637)
