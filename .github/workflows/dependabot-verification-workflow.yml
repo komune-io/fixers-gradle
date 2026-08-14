@@ -22,7 +22,15 @@ name: Dependabot Verification Metadata
 #     pull-requests: write
 #   jobs:
 #     regenerate:
-#       uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@main
+#       # Org-internal reusable, deliberately tracked @main like every komune-io
+#       # workflow reference: central fixes must propagate to all callers
+#       # without a pin-bump wave.
+#       uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@main # NOSONAR(githubactions:S7637)
+#
+# The NOSONAR marker suppresses SonarCloud's githubactions:S7637 ("use full
+# commit SHA"), which fails the new-code security gate on any new caller file;
+# Codacy's semgrep twin of the rule may need its own nosemgrep marker if the
+# caller repo runs it.
 #
 # Safety model (why pull_request_target is acceptable here):
 #   - the job is gated to actor == dependabot[bot] and same-repo head branches,
