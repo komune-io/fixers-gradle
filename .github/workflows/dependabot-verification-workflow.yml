@@ -69,16 +69,19 @@ on:
         default: "17"
 
 jobs:
+  # Job 1 — runs the untrusted build. No token anywhere: not on disk
+  # (persist-credentials off) and not in any step's environment. A compromised
+  # buildscript plugin executing during the regen can therefore neither read a
+  # credential nor plant something that later receives one — the workspace it
+  # could poison (.git/hooks, .git/config) is discarded with this runner.
   regenerate:
     if: >-
       github.actor == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.delta.outputs.changed }}
     steps:
-      # persist-credentials off: the regen step below executes Gradle (and thus
-      # buildscript plugins, including the very artifact a bump may have changed);
-      # no credential may be on disk during that. The push step injects the token
-      # explicitly and is the only step that has it.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -104,8 +107,38 @@ jobs:
             echo "Verification metadata already covers this bump — nothing to commit."
           fi
 
-      - name: Commit and push metadata
+      - name: Upload regenerated metadata
         if: steps.delta.outputs.changed == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-metadata
+          path: |
+            gradle/verification-metadata.xml
+            gradle/verification-keyring.keys
+            gradle/verification-keyring.gpg
+          if-no-files-found: error
+          retention-days: 1
+
+  # Job 2 — the only job that ever sees the token. Fresh runner, fresh pristine
+  # checkout (no Gradle has run here, so no planted hooks or config), data
+  # transferred exclusively as an inert artifact.
+  push:
+    needs: regenerate
+    if: needs.regenerate.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: false
+
+      - name: Apply regenerated metadata
+        uses: actions/download-artifact@v8
+        with:
+          name: verification-metadata
+          path: gradle/
+
+      - name: Commit and push metadata
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           GH_TOKEN: ${{ github.token }}
@@ -117,14 +150,12 @@ jobs:
           git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
 
       - name: Re-trigger CI on the updated branch
-        if: steps.delta.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: gh workflow run ${{ inputs.dispatch-workflow }} --ref "$HEAD_REF" -R "${{ github.repository }}"
 
       - name: Explain on the PR
-        if: steps.delta.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
