@@ -11,6 +11,12 @@ on:
       - main
       - 'release/*'
 
+# Only cancel superseded pull request runs. Pushes to main, release branches and
+# scheduled runs queue instead, so a publish is never interrupted mid-flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   dev:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
