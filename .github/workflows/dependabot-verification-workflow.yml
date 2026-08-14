@@ -75,9 +75,14 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # persist-credentials off: the regen step below executes Gradle (and thus
+      # buildscript plugins, including the very artifact a bump may have changed);
+      # no credential may be on disk during that. The push step injects the token
+      # explicitly and is the only step that has it.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: false
 
       # org-internal action, tracked @main across all komune-io workflows by design
       # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
@@ -103,12 +108,13 @@ jobs:
         if: steps.delta.outputs.changed == 'true'
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add gradle/verification-metadata.xml gradle/verification-keyring.keys gradle/verification-keyring.gpg
           git commit -m "build: regenerate dependency verification metadata for dependabot bump"
-          git push origin "HEAD:$HEAD_REF"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
 
       - name: Re-trigger CI on the updated branch
         if: steps.delta.outputs.changed == 'true'
