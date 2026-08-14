@@ -41,7 +41,9 @@ name: Dependabot Verification Metadata
 # (trust-on-first-use, same model as the original generation).
 # Operational notes:
 #   - pushes made with GITHUB_TOKEN do not trigger workflows, hence the explicit
-#     dispatch of the caller's CI — this same property makes loops impossible;
+#     re-run of the PR's CI (a rerun, not a dispatch: dispatch loses PR context
+#     and Sonar then reports against the default branch) — this same property
+#     makes loops impossible;
 #   - after this pushes, Dependabot refuses `@dependabot rebase`; use
 #     `@dependabot recreate`.
 
@@ -59,7 +61,7 @@ on:
         type: string
         default: "verify-metadata"
       dispatch-workflow:
-        description: "Workflow file to dispatch on the branch after pushing (must have workflow_dispatch)"
+        description: "Workflow whose latest pull_request run is re-run after pushing (rerun re-resolves the PR merge ref, preserving PR context for SonarCloud decoration)"
         required: false
         type: string
         default: "dev.yml"
@@ -166,11 +168,27 @@ jobs:
           git commit -m "build: regenerate dependency verification metadata for dependabot bump"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$HEAD_REF"
 
-      - name: Re-trigger CI on the updated branch
+      # Re-run the PR's own pull_request run rather than dispatching the workflow
+      # on the branch: a workflow_dispatch run has no PR context, so the Sonar
+      # scanner would attribute its analysis to the DEFAULT branch (observed:
+      # polluted main dashboard + a quality-gate check on the PR that linked to
+      # main). A rerun re-resolves refs/pull/N/merge against the pushed commit
+      # and keeps every context-dependent tool pointed at the PR.
+      - name: Re-run the PR's CI on the updated merge ref
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: gh workflow run ${{ inputs.dispatch-workflow }} --ref "$HEAD_REF" -R "${{ github.repository }}"
+        run: |
+          run_id=$(gh run list -R "${{ github.repository }}" \
+            --workflow "${{ inputs.dispatch-workflow }}" \
+            --event pull_request \
+            --branch "$HEAD_REF" \
+            --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$run_id" ]; then
+            gh run rerun "$run_id" -R "${{ github.repository }}"
+          else
+            echo "No pull_request run found for $HEAD_REF - skipping re-trigger (the next PR event will build the new head)."
+          fi
 
       - name: Explain on the PR
         env:
