@@ -1,7 +1,5 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
-import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -9,8 +7,6 @@ import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 
 class MppPlugin : Plugin<Project> {
 
@@ -41,8 +37,7 @@ class MppPlugin : Plugin<Project> {
 
 	private fun Project.setupJvmTarget() {
 		logger.info("Setting up JVM Target for project: $name")
-		val fixersConfig = rootProject.extensions.fixers
-		val jdkVersion = fixersConfig?.jdk?.version?.orNull ?: Jdk.VERSION_DEFAULT
+		val jdkVersion = fixersJdkVersion()
 		extensions.configure(KotlinMultiplatformExtension::class.java) {
 			jvm {
 				logger.info("Configuring JVM compilation with JDK version: $jdkVersion")
@@ -50,8 +45,7 @@ class MppPlugin : Plugin<Project> {
 					compileTaskProvider.configure {
 						compilerOptions {
 							jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-							val kotlinLangVersion = getKotlinPluginVersion().substringBeforeLast(".")
-							languageVersion.set(KotlinVersion.fromVersion(kotlinLangVersion))
+							languageVersion.set(kotlinLanguageVersion())
 						}
 					}
 				}

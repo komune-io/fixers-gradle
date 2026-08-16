@@ -1,7 +1,5 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
-import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.config.model.Jdk
 import io.komune.fixers.gradle.config.utils.configureJUnitPlatform
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.gradle.api.Plugin
@@ -16,8 +14,6 @@ import org.gradle.kotlin.dsl.kotlin
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 
 @Suppress("UnstableApiUsage")
 class JvmPlugin : Plugin<Project> {
@@ -33,8 +29,7 @@ class JvmPlugin : Plugin<Project> {
 	private fun Project.configureJvmCompilation() {
 		logger.info("Configuring JVM compilation for project: $name")
 		plugins.apply(ConfigPlugin::class.java)
-		val fixersConfig = rootProject.extensions.fixers
-		val jdkVersion = fixersConfig?.jdk?.version?.orNull ?: Jdk.VERSION_DEFAULT
+		val jdkVersion = fixersJdkVersion()
 
 		logger.info("Using JDK version: $jdkVersion")
 
@@ -44,8 +39,7 @@ class JvmPlugin : Plugin<Project> {
 			compilerOptions {
 				freeCompilerArgs.add("-Xjsr305=strict")
 				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-				val kotlinLangVersion = getKotlinPluginVersion().substringBeforeLast(".")
-				languageVersion.set(KotlinVersion.fromVersion(kotlinLangVersion))
+				languageVersion.set(kotlinLanguageVersion())
 			}
 		}
 

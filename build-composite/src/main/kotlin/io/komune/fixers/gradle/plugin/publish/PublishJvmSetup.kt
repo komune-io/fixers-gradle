@@ -10,7 +10,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.the
 
@@ -48,18 +47,8 @@ object PublishJvmSetup {
 	}
 
 	private fun Project.setupPublication(config: ConfigExtension) {
-		project.extensions.findByType(PublishingExtension::class.java)?.let { publishing ->
-			extensions.findByType(JavaPluginExtension::class.java)?.let {
-				publishing.publications {
-					if (findByName("maven") == null) {
-						create<MavenPublication>("maven") {
-							from(components["kotlin"])
-							val publication = project.pom(config.bundle)
-							pom(publication)
-						}
-					}
-				}
-			}
+		extensions.findByType(JavaPluginExtension::class.java)?.let {
+			createMavenPublicationIfAbsent("kotlin", config)
 		}
 	}
 
