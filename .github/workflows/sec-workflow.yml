@@ -111,22 +111,3 @@ jobs:
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.FIXERS_SONAR_TOKEN }}
-
-#  codacy-analysis:
-#    runs-on: ubuntu-latest
-#    permissions:
-#      contents: read
-#      security-events: write
-#    steps:
-#      - uses: actions/checkout@v7
-#      - name: Run Codacy Analysis
-#        uses: codacy/codacy-analysis-cli-action@v4
-#        with:
-#          output: results.sarif
-#          format: sarif
-#          gh-code-scanning-compat: true
-#          max-allowed-issues: 2147483647
-#      - name: Upload SARIF File to GitHub Code Scanning
-#        uses: github/codeql-action/upload-sarif@v4
-#        with:
-#          sarif_file: results.sarif

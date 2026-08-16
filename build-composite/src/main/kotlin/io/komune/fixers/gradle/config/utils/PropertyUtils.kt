@@ -4,7 +4,6 @@ import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.kotlin.dsl.listProperty
 import org.gradle.kotlin.dsl.property
 
 /**
@@ -69,48 +68,6 @@ inline fun <reified T> Property<T>.extractEnv(envValue: String) where T : Any {
     }
     convention(value)
     return
-}
-
-/**
- * Initializes a list property from environment variables, project properties, and a default value.
- * Priority: 1. kts file dsl (handled by convention() in the calling code)
- *          2. ENV system properties (comma-separated values)
- *          3. Project properties (comma-separated values)
- *          4. Default value
- *
- * Uses providers.environmentVariable() for configuration cache compatibility.
- *
- * @param envKey The environment variable key to check for a value
- * @param projectKey The project property key to check for a value
- * @param defaultValue The default value to use if no other value is found
- * @return A ListProperty<T> initialized with the appropriate values
- */
-inline fun <reified T> Project.initListProperty(
-    envKey: String? = null,
-    projectKey: String? = null,
-    defaultValue: List<T>? = null
-): ListProperty<T> where T : Any {
-    return objects.listProperty<T>().apply {
-        if (envKey != null) {
-            providers.environmentVariable(envKey).orNull?.let { envValue ->
-                val list = envValue.split(",").map { it.trim() as T }
-                convention(list)
-                return@apply
-            }
-        }
-
-        if (projectKey != null) {
-            findProperty(projectKey)?.toString()?.let { projValue ->
-                val list = projValue.split(",").map { it.trim() as T }
-                convention(list)
-                return@apply
-            }
-        }
-
-        if (defaultValue != null) {
-            convention(defaultValue)
-        }
-    }
 }
 
 /**

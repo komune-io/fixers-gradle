@@ -34,7 +34,7 @@ object PublishMppSetup {
 		configure<PublishingExtension> {
 			publications.withType<MavenPublication>().configureEach {
 				val mavenPublication = this
-				mavenPublication.artifactId = getArtifactId(projectName, mavenPublication.name)
+				mavenPublication.artifactId = mppTargetArtifactId(projectName, mavenPublication.name)
 				val publication = project.pom(config.bundle)
 				mavenPublication.pom(publication)
 
@@ -44,7 +44,7 @@ object PublishMppSetup {
 		}
 	}
 
-	private fun getArtifactId(projectName: String, publicationName: String): String {
+	private fun mppTargetArtifactId(projectName: String, publicationName: String): String {
 		return "${projectName}${"-$publicationName".takeUnless { "kotlinMultiplatform" in publicationName }.orEmpty()}"
 	}
 

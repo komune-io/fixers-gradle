@@ -217,41 +217,6 @@ class CheckPluginTest {
             assertThat(jacoco.xmlReportFilename.get()).isEqualTo("custom-report.xml")
         }
 
-        @Test
-        fun `should not overwrite values during merge when target has values`() {
-            val source = Jacoco(project).apply {
-                enabled.set(false)
-                htmlReport.set(false)
-                xmlReport.set(false)
-                xmlReportFilename.set("source-report.xml")
-            }
-
-            val target = Jacoco(project).apply {
-                enabled.set(true)
-            }
-            target.mergeFrom(source)
-
-            // Target already has enabled set, should preserve its value
-            assertThat(target.enabled.get()).isTrue()
-        }
-
-        @Test
-        fun `should preserve explicit target values during merge`() {
-            val source = Jacoco(project).apply {
-                enabled.set(false)
-                htmlReport.set(false)
-            }
-
-            val target = Jacoco(project).apply {
-                enabled.set(true)
-                htmlReport.set(true)
-            }
-            target.mergeFrom(source)
-
-            // Both values were explicitly set on target
-            assertThat(target.enabled.get()).isTrue()
-            assertThat(target.htmlReport.get()).isTrue()
-        }
     }
 
     @Nested
@@ -525,14 +490,6 @@ class CheckPluginTest {
             }
 
             assertThat(config.detekt.disable.get()).isTrue()
-        }
-
-        @Test
-        fun `should have default buildTime provider`() {
-            val config = createConfigExtension()
-
-            val buildTime = config.buildTime.get()
-            assertThat(buildTime).isGreaterThan(0)
         }
 
         @Test

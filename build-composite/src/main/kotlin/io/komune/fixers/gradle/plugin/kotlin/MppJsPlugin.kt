@@ -29,10 +29,6 @@ class MppJsPlugin : Plugin<Project> {
                     configureJsOptions()
                 }
             }
-            sourceSets.getByName("jsMain") {
-                dependencies {
-                }
-            }
             sourceSets.getByName("jsTest") {
                 dependencies {
                     implementation(kotlin("test-js"))

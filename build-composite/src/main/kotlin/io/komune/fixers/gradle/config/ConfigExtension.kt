@@ -14,7 +14,6 @@ import io.komune.fixers.gradle.config.model.sonarCloud
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionContainer
-import org.gradle.api.provider.Property
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -30,15 +29,6 @@ val ExtensionContainer.fixers: ConfigExtension?
  */
 fun Project.fixers(configure: Action<ConfigExtension>): Unit =
 	this.rootProject.extensions.configure(ConfigExtension.NAME, configure)
-
-/**
- * Configures the [fixers][io.komune.fixers.gradle.config.ConfigExtension.NAME] extension if exists.
- */
-fun ExtensionContainer.fixersIfExists(configure: Action<ConfigExtension>) {
-	if (fixers != null) {
-		configure(ConfigExtension.NAME, configure)
-	}
-}
 
 fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io.komune.fixers.gradle.${module}")
 
@@ -57,8 +47,6 @@ abstract class ConfigExtension(
 		const val NAME: String = "fixers"
 	}
 
-	var properties: MutableMap<String, Any> = mutableMapOf()
-
 	var bundle: Bundle = Bundle(
 		project = project,
 		name = project.name
@@ -67,14 +55,6 @@ abstract class ConfigExtension(
 	var kt2Ts: Kt2Ts = Kt2Ts(project)
 
 	var jdk: Jdk = Jdk(project)
-
-	/**
-	 * Build time as a lazy Provider for configuration cache compatibility.
-	 * The timestamp is captured when the value is first accessed, not at configuration time.
-	 */
-	val buildTime: Property<Long> = project.objects.property(Long::class.java).convention(
-		project.provider { System.currentTimeMillis() }
-	)
 
 	var pom: Publication = Publication(project)
 
@@ -136,7 +116,6 @@ abstract class ConfigExtension(
 			bundle=$bundle,
 			kt2Ts=$kt2Ts,
 			jdk=$jdk,
-			buildTime=$buildTime,
 			publication=$pom,
 			npm=$npm,
 			detekt=$detekt,
