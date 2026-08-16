@@ -29,7 +29,7 @@ object PublishJvmSetup {
 		configure<PublishingExtension> {
 			publications.configureEach {
 				(this as? MavenPublication)?.let { mavenPublication ->
-					mavenPublication.artifactId = getArtifactId(variantName, name)
+					mavenPublication.artifactId = pluginMarkerArtifactId(variantName, name)
 					val publication = project.pom(config.bundle)
 					mavenPublication.pom(publication)
 					tasks.findByName("javadocJar")?.let { mavenPublication.artifact(it) }
@@ -40,7 +40,7 @@ object PublishJvmSetup {
 	}
 
 
-	internal fun getArtifactId(projectName: String, publicationName: String): String {
+	internal fun pluginMarkerArtifactId(projectName: String, publicationName: String): String {
 		if(publicationName.endsWith("PluginMarkerMaven")) {
 			return publicationName.replace("PluginMarkerMaven", ".gradle.plugin")
 		}

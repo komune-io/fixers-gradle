@@ -25,16 +25,16 @@ class PublishJvmSetupTest {
     }
 
     @Nested
-    inner class GetArtifactIdTest {
+    inner class PluginMarkerArtifactIdTest {
 
         @Test
         fun `should return project name for regular publications`() {
-            assertThat(PublishJvmSetup.getArtifactId("my-project", "maven")).isEqualTo("my-project")
+            assertThat(PublishJvmSetup.pluginMarkerArtifactId("my-project", "maven")).isEqualTo("my-project")
         }
 
         @Test
         fun `should map plugin marker publications to gradle plugin artifact id`() {
-            assertThat(PublishJvmSetup.getArtifactId("my-project", "fooPluginMarkerMaven"))
+            assertThat(PublishJvmSetup.pluginMarkerArtifactId("my-project", "fooPluginMarkerMaven"))
                 .isEqualTo("foo.gradle.plugin")
         }
     }

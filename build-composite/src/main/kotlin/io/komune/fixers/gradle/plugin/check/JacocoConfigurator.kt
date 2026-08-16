@@ -24,8 +24,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration settings
      */
     fun configure(jacocoConfig: Jacoco?) {
-        val jacocoEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
-        if (!jacocoEnabled) {
+        if (!isEnabled(jacocoConfig)) {
             return
         }
 
@@ -65,10 +64,10 @@ class JacocoConfigurator(
      */
     fun configureJacocoReportTasks(jacocoConfig: Jacoco?) {
         project.tasks.withType<JacocoReport>().configureEach {
-            isEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
+            isEnabled = isEnabled(jacocoConfig)
             reports {
-                html.required.set(jacocoConfig?.htmlReport?.getOrElse(true) ?: true)
-                xml.required.set(jacocoConfig?.xmlReport?.getOrElse(true) ?: true)
+                html.required.set(isHtmlReportEnabled(jacocoConfig))
+                xml.required.set(isXmlReportEnabled(jacocoConfig))
             }
         }
     }
@@ -84,7 +83,7 @@ class JacocoConfigurator(
         project.tasks.matching { it.name == "jvmTest" }.configureEach {
             if (this is Test) {
                 extensions.configure(JacocoTaskExtension::class.java) {
-                    isEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
+                    isEnabled = isEnabled(jacocoConfig)
                 }
             }
         }
@@ -95,7 +94,7 @@ class JacocoConfigurator(
         (project.tasks.findByName("jvmTest") as? Test)?.let { jvmTestTask ->
             project.tasks.register<JacocoReport>("jacocoJvmTestReport") {
                 dependsOn(jvmTestTask)
-                isEnabled = jacocoConfig?.enabled?.getOrElse(true) ?: true
+                isEnabled = isEnabled(jacocoConfig)
 
                 val jvmCompilation = jvmTarget.compilations.getByName("main")
                 classDirectories.setFrom(jvmCompilation.output.classesDirs)
@@ -104,12 +103,10 @@ class JacocoConfigurator(
                 )
                 executionData.setFrom(project.layout.buildDirectory.file("jacoco/jvmTest.exec"))
 
-                val xmlFilename = jacocoConfig?.xmlReportFilename
-                    ?.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME)
-                    ?: Jacoco.DEFAULT_XML_REPORT_FILENAME
+                val xmlFilename = getXmlReportFilename(jacocoConfig)
                 reports {
-                    html.required.set(jacocoConfig?.htmlReport?.getOrElse(true) ?: true)
-                    xml.required.set(jacocoConfig?.xmlReport?.getOrElse(true) ?: true)
+                    html.required.set(isHtmlReportEnabled(jacocoConfig))
+                    xml.required.set(isXmlReportEnabled(jacocoConfig))
                     html.outputLocation.set(
                         project.layout.buildDirectory.dir("reports/jacoco/jvmTest/html")
                     )

@@ -66,32 +66,16 @@ tasks.register<Delete>("cleanPluginSources") {
 
 
 gradle.projectsEvaluated {
-	project(":config") {
-		tasks.named("clean") {
-			dependsOn(rootProject.tasks.named("cleanConfigSources"))
-		}
-		tasks.named("compileKotlin") {
-			dependsOn(rootProject.tasks.named("copyConfigSources"))
-		}
-		tasks.named("sourcesJar") {
-			dependsOn(rootProject.tasks.named("copyConfigSources"))
-		}
-		tasks.named("detekt") {
-			dependsOn(rootProject.tasks.named("copyConfigSources"))
-		}
-	}
-	project(":plugin") {
-		tasks.named("clean") {
-			dependsOn(rootProject.tasks.named("cleanPluginSources"))
-		}
-		tasks.named("compileKotlin") {
-			dependsOn(rootProject.tasks.named("copyPluginSources"))
-		}
-		tasks.named("sourcesJar") {
-			dependsOn(rootProject.tasks.named("copyPluginSources"))
-		}
-		tasks.named("detekt") {
-			dependsOn(rootProject.tasks.named("copyPluginSources"))
+	mapOf(":config" to "Config", ":plugin" to "Plugin").forEach { (projectPath, sourceKind) ->
+		project(projectPath) {
+			tasks.named("clean") {
+				dependsOn(rootProject.tasks.named("clean${sourceKind}Sources"))
+			}
+			listOf("compileKotlin", "sourcesJar", "detekt").forEach { taskName ->
+				tasks.named(taskName) {
+					dependsOn(rootProject.tasks.named("copy${sourceKind}Sources"))
+				}
+			}
 		}
 	}
 }

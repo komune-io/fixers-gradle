@@ -92,18 +92,18 @@ class ConfigPlugin : Plugin<Project> {
 
     private fun Project.configureRepositories(repos: Repositories) {
         val handler = repositories
-        if (repos.mavenLocal.getOrElse(false)) {
+        if (repos.mavenLocal.get()) {
             handler.mavenLocal()
         }
-        if (repos.mavenCentral.getOrElse(true)) {
+        if (repos.mavenCentral.get()) {
             handler.mavenCentral()
         }
-        if (repos.sonatypeSnapshots.getOrElse(true)) {
+        if (repos.sonatypeSnapshots.get()) {
             handler.maven(Action<MavenArtifactRepository> {
                 url = java.net.URI("https://central.sonatype.com/repository/maven-snapshots")
             })
         }
-        repos.mavenUrls.getOrElse(emptyList()).forEach { repoUrl ->
+        repos.mavenUrls.get().forEach { repoUrl ->
             handler.maven(Action<MavenArtifactRepository> {
                 url = java.net.URI(repoUrl)
             })

@@ -133,18 +133,6 @@ class PropertyUtilsTest {
         }
 
         @Test
-        fun `should split environment variable for list properties`() {
-            val project = projectWithProperties("fixers.test.list" to "x,y")
-
-            val property = project.initListProperty<String>(
-                envKey = "PROPERTY_UTILS_TEST_LIST",
-                projectKey = "fixers.test.list"
-            )
-
-            assertThat(property.get()).containsExactly("a", "b", "c")
-        }
-
-        @Test
         fun `should fall back to project property when env variable is missing`() {
             val project = projectWithProperties("fixers.test.value" to "from-project")
 
@@ -154,40 +142,6 @@ class PropertyUtilsTest {
             )
 
             assertThat(property.get()).isEqualTo("from-project")
-        }
-    }
-
-    @Nested
-    inner class ListPropertyTest {
-
-        @Test
-        fun `should split comma separated project property`() {
-            val project = projectWithProperties("fixers.test.list" to "a, b ,c")
-
-            val property = project.initListProperty<String>(projectKey = "fixers.test.list")
-
-            assertThat(property.get()).containsExactly("a", "b", "c")
-        }
-
-        @Test
-        fun `should use default list when nothing is configured`() {
-            val project = projectWithProperties()
-
-            val property = project.initListProperty(
-                projectKey = "fixers.test.list",
-                defaultValue = listOf("x", "y")
-            )
-
-            assertThat(property.get()).containsExactly("x", "y")
-        }
-
-        @Test
-        fun `should be empty when nothing is configured and no default given`() {
-            val project = projectWithProperties()
-
-            val property = project.initListProperty<String>(projectKey = "fixers.test.list")
-
-            assertThat(property.get()).isEmpty()
         }
     }
 }

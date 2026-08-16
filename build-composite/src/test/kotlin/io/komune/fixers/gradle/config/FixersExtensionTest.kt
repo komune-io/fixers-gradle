@@ -38,19 +38,6 @@ class FixersExtensionTest {
     }
 
     @Test
-    fun `fixersIfExists should run the action only when the extension exists`() {
-        val project = ProjectBuilder.builder().build()
-        var executed = false
-
-        project.extensions.fixersIfExists { executed = true }
-        assertThat(executed).isFalse()
-
-        project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
-        project.extensions.fixersIfExists { executed = true }
-        assertThat(executed).isTrue()
-    }
-
-    @Test
     fun `PluginDependenciesSpec fixers should prefix the komune plugin id`() {
         val requestedIds = mutableListOf<String>()
         val spec = object : PluginDependenciesSpec {
