@@ -5,9 +5,13 @@ import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.PublishConfig
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.Directory
+import org.gradle.api.provider.Provider
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.gradle.plugins.signing.SigningExtension
@@ -179,7 +183,35 @@ class PublishPlugin : Plugin<Project> {
 		}
 	}
 
-	@Suppress("LongMethod", "ThrowsCount")
+	private fun registerCleanStagingTask(
+		root: Project,
+		stagingDirProvider: Provider<Directory>,
+		publishSubprojects: List<Project>
+	): TaskProvider<Task> {
+		val cleanStagingTask = root.tasks.register("cleanStaging") {
+			group = "publishing"
+			description = "Cleans the staging directory before publishing"
+			doLast {
+				stagingDirProvider.get().asFile.deleteRecursively()
+			}
+		}
+
+		// Ensure ALL publish-to-staging tasks run after cleanStaging.
+		// publishAllPublicationsToStagingRepository is just an aggregate — the actual file writes
+		// happen in individual tasks (publishXPublicationToStagingRepository). With parallel=true,
+		// those individual tasks can race with cleanStaging's deleteRecursively(), causing partial
+		// staging directories (some files deleted mid-write). Matching all publish*ToStagingRepository
+		// tasks prevents this race condition.
+		publishSubprojects.forEach { subproject ->
+			subproject.tasks.matching {
+				it.name.startsWith("publish") && it.name.endsWith("ToStagingRepository")
+			}.configureEach {
+				mustRunAfter(cleanStagingTask)
+			}
+		}
+		return cleanStagingTask
+	}
+
 	private fun registerPublishTasks(
 		root: Project,
 		fixersConfig: ConfigExtension,
@@ -202,27 +234,7 @@ class PublishPlugin : Plugin<Project> {
 		val centralPollTimeoutProvider = fixersConfig.publish.mavenCentralStatusPollTimeoutSeconds
 		val bundleName = "${root.name}-$version"
 
-		val cleanStagingTask = root.tasks.register("cleanStaging") {
-			group = "publishing"
-			description = "Cleans the staging directory before publishing"
-			doLast {
-				stagingDirProvider.get().asFile.deleteRecursively()
-			}
-		}
-
-		// Ensure ALL publish-to-staging tasks run after cleanStaging.
-		// publishAllPublicationsToStagingRepository is just an aggregate — the actual file writes
-		// happen in individual tasks (publishXPublicationToStagingRepository). With parallel=true,
-		// those individual tasks can race with cleanStaging's deleteRecursively(), causing partial
-		// staging directories (some files deleted mid-write). Matching all publish*ToStagingRepository
-		// tasks prevents this race condition.
-		publishSubprojects.forEach { subproject ->
-			subproject.tasks.matching {
-				it.name.startsWith("publish") && it.name.endsWith("ToStagingRepository")
-			}.configureEach {
-				mustRunAfter(cleanStagingTask)
-			}
-		}
+		val cleanStagingTask = registerCleanStagingTask(root, stagingDirProvider, publishSubprojects)
 
 		// Stage: publish to staging directory, then upload to GitHub Packages
 		// Uses custom uploader to handle 409 Conflict (already-published artifacts) gracefully.
@@ -239,17 +251,15 @@ class PublishPlugin : Plugin<Project> {
 		// Promote: route based on version type
 		root.tasks.register("promote") {
 			group = "publishing"
+			dependsOn(cleanStagingTask)
+			dependsOn(allPublishToStagingTasks)
 			if (isSnapshot) {
 				description = "Publishes all SNAPSHOT artifacts to Maven Central Snapshots"
-				dependsOn(cleanStagingTask)
-				dependsOn(allPublishToStagingTasks)
 				doLast {
 					uploadToMavenSnapshots(stagingDirProvider.get().asFile, fixersConfig)
 				}
 			} else {
 				description = "Publishes all artifacts to Maven Central via Central Portal"
-				dependsOn(cleanStagingTask)
-				dependsOn(allPublishToStagingTasks)
 
 				// Also publish to Gradle Plugin Portal (only non-SNAPSHOT releases are accepted)
 				if (fixersConfig.publish.gradlePluginPortalEnabled.getOrElse(true)) {
@@ -275,55 +285,6 @@ class PublishPlugin : Plugin<Project> {
 		}
 	}
 
-	private fun uploadToGithubPackages(stagingDir: java.io.File, fixersConfig: ConfigExtension) {
-		val ghUsername = fixersConfig.publish.pkgGithubUsername.orNull
-			?: throw org.gradle.api.GradleException(
-				"FIXERS_PUBLISH_GITHUB_USERNAME is not set"
-			)
-		val ghToken = fixersConfig.publish.pkgGithubToken.orNull
-			?: throw org.gradle.api.GradleException(
-				"FIXERS_PUBLISH_GITHUB_TOKEN is not set"
-			)
-		MavenRepositoryUploader.to("GitHub Packages")
-			.from(stagingDir)
-			.at(fixersConfig.publish.githubPackagesUrl.get())
-			.withCredentials(ghUsername, ghToken)
-			.upload()
-	}
-
-	private fun uploadToMavenSnapshots(stagingDir: java.io.File, fixersConfig: ConfigExtension) {
-		val username = fixersConfig.publish.mavenCentralUsername.orNull
-			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME is not set")
-		val password = fixersConfig.publish.mavenCentralPassword.orNull
-			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD is not set")
-		MavenRepositoryUploader.to("Maven Central Snapshots")
-			.from(stagingDir)
-			.at(fixersConfig.publish.mavenSnapshotsUrl.get())
-			.withCredentials(username, password)
-			.upload()
-	}
-
-	private fun uploadToCentralPortal(
-		stagingDir: java.io.File,
-		centralUrl: String,
-		username: String?,
-		password: String?,
-		bundleName: String,
-		options: CentralPortalUploader.Options,
-	) {
-		val resolvedUsername = username
-			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME is not set")
-		val resolvedPassword = password
-			?: throw org.gradle.api.GradleException("FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD is not set")
-		CentralPortalUploader.upload(
-			stagingDir = stagingDir,
-			baseUrl = centralUrl,
-			username = resolvedUsername,
-			password = resolvedPassword,
-			bundleName = bundleName,
-			options = options,
-		)
-	}
 }
 
 /**
