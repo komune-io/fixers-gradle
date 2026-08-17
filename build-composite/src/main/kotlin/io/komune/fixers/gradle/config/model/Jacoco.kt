@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -54,6 +55,23 @@ class Jacoco(
         projectKey = "fixers.jacoco.version",
         defaultValue = FixersToolVersions.jacoco
     )
+
+    /**
+     * Merges properties from the source Jacoco into this Jacoco.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Jacoco to merge from
+     * @return This Jacoco after merging
+     */
+    fun mergeFrom(source: Jacoco): Jacoco {
+        enabled.mergeIfNotPresent(source.enabled)
+        htmlReport.mergeIfNotPresent(source.htmlReport)
+        xmlReport.mergeIfNotPresent(source.xmlReport)
+        xmlReportFilename.mergeIfNotPresent(source.xmlReportFilename)
+        version.mergeIfNotPresent(source.version)
+
+        return this
+    }
 
     companion object {
         const val DEFAULT_XML_REPORT_FILENAME = "jacocoTestReport.xml"

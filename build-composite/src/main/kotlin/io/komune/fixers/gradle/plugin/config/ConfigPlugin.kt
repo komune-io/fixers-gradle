@@ -82,6 +82,7 @@ class ConfigPlugin : Plugin<Project> {
         subprojectConfig.bundle.mergeFrom(rootConfig.bundle)
         subprojectConfig.publish.mergeFrom(rootConfig.publish)
         subprojectConfig.detekt.mergeFrom(rootConfig.detekt)
+        subprojectConfig.jacoco.mergeFrom(rootConfig.jacoco)
         subprojectConfig.jdk.mergeFrom(rootConfig.jdk)
         subprojectConfig.kt2Ts.mergeFrom(rootConfig.kt2Ts)
         subprojectConfig.npm.mergeFrom(rootConfig.npm)

@@ -112,6 +112,40 @@ class ConfigModelsTest {
     }
 
     @Nested
+    inner class JacocoModelTest {
+
+        @Test
+        fun `should have reports enabled by default`() {
+            val jacoco = Jacoco(project)
+
+            assertThat(jacoco.enabled.get()).isTrue()
+            assertThat(jacoco.htmlReport.get()).isTrue()
+            assertThat(jacoco.xmlReport.get()).isTrue()
+            assertThat(jacoco.xmlReportFilename.get()).isEqualTo(Jacoco.DEFAULT_XML_REPORT_FILENAME)
+            assertThat(jacoco.version.get()).isNotBlank()
+        }
+
+        @Test
+        fun `should not override convention-backed values on merge`() {
+            // All properties have conventions, so isPresent is always true and
+            // mergeIfNotPresent keeps the target values (same contract as Repositories).
+            val source = Jacoco(project).apply {
+                enabled.set(false)
+                xmlReportFilename.set("source.xml")
+            }
+            val target = Jacoco(project).apply {
+                xmlReportFilename.set("target.xml")
+            }
+
+            val merged = target.mergeFrom(source)
+
+            assertThat(merged).isSameAs(target)
+            assertThat(target.enabled.get()).isTrue()
+            assertThat(target.xmlReportFilename.get()).isEqualTo("target.xml")
+        }
+    }
+
+    @Nested
     inner class JdkModelTest {
 
         @Test
