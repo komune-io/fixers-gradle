@@ -32,7 +32,12 @@ class Bundle(
 
     /**
      * The ID of the project.
+     *
+     * Never read by fixers-gradle: no plugin, publication, or POM logic consumes this value.
      */
+    @Deprecated(
+        message = "Unread by fixers-gradle; setting it has no effect. It will be removed in a future release."
+    )
     val id: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_ID",
         projectKey = "fixers.bundle.id"

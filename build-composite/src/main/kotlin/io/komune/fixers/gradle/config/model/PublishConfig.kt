@@ -151,6 +151,11 @@ open class PublishConfig(
 
     /**
      * List of marker publications for Gradle plugins.
+     *
+     * @deprecated Unread since POM metadata is applied to every Maven publication via a
+     * catch-all in `configureMavenPublications`; explicitly listing marker publications
+     * is no longer necessary. Kept for configuration compatibility; scheduled for removal
+     * in a future release.
      */
     val gradlePlugin: ListProperty<String> = project.objects.listProperty(String::class.java).apply {
         convention(emptyList())
