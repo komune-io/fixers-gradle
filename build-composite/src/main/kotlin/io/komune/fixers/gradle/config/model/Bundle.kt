@@ -152,6 +152,8 @@ class Bundle(
         defaultValue = "scm:git:ssh://github.com/komune-io/fixers-gradle.git"
     )
 
+    // `id` is deprecated but must keep behaving as before until it is removed.
+    @Suppress("DEPRECATION")
     override fun toString(): String {
         return """
             Bundle(
@@ -181,10 +183,12 @@ class Bundle(
      * @param source The source Bundle to merge from
      * @return This Bundle after merging
      */
+    @Suppress("DEPRECATION")
     fun mergeFrom(source: Bundle): Bundle {
         // Basic properties
         name.mergeIfNotPresent(source.name)
         group.mergeIfNotPresent(source.group)
+        // `id` is deprecated but keeps inheriting from the root project until it is removed.
         id.mergeIfNotPresent(source.id)
         description.mergeIfNotPresent(source.description)
         url.mergeIfNotPresent(source.url)
