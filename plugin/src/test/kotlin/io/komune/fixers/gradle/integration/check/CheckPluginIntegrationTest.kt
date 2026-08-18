@@ -452,7 +452,6 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
                 fixers {
                     bundle {
-                        id = "test-bundle"
                         name = "Test Bundle"
                         description = "A test bundle"
                         url = "https://github.com/test/test"

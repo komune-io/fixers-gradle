@@ -469,13 +469,11 @@ class CheckPluginTest {
             val config = createConfigExtension()
 
             config.bundle {
-                id.set("test-id")
                 name.set("Test Name")
                 description.set("Test description")
                 url.set("https://example.com")
             }
 
-            assertThat(config.bundle.id.get()).isEqualTo("test-id")
             assertThat(config.bundle.name.get()).isEqualTo("Test Name")
             assertThat(config.bundle.description.get()).isEqualTo("Test description")
             assertThat(config.bundle.url.get()).isEqualTo("https://example.com")

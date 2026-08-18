@@ -171,7 +171,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         val rootExtra = """
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
@@ -259,7 +258,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
@@ -424,7 +422,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         val rootExtra = """
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"

@@ -172,7 +172,6 @@ The `Bundle` class contains configuration for project metadata.
 |----------|---------------------|------------------|---------------|-------------|
 | name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
 | group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
-| id | FIXERS_BUNDLE_ID | fixers.bundle.id | - | Deprecated: unread by fixers-gradle, setting it has no effect; scheduled for removal |
 | description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
 | version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
 | url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |

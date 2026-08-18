@@ -29,7 +29,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
@@ -45,7 +44,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
 
                     // Access the extension properties directly
                     val config = fixersExt as io.komune.fixers.gradle.config.ConfigExtension
-                    println("Bundle ID: ${'$'}{config.bundle.id.get()}")
                 }
             }
         """.trimIndent())
@@ -56,7 +54,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         // Verify that the task completed successfully and the fixers extension is configured
         assertThat(result.task(":verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Fixers extension found")
-        assertThat(result.output).contains("Bundle ID: test-bundle")
     }
 
     /**
@@ -201,7 +198,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
@@ -229,7 +225,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
                 doLast {
                     // Access the extension properties directly
                     val config = rootProject.extensions.getByName("fixers") as io.komune.fixers.gradle.config.ConfigExtension
-                    println("Bundle ID: ${'$'}{config.bundle.id.get()}")
                     println("Detekt disabled: ${'$'}{config.detekt.disable.get()}")
                     println("Sonar project key: ${'$'}{config.sonar.projectKey.get()}")
                     println("Kt2Ts output directory: ${'$'}{config.kt2Ts.outputDirectory.get()}")
@@ -241,7 +236,6 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         val result = runGradle("verifyConfig")
 
         // Verify that all properties are correctly configured
-        assertThat(result.output).contains("Bundle ID: test-bundle")
         assertThat(result.output).contains("Detekt disabled: false")
         assertThat(result.output).contains("Sonar project key: test-project")
         assertThat(result.output).contains("Kt2Ts output directory: generated/ts")

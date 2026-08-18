@@ -36,7 +36,6 @@ class PublishStagingIntegrationTest : BaseIntegrationTest() {
 
 			fixers {
 				bundle {
-					id = "staging-test"
 					name = "Staging Test"
 					description = "Integration test for staging directory completeness"
 					url = "https://github.com/komune-io/fixers-gradle"
