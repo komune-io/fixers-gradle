@@ -4,7 +4,6 @@ import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
 import io.komune.fixers.gradle.config.utils.versionFromFile
 import org.gradle.api.Project
-import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 
@@ -35,7 +34,6 @@ open class PublishConfig(
                 signingGpgKeyPassword=******,
                 npmjsToken=******,
                 npmGithubToken=******,
-                gradlePlugin=${gradlePlugin.orNull},
                 gradlePluginPortalEnabled=${gradlePluginPortalEnabled.orNull},
                 gradlePortalKey=******,
                 gradlePortalSecret=******,
@@ -148,18 +146,6 @@ open class PublishConfig(
         envKey = "FIXERS_PUBLISH_NPM_GITHUB_TOKEN",
         projectKey = "fixers.publish.npm.github.token"
     )
-
-    /**
-     * List of marker publications for Gradle plugins.
-     *
-     * @deprecated Unread since POM metadata is applied to every Maven publication via a
-     * catch-all in `configureMavenPublications`; explicitly listing marker publications
-     * is no longer necessary. Kept for configuration compatibility; scheduled for removal
-     * in a future release.
-     */
-    val gradlePlugin: ListProperty<String> = project.objects.listProperty(String::class.java).apply {
-        convention(emptyList())
-    }
 
     /**
      * Whether to publish to the Gradle Plugin Portal during promote.

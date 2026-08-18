@@ -313,7 +313,6 @@ The `PublishConfig` class contains configuration for publishing settings.
 | gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
-| gradlePlugin | - | - | - | Deprecated: unread, POM metadata is applied to all Maven publications automatically; scheduled for removal (non-env DSL-only) |
 
 #### Gradle Plugin Portal credential bridge
 

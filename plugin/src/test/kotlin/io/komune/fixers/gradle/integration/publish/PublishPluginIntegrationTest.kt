@@ -276,12 +276,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                 }
             }
 
-            fixers {
-                publish {
-                    gradlePlugin.set(listOf("testPluginPluginMarkerMaven"))
-                }
-            }
-
             tasks.register("verifyGradlePluginPublishing") {
                 doLast {
                     println("Has maven-publish plugin: ${'$'}{plugins.hasPlugin("maven-publish")}")
