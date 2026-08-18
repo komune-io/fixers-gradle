@@ -101,6 +101,19 @@ class ConfigPluginTest {
         }
 
         @Test
+        fun `should keep subproject jacoco overrides when merging root config`() {
+            val root = ProjectBuilder.builder().build()
+            val child = ProjectBuilder.builder().withParent(root).build()
+            root.plugins.apply(ConfigPlugin::class.java)
+            root.extensions.fixers!!.jacoco.xmlReportFilename.set("root.xml")
+            child.config().jacoco.xmlReportFilename.set("child.xml")
+
+            fireProjectsEvaluated(root)
+
+            assertThat(child.extensions.fixers!!.jacoco.xmlReportFilename.get()).isEqualTo("child.xml")
+        }
+
+        @Test
         fun `should configure maven central repository by default`() {
             val root = ProjectBuilder.builder().build()
             root.plugins.apply(ConfigPlugin::class.java)
