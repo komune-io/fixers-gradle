@@ -24,7 +24,6 @@ allprojects {
 
 fixers {
   bundle {
-    id = "gradle-sandbox"
     name = "gradle-sandbox"
     description = "Sanbox to test Kotlin Configuration"
     url = "https://github.com/komune-io/fixers-gradle/tree/main/sandbox"
