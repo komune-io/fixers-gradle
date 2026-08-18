@@ -17,7 +17,6 @@ allprojects {
 
 fixers {
 	bundle {
-		id = "gradle"
 		name = "Gradle Fixers"
 		description = "Gradle common fixers and utilities for Komune projects"
 		url = "https://github.com/komune-io/fixers-gradle"

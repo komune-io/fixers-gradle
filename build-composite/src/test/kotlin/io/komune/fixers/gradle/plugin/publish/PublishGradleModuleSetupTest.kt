@@ -9,7 +9,7 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
 
 /**
- * Unit tests for PublishGradleModuleSetup.
+ * Unit tests for [configureMavenPublications].
  */
 class PublishGradleModuleSetupTest {
 
@@ -24,45 +24,34 @@ class PublishGradleModuleSetupTest {
     }
 
     @Test
-    fun `should configure pluginMaven publication with maven central metadata`() {
+    fun `should configure pluginMaven publication`() {
         val (project, config, publishing) = projectWithPublishing()
         val pluginMaven = publishing.publications.create("pluginMaven", MavenPublication::class.java)
 
-        PublishGradleModuleSetup(project, config, publishing.publications).configurePluginPublications()
+        publishing.publications.configureMavenPublications(project, config)
 
         assertThat(pluginMaven.pom.url.get()).isEqualTo("https://example.com/project")
     }
 
     @Test
-    fun `should configure explicitly listed marker publications`() {
-        val (project, config, publishing) = projectWithPublishing()
-        config.publish.gradlePlugin.set(listOf("myMarker"))
-        val marker = publishing.publications.create("myMarker", MavenPublication::class.java)
-
-        PublishGradleModuleSetup(project, config, publishing.publications).configurePluginPublications()
-
-        assertThat(marker.pom.url.get()).isEqualTo("https://example.com/project")
-    }
-
-    @Test
-    fun `should configure all PluginMarkerMaven publications`() {
+    fun `should configure PluginMarkerMaven publications`() {
         val (project, config, publishing) = projectWithPublishing()
         val marker = publishing.publications.create("fooPluginMarkerMaven", MavenPublication::class.java)
-        val regular = publishing.publications.create("regular", MavenPublication::class.java)
-
-        PublishGradleModuleSetup(project, config, publishing.publications).configurePluginPublications()
-
-        assertThat(marker.pom.url.get()).isEqualTo("https://example.com/project")
-        assertThat(regular.pom.url.orNull).isNull()
-    }
-
-    @Test
-    fun `configureMavenPublications should apply pom metadata to all publications`() {
-        val (project, config, publishing) = projectWithPublishing()
-        val publication = publishing.publications.create("anything", MavenPublication::class.java)
 
         publishing.publications.configureMavenPublications(project, config)
 
-        assertThat(publication.pom.url.get()).isEqualTo("https://example.com/project")
+        assertThat(marker.pom.url.get()).isEqualTo("https://example.com/project")
+    }
+
+    @Test
+    fun `should apply pom metadata to all publications including later-created ones`() {
+        val (project, config, publishing) = projectWithPublishing()
+        val existing = publishing.publications.create("existing", MavenPublication::class.java)
+
+        publishing.publications.configureMavenPublications(project, config)
+
+        val late = publishing.publications.create("late", MavenPublication::class.java)
+        assertThat(existing.pom.url.get()).isEqualTo("https://example.com/project")
+        assertThat(late.pom.url.get()).isEqualTo("https://example.com/project")
     }
 }

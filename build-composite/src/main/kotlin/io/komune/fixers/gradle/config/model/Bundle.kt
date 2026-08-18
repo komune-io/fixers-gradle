@@ -31,14 +31,6 @@ class Bundle(
     )
 
     /**
-     * The ID of the project.
-     */
-    val id: Property<String> = project.property(
-        envKey = "FIXERS_BUNDLE_ID",
-        projectKey = "fixers.bundle.id"
-    )
-
-    /**
      * The description of the project.
      */
     val description: Property<String> = project.property(
@@ -152,7 +144,6 @@ class Bundle(
             Bundle(
                 name='${name.orNull}',
                 group=${group.orNull},
-                id=${id.orNull},
                 description=${description.orNull}, 
                 version=${version.orNull}, 
                 url=${url.orNull},
@@ -180,7 +171,6 @@ class Bundle(
         // Basic properties
         name.mergeIfNotPresent(source.name)
         group.mergeIfNotPresent(source.group)
-        id.mergeIfNotPresent(source.id)
         description.mergeIfNotPresent(source.description)
         url.mergeIfNotPresent(source.url)
 

@@ -172,7 +172,6 @@ The `Bundle` class contains configuration for project metadata.
 |----------|---------------------|------------------|---------------|-------------|
 | name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
 | group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
-| id | FIXERS_BUNDLE_ID | fixers.bundle.id | - | The ID of the project |
 | description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
 | version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
 | url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |
@@ -314,7 +313,6 @@ The `PublishConfig` class contains configuration for publishing settings.
 | gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
-| gradlePlugin | - | - | - | List of marker publications for Gradle plugins (non-env DSL-only) |
 
 #### Gradle Plugin Portal credential bridge
 

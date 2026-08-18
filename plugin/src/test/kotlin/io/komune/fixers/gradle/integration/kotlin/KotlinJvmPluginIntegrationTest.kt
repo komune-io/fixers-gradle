@@ -41,7 +41,6 @@ class KotlinJvmPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
@@ -96,7 +95,6 @@ class KotlinJvmPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"

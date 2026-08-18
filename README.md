@@ -191,7 +191,6 @@ The Fixers Gradle plugins provide a central configuration through the `fixers` e
 ```kotlin
 fixers {
     bundle {
-        id = "my-project"
         name = "my-project"
         group = "com.example"
         description = "My awesome project"

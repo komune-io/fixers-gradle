@@ -88,7 +88,6 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
 
             fixers {
                 bundle {
-                    id = "test-bundle"
                     name = "Test Bundle"
                     description = "A test bundle for integration testing"
                     url = "https://github.com/komune-io/fixers-gradle"
