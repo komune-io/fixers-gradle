@@ -9,7 +9,11 @@
          <trust group="io\.komune(\..*)?" version=".*-SNAPSHOT" regex="true" reason="Sibling fixers libraries under active development: snapshot checksums change on every publish."/>
          <trust group="org\.nodejs" name="node" regex="true" reason="Kotlin/JS toolchain downloads an OS-specific node distribution; checksums differ per platform."/>
       </trusted-artifacts>
+      <ignored-keys>
+         <ignored-key id="1646B01B86E50310" reason="Key couldn't be downloaded from any key server"/>
+      </ignored-keys>
       <trusted-keys>
+         <trusted-key id="06D0369BE1D0B06997DA66E8C33B56C147B01975" group="^org[.]sonarsource[.]scanner($|([.].*))" regex="true"/>
          <trusted-key id="147B691A19097624902F4EA9689CBE64F4BC997F" group="^org[.]mockito($|([.].*))" regex="true"/>
          <trusted-key id="2DB4F1EF0FA761ECC4EA935C86FDC7E2A11262CB" group="org.apache.commons"/>
          <trusted-key id="5F6C2148AD4911FE308110E5F0D0AE433308B042" group="dev.detekt"/>

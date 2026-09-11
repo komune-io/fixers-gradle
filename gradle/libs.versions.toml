@@ -1,7 +1,7 @@
 [versions]
 detekt = "2.0.0-alpha.6"
 kotlin = "2.4.10"
-sonarQube = "7.4.0.8496"
+sonarQube = "7.5.0.8588"
 npmPublish = "3.7.0"
 gradlePublish = "2.1.1"
 junit-jupiter = "6.1.3"
