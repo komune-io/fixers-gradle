@@ -31,7 +31,7 @@ runs:
         path: ${{ inputs.storybook-dir }}${{ inputs.storybook-static-dir-separator }}${{ inputs.storybook-static-dir }}
     - name: Publish to Chromatic
       id: chromatic
-      uses: chromaui/action@fd5e7e8b66d1a6862ed8866c21e93788217f7cf7 # v18.6.0
+      uses: chromaui/action@e10900ba92350acd7561744d2d86224c2a3fbb84 # v18.9.0
       with:
         projectToken: ${{ inputs.project-token }}
         workingDir: ${{ inputs.storybook-dir }}
