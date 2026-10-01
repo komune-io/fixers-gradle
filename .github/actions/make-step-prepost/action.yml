@@ -17,21 +17,21 @@ runs:
   using: "composite"
   steps:
     - name: Run ${{ inputs.make-step }}-pre optionally
-      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@0.44.0
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-pre
         skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.make-step }} optionally
-      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@0.44.0
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}
         skip: ${{ inputs.skip }}
 
     - name: Run ${{ inputs.make-step }}-post optionally
-      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@main
+      uses: komune-io/fixers-gradle/.github/actions/make-step-optional@0.44.0
       with:
         make-file: ${{ inputs.make-file }}
         make-step: ${{ inputs.make-step }}-post

@@ -24,4 +24,4 @@ jobs:
   regenerate:
     # Org-internal reusable, deliberately tracked @main like every komune-io workflow
     # reference: central fixes must propagate to all callers without a pin-bump wave.
-    uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@main # NOSONAR(githubactions:S7637)
+    uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@0.44.0 # NOSONAR(githubactions:S7637)
