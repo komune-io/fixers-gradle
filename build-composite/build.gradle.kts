@@ -47,7 +47,7 @@ dependencies {
 
     testImplementation(gradleTestKit())
     testImplementation(libs.junit.jupiter.api)
-    testImplementation(libs.assertj.core.specific)
+    testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
     testRuntimeOnly(libs.junit.jupiter.engine)
