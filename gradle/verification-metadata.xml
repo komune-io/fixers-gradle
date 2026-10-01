@@ -62,6 +62,11 @@
             <pgp value="1BD97A6A154E7810EE0BC832E2F38302C8075E3D"/>
          </artifact>
       </component>
+      <component group="com.gradle.publish" name="plugin-publish-plugin" version="2.2.1">
+         <artifact name="plugin-publish-plugin-2.2.1.jar">
+            <pgp value="F3FF33E96F18AA62DD580F9651FBF517CE6D6B80"/>
+         </artifact>
+      </component>
       <component group="commons-codec" name="commons-codec" version="1.19.0">
          <artifact name="commons-codec-1.19.0.jar">
             <pgp value="2DB4F1EF0FA761ECC4EA935C86FDC7E2A11262CB"/>
@@ -132,6 +137,11 @@
       </component>
       <component group="org.gradle.kotlin" name="gradle-kotlin-dsl-plugins" version="6.7.3">
          <artifact name="gradle-kotlin-dsl-plugins-6.7.3.jar">
+            <pgp value="1BD97A6A154E7810EE0BC832E2F38302C8075E3D"/>
+         </artifact>
+      </component>
+      <component group="org.gradle.kotlin" name="gradle-kotlin-dsl-plugins" version="6.7.6">
+         <artifact name="gradle-kotlin-dsl-plugins-6.7.6.jar">
             <pgp value="1BD97A6A154E7810EE0BC832E2F38302C8075E3D"/>
          </artifact>
       </component>
