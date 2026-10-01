@@ -100,13 +100,13 @@ jobs:
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Initialize Java and Gradle Environment
-        uses: komune-io/fixers-gradle/.github/actions/jvm@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           with-gradle-build-scan-publish: ${{ inputs.with-gradle-build-scan-publish }}
           java-version: ${{ inputs.java-version }}
 
       - name: Get Version from File
-        uses: komune-io/fixers-gradle/.github/actions/version@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/version@main
         with:
           use-snapshot: false
           with-main-pre-release-tag: '-alpha-SNAPSHOT'
@@ -115,27 +115,27 @@ jobs:
 
       - name: Execute Mise Lint Task
         if: (contains(inputs.on-tag, inputs.mise-lint-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-lint-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-lint-task)) }}
 
       - name: Execute Mise Build Task
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-build-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-build-task)) }}
 
       - name: Execute Mise Test Task
         if: (contains(inputs.on-tag, inputs.mise-test-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-test-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-test-task)) }}
 
       - name: Execute Mise Stage Task
         if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'stage') && startsWith(github.ref, 'refs/tags/')) ) || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'stage'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-stage-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-stage-task)) }}
@@ -144,14 +144,14 @@ jobs:
 
       - name: Execute Mise Check Task
         if: (contains(inputs.on-tag, inputs.mise-check-task) && startsWith(github.ref, 'refs/tags/')) || (!startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-check-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-check-task)) }}
 
       - name: Execute Mise Promote Task
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') ||  (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
-        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@0.44.0
+        uses: komune-io/fixers-gradle/.github/actions/mise-step-prepost@main
         with:
           mise-task: ${{ inputs.mise-promote-task }}
           skip: ${{ contains(format(',{0},', inputs.skip-tasks), format(',{0},', inputs.mise-promote-task)) }}

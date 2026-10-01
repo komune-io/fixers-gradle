@@ -28,7 +28,7 @@ name: Dependabot Verification Metadata
 #       # Org-internal reusable, deliberately tracked @main like every komune-io
 #       # workflow reference: central fixes must propagate to all callers
 #       # without a pin-bump wave.
-#       uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@0.44.0 # NOSONAR(githubactions:S7637)
+#       uses: komune-io/fixers-gradle/.github/workflows/dependabot-verification-workflow.yml@main # NOSONAR(githubactions:S7637)
 #
 # The NOSONAR marker suppresses SonarCloud's githubactions:S7637 ("use full
 # commit SHA"), which fails the new-code security gate on any new caller file;
@@ -112,7 +112,7 @@ jobs:
 
       # org-internal action, tracked @main across all komune-io workflows by design
       # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
-      - uses: komune-io/fixers-gradle/.github/actions/jvm@0.44.0
+      - uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:
           java-version: ${{ inputs.java-version }}
           with-gradle-build-scan-publish: false
