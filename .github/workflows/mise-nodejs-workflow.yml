@@ -142,7 +142,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Mise
-        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
 
       - name: Initialize Node.js Environment
         uses: komune-io/fixers-gradle/.github/actions/nodejs@main
