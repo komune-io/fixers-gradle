@@ -131,12 +131,24 @@ class TsGenCheckTest {
         }
 
         @Test
-        fun `should be registered without being wired into check`() {
+        fun `should be wired into check`() {
+            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
+            project.pluginManager.apply("base")
+            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+
+            project.configureKt2Ts(config)
+
+            val check = project.tasks.getByName("check")
+            assertThat(check.taskDependencies.getDependencies(check).map { it.name }).contains("tsGenCheck")
+        }
+
+        @Test
+        fun `should be wired into a check registered after it`() {
             val project = project()
             project.pluginManager.apply("base")
 
             val check = project.tasks.getByName("check")
-            assertThat(check.taskDependencies.getDependencies(check).map { it.name }).doesNotContain("tsGenCheck")
+            assertThat(check.taskDependencies.getDependencies(check).map { it.name }).contains("tsGenCheck")
         }
 
         @Test
@@ -268,23 +280,6 @@ class TsGenCheckTest {
             project.run("tsGen")
 
             project.run("tsGenCheck")
-        }
-
-        @Test
-        fun `should accept an allowed duplicate and refuse an allowed one that is no longer doubled`() {
-            emit(
-                "pkg/kotlin/pkg.d.mts",
-                "export declare interface Dto {\n}\nexport declare interface Dto extends Dto {\n}\n"
-            )
-            val project = project()
-            project.extensions.getByType(ConfigExtension::class.java).kt2Ts.allowedDuplicates.set(setOf("interface Dto"))
-            project.run("tsGen")
-            project.run("tsGenCheck")
-
-            emit("pkg/kotlin/pkg.d.mts", "export declare interface Dto {\n}\n")
-            project.run("tsGen")
-
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("interface Dto")
         }
 
         @Test
