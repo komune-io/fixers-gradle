@@ -15,7 +15,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     mainConfig?.kt2Ts?.let { config ->
         // Kotlin/JS writes build/js/packages while it assembles a library distribution.
         val jsDistributions = target.allprojects.map { project ->
-            project.tasks.matching { it.name.endsWith("ProductionLibraryDistribution") }
+            project.tasks.named { it.endsWith("ProductionLibraryDistribution") }
         }
         target.tasks {
             register<Delete>("cleanTsGen") {
