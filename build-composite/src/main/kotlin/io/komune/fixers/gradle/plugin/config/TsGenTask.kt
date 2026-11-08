@@ -49,7 +49,11 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
                 }
             }
 
-            registerTsGenCheck(config, jsDistributions, inputDir, outputDir)
+            // Every module that applies the config plugin gets a tsGen, resolving the directories against
+            // itself; the check would fail there on an output directory the module does not have.
+            if (target == target.rootProject) {
+                registerTsGenCheck(config, jsDistributions, inputDir, outputDir)
+            }
         }
     }
 }

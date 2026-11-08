@@ -119,6 +119,18 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should be registered on the root project only`() {
+            val root = ProjectBuilder.builder().build()
+            val module = ProjectBuilder.builder().withName("module").withParent(root).build()
+            val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
+
+            module.configureKt2Ts(config)
+
+            assertThat(module.tasks.findByName("tsGen")).isNotNull
+            assertThat(module.tasks.findByName("tsGenCheck")).isNull()
+        }
+
+        @Test
         fun `should be registered without being wired into check`() {
             val project = project()
             project.pluginManager.apply("base")
