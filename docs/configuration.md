@@ -388,7 +388,7 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
 | disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
-| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt, resolved from the root project |
+| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt, resolved from each module |
 | config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
 | buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
 | checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |

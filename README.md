@@ -279,7 +279,7 @@ fixers {
 }
 ```
 
-`config` and `baseline` are resolved from the root project. The `detekt` task of a JVM module receives its main and test compile classpaths, so the rules that need types run.
+`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run.
 
 ### JaCoCo
 

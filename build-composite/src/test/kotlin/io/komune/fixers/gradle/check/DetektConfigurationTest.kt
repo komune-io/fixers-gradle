@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.check
 
 import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
@@ -86,24 +87,7 @@ class DetektConfigurationTest {
     }
 
     @Test
-    fun `should resolve the baseline from the root project like the config file`(@TempDir dir: File) {
-        val (root, config) = rootWithConfig(dir)
-        val child = ProjectBuilder.builder()
-            .withParent(root)
-            .withName("child")
-            .withProjectDir(File(dir, "child").apply { mkdirs() })
-            .build()
-        config.detekt.baseline.set("detekt-baseline.xml")
-
-        root.configureDetekt()
-
-        val detekt = child.extensions.getByType(DetektExtension::class.java)
-        assertThat(detekt.baseline.get().asFile.canonicalFile)
-            .isEqualTo(File(dir, "detekt-baseline.xml").canonicalFile)
-    }
-
-    @Test
-    fun `should give the detekt task the compile classpaths so typed rules run`(@TempDir dir: File) {
+    fun `should give the detekt and baseline tasks the compile classpaths so typed rules run`(@TempDir dir: File) {
         val (root, _) = rootWithConfig(dir)
         val child = ProjectBuilder.builder()
             .withParent(root)
@@ -120,6 +104,8 @@ class DetektConfigurationTest {
 
         val detekt = child.tasks.getByName("detekt") as Detekt
         assertThat(detekt.classpath.files).contains(mainJar, testJar)
+        val baseline = child.tasks.getByName("detektBaseline") as DetektCreateBaselineTask
+        assertThat(baseline.classpath.files).contains(mainJar, testJar)
     }
 
     @Test

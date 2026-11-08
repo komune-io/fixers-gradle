@@ -21,6 +21,9 @@ fixers {
 		description = "Gradle common fixers and utilities for Komune projects"
 		url = "https://github.com/komune-io/fixers-gradle"
 	}
+	detekt {
+		baseline = "detekt-baseline.xml"
+	}
 	sonar {
 		organization = "komune-io"
 		projectKey = "komune-io_fixers-gradle"
@@ -70,7 +73,7 @@ gradle.projectsEvaluated {
 			tasks.named("clean") {
 				dependsOn(rootProject.tasks.named("clean${sourceKind}Sources"))
 			}
-			listOf("compileKotlin", "sourcesJar", "detekt").forEach { taskName ->
+			listOf("compileKotlin", "sourcesJar", "detekt", "detektBaseline").forEach { taskName ->
 				tasks.named(taskName) {
 					dependsOn(rootProject.tasks.named("copy${sourceKind}Sources"))
 				}

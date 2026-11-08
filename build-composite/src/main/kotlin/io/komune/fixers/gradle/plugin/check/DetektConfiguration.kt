@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.check
 
 import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
@@ -12,6 +13,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 
 private const val DETEKT_TASK = "detekt"
+private const val DETEKT_BASELINE_TASK = "detektBaseline"
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
@@ -60,7 +62,7 @@ fun Project.configureDetekt() {
                 // If the config file does not exist, Detekt uses its built-in default config
 
                 fixersDetekt?.baseline?.orNull?.let {
-                    baseline.set(rootDir.resolve(it))
+                    baseline.set(file(it))
                 }
             }
 
@@ -92,9 +94,12 @@ fun Project.configureDetekt() {
                 finalizedBy(detektReportMergeXml, detektReportMergeSarif)
             }
 
-            // `check` runs `detekt`, which the Detekt plugin registers without a classpath: the
-            // rules that need types are then skipped without a word.
+            // `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
+            // `detektBaseline`: the rules that need types are then skipped without a word.
             tasks.withType<Detekt>().matching { it.name == DETEKT_TASK }.configureEach {
+                classpath.from(configurations.matching { it.name in COMPILE_CLASSPATHS })
+            }
+            tasks.withType<DetektCreateBaselineTask>().matching { it.name == DETEKT_BASELINE_TASK }.configureEach {
                 classpath.from(configurations.matching { it.name in COMPILE_CLASSPATHS })
             }
 
