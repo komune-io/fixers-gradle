@@ -4,9 +4,8 @@ import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.tasks.Sync
+import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.register
 
 internal const val NODE_MODULES = "node_modules"
 
@@ -20,23 +19,27 @@ internal fun Project.registerTsGenCheck(
     jsDistributions: List<Any>,
     inputDir: String,
     outputDir: File,
-): TaskProvider<Sync> {
+): TaskProvider<Task> {
+    val source = file(inputDir)
     val staging = layout.buildDirectory.dir("kt2ts-check").get().asFile
     val cleaning = config.buildCleaningRegex()
     val allowedDuplicates = config.allowedDuplicates
     val shownOutput = config.outputDirectory.get()
-    return tasks.register<Sync>("tsGenCheck") {
+    return tasks.register("tsGenCheck") {
         group = "verification"
-        description = "Fails when ${config.outputDirectory.get()} is stale against the Kotlin/JS output."
+        description = "Fails when $shownOutput is stale against the Kotlin/JS output."
         dependsOn(jsDistributions)
-        from(inputDir) {
-            exclude("*-test")
-        }
-        into(staging)
-        includeEmptyDirs = false
-        // Its verdict depends on the committed copy, which is not an input of the copy.
-        doNotTrackState("Compares the regenerated declarations with the committed copy")
+        // Not a Sync: a missing Kotlin output would make it NO-SOURCE, and a skipped check reads as a pass.
         doLast {
+            staging.deleteRecursively()
+            source.listFiles { file -> !file.name.endsWith("-test") }.orEmpty().forEach { emitted ->
+                emitted.walkTopDown().onEnter { it.name != NODE_MODULES }.filter { it.isFile }.forEach {
+                    it.copyTo(staging.resolve(it.relativeTo(source)), overwrite = true)
+                }
+            }
+            if (staging.walkTopDown().none { it.isFile }) {
+                throw GradleException("No Kotlin/JS output under $source to compare $shownOutput with.")
+            }
             staging.cleanTree(cleaning)
             val stale = staleFiles(staging, outputDir).map { "$shownOutput/$it differs from the Kotlin/JS output." }
             val duplicated = duplicatedDeclarations(staging, allowedDuplicates.get()).map { "$shownOutput/$it" }

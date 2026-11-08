@@ -152,6 +152,16 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should fail when there is no Kotlin output to compare with`() {
+            commit("pkg/kotlin/pkg.d.mts", "export declare function names(): string[];\n")
+            val project = project()
+
+            assertThatThrownBy { project.run("tsGenCheck") }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining(input.absolutePath)
+        }
+
+        @Test
         fun `should pass on the copy tsGen wrote`() {
             val project = generate()
 
