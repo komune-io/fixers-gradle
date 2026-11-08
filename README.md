@@ -80,7 +80,7 @@ plugins {
 
 // The plugin automatically configures:
 // - JDK version (from fixers.jdk.version or default 17)
-// - Kotlin compiler options
+// - Kotlin compiler options: -Xjsr305=strict, and -Wextra (warnings only)
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
 // - The JUnit Platform launcher on testRuntimeOnly, which Gradle 9 no longer provides
 ```
@@ -99,7 +99,7 @@ plugins {
 // The plugin automatically configures:
 // - Kotlin Multiplatform with common, JVM, and JS targets
 // - Default dependencies for each target
-// - Compiler options
+// - Compiler options: -Wextra (warnings only); -Xjsr305=strict on the JVM target
 ```
 
 ### io.komune.fixers.gradle.publish

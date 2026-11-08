@@ -22,6 +22,9 @@ class MppPlugin : Plugin<Project> {
 		logger.info("Setting up Multiplatform Library for project: $name")
 		apply(plugin = "org.jetbrains.kotlin.multiplatform")
 		extensions.configure(KotlinMultiplatformExtension::class.java) {
+			compilerOptions {
+				freeCompilerArgs.add("-Wextra")
+			}
 			sourceSets {
 				configureEach {
 					logger.info("Add optIn[kotlin.js.ExperimentalJsExport] for $name")

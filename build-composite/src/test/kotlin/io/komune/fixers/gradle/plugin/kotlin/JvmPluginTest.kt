@@ -58,7 +58,7 @@ class JvmPluginTest {
 
         val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
         assertThat(kotlin.compilerOptions.jvmTarget.get()).isEqualTo(JvmTarget.JVM_17)
-        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict")
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict", "-Wextra")
     }
 
     @Test

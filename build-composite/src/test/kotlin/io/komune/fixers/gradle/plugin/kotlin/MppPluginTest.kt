@@ -99,6 +99,16 @@ class MppPluginTest {
     }
 
     @Test
+    fun `should report the extra compiler warnings on every target`() {
+        val project = mppProject()
+
+        val compileJvm = project.tasks.getByName("compileKotlinJvm") as KotlinCompile
+        val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        assertThat(compileJvm.compilerOptions.freeCompilerArgs.get()).contains("-Wextra")
+        assertThat(compileJs.compilerOptions.freeCompilerArgs.get()).contains("-Wextra")
+    }
+
+    @Test
     fun `should add the junit platform launcher to the jvm test runtime`() {
         val project = mppProject()
 
