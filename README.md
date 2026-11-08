@@ -82,7 +82,7 @@ plugins {
 // - JDK version (from fixers.jdk.version or default 17)
 // - Kotlin compiler options: -Xjsr305=strict, and -Wextra (warnings only)
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
-// - The JUnit Platform launcher on testRuntimeOnly, which Gradle 9 no longer provides
+// - The JUnit Platform launcher on testRuntimeOnly when the tests use JUnit (Gradle 9 no longer provides it)
 ```
 
 ### io.komune.fixers.gradle.kotlin.mpp
