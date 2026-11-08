@@ -35,9 +35,7 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
         File(commonSourceDir, "Sample.kt").writeText("""
             package com.example
 
-            expect class Sample() {
-                fun hello(): String
-            }
+            expect fun hello(): String
         """.trimIndent())
     }
 
@@ -65,9 +63,7 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
         File(jsSourceDir, "SampleJs.kt").writeText("""
             package com.example
 
-            actual class Sample {
-                actual fun hello() = "Hello from JS!"
-            }
+            actual fun hello() = "Hello from JS!"
         """.trimIndent())
     }
 

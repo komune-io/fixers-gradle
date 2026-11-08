@@ -8,6 +8,7 @@ import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -206,6 +207,37 @@ class DetektConfigurationTest {
             .build()
         child.plugins.apply(MppPlugin::class.java)
         root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
+    }
+
+    @Test
+    fun `should run the typed detekt tasks of every multiplatform jvm target on check`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        child.extensions.getByType(KotlinMultiplatformExtension::class.java).jvm("desktop")
+        root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm", "detektMainDesktop", "detektTestDesktop")
+    }
+
+    @Test
+    fun `should wire check when the multiplatform plugin comes after detekt`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        root.configureDetekt()
+        child.plugins.apply(MppPlugin::class.java)
 
         val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
         assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
