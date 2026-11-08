@@ -15,7 +15,11 @@ import org.gradle.kotlin.dsl.withType
 private const val DETEKT_TASK = "detekt"
 private const val DETEKT_BASELINE_TASK = "detektBaseline"
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
-private val MPP_JVM_DETEKT_TASKS = setOf("detektMainJvm", "detektTestJvm")
+private const val CHECK_TASK = "check"
+
+// The typed tasks Detekt registers per JVM target of a multiplatform module: `detektMain<Target>`,
+// `detektTest<Target>`. The per-source-set tasks end in `SourceSet`, the JVM module's in nothing.
+private val MPP_TYPED_DETEKT_TASK = Regex("detekt(Main|Test)[A-Z][A-Za-z0-9]*(?<!SourceSet)")
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
     return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
@@ -111,7 +115,7 @@ fun Project.configureDetekt() {
 /**
  * `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
  * `detektBaseline`: the rules that need types are then skipped without a word. Multiplatform
- * sources sit outside `src/main`, where `detekt` looks: the typed tasks of the JVM target, which
+ * sources sit outside `src/main`, where `detekt` looks: the typed tasks of the JVM targets, which
  * see `commonMain` too, are the ones that analyse them.
  */
 private fun Project.configureTypedDetekt() {
@@ -123,8 +127,8 @@ private fun Project.configureTypedDetekt() {
         classpath.from(compileClasspaths)
     }
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-        tasks.named("check") {
-            dependsOn(tasks.withType<Detekt>().matching { task -> task.name in MPP_JVM_DETEKT_TASKS })
+        tasks.matching { task -> task.name == CHECK_TASK }.configureEach {
+            dependsOn(tasks.withType<Detekt>().matching { task -> MPP_TYPED_DETEKT_TASK.matches(task.name) })
         }
     }
 }

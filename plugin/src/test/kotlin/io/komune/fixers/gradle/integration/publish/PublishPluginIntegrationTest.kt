@@ -139,9 +139,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         File(commonSourceDir, "Sample.kt").writeText("""
             package com.example
 
-            expect class Sample() {
-                fun hello(): String
-            }
+            expect fun hello(): String
         """.trimIndent())
 
         val jvmSourceDir = testProjectDir.resolve("lib/src/jvmMain/kotlin").toFile()
@@ -149,9 +147,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         File(jvmSourceDir, "SampleJvm.kt").writeText("""
             package com.example
 
-            actual class Sample {
-                actual fun hello() = "Hello from JVM!"
-            }
+            actual fun hello() = "Hello from JVM!"
         """.trimIndent())
 
         val jsSourceDir = testProjectDir.resolve("lib/src/jsMain/kotlin").toFile()
@@ -159,9 +155,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         File(jsSourceDir, "SampleJs.kt").writeText("""
             package com.example
 
-            actual class Sample {
-                actual fun hello() = "Hello from JS!"
-            }
+            actual fun hello() = "Hello from JS!"
         """.trimIndent())
     }
 

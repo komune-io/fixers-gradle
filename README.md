@@ -129,7 +129,8 @@ plugins {
 // - Kotlin Multiplatform with common, JVM, and JS targets
 // - Default dependencies for each target
 // - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
-//   -Xjsr305=strict on the JVM target
+//   -Xjsr305=strict on the JVM target. expect/actual classes (Beta) warn, so they fail: use expect
+//   functions or an interface instead
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
@@ -312,7 +313,7 @@ fixers {
 }
 ```
 
-`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMainJvm` and `detektTestJvm`, the typed tasks of the JVM target.
+`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of each JVM target, and their baselines are written by `detektBaselineMain<Target>` and `detektBaselineTest<Target>`, not `detektBaseline`.
 
 ### JaCoCo
 
