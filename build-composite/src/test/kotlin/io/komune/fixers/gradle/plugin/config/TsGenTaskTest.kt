@@ -302,6 +302,65 @@ class TsGenTaskTest {
             assertThat(clean()).contains("constructor(s: string, sNull: string | undefined, i: number,")
         }
 
+        private fun cleanSnippet(content: String): String {
+            val file = File(dir, "snippet.d.mts")
+            file.writeText(content)
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+            return file.readText()
+        }
+
+        @Test
+        fun `should strip the marker of an interface with a two parameter parent and keep what follows`() {
+            val result = cleanSnippet(
+                "export declare interface Dto extends Two<string, number> {\n"
+                    + "    readonly __doNotUseOrImplementIt: {\n"
+                    + "        readonly \"exp.Dto\": unique symbol;\n"
+                    + "    } & Two<any, any>[\"__doNotUseOrImplementIt\"];\n"
+                    + "}\n"
+                    + "export declare interface Keep {\n    readonly id: string;\n}\n"
+            )
+
+            assertThat(result).isEqualTo(
+                "export declare interface Dto extends Two<string, number> {\n}\n"
+                    + "export declare interface Keep {\n    readonly id: string;\n}\n"
+            )
+        }
+
+        @Test
+        fun `should keep the parameter of a nullable setter required`() {
+            assertThat(cleanSnippet("    set name(value: Nullable<string>);\n"))
+                .isEqualTo("    set name(value: string | undefined);\n")
+        }
+
+        @Test
+        fun `should collapse a list of functions`() {
+            assertThat(cleanSnippet("    get cbs(): KtList<(p0: string) => void>;\n"))
+                .isEqualTo("    get cbs(): ((p0: string) => void)[];\n")
+        }
+
+        @Test
+        fun `should map every Long to number`() {
+            assertThat(cleanSnippet("    get ids(): KtList<Nullable<bigint>>;\n    readonly bigint: bigint;\n"))
+                .isEqualTo("    get ids(): (number | undefined)[];\n    readonly bigint: number;\n")
+        }
+
+        @Test
+        fun `should collapse an enum that declares a function`() {
+            val result = cleanSnippet(
+                "export declare abstract class Mode {\n"
+                    + "    private constructor();\n"
+                    + "    static get ON(): Mode & {\n        get name(): \"ON\";\n        get ordinal(): 0;\n    };\n"
+                    + "    static values(): [typeof Mode.ON];\n"
+                    + "    static valueOf(value: string): Mode;\n"
+                    + "    get name(): \"ON\";\n"
+                    + "    get ordinal(): 0;\n"
+                    + "    describe(): string;\n"
+                    + "}\n"
+            )
+
+            assertThat(result).isEqualTo("export type Mode = \"ON\";\n")
+        }
+
         @Test
         fun `should keep trailing nullable parameters optional`() {
             val file = File(dir, "fn.d.mts")
