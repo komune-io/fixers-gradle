@@ -34,16 +34,6 @@ class Kt2Ts(
     )
 
     /**
-     * Types a Kotlin `T?` as `T | null` instead of `T | undefined`, and a nullable property as
-     * `x?: T | null` instead of `x?: T`. Kotlin and its JSON serializers send `null`.
-     */
-    val strictNullability: Property<Boolean> = project.property(
-        envKey = "FIXERS_KT2TS_STRICT_NULLABILITY",
-        projectKey = "fixers.kt2ts.strictNullability",
-        defaultValue = false
-    )
-
-    /**
      * Declarations `tsGenCheck` accepts twice in a `.d.mts`, written as they are declared
      * (`interface UserDeletedEventDTO`). An entry that is no longer declared twice fails too.
      */
@@ -71,7 +61,6 @@ class Kt2Ts(
     fun mergeFrom(source: Kt2Ts): Kt2Ts {
         outputDirectory.mergeIfNotPresent(source.outputDirectory)
         inputDirectory.mergeIfNotPresent(source.inputDirectory)
-        strictNullability.mergeIfNotPresent(source.strictNullability)
         additionalCleaning.mergeIfNotPresent(source.additionalCleaning)
 
         return this

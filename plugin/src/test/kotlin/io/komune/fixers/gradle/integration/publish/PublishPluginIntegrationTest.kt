@@ -194,7 +194,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
             kotlin {
                 jvm()
-                js(IR) {
+                js {
                     browser()
                 }
             }

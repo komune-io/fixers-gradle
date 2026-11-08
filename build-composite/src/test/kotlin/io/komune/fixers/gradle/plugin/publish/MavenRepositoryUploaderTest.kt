@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import java.io.File
+import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import org.assertj.core.api.Assertions.assertThat
@@ -215,6 +216,67 @@ class MavenRepositoryUploaderTest {
 			.hasMessageContaining("HTTP 500")
 
 		assertThat(fake.callCount.get()).isEqualTo(4)
+	}
+
+	/** Fails with a connect timeout for every URL matching [failsFor], [times] times, then succeeds. */
+	class TimingOutHttpPutClient(
+		private val times: Int = Int.MAX_VALUE,
+		private val failsFor: (String) -> Boolean = { true },
+	) : HttpPutClient {
+		private val failures = AtomicInteger(0)
+		val callCount = AtomicInteger(0)
+		val uploaded = ConcurrentLinkedQueue<String>()
+
+		override fun put(url: String, authHeader: String, file: File): HttpPutResult {
+			callCount.incrementAndGet()
+			if (failsFor(url) && failures.getAndIncrement() < times) {
+				throw SocketTimeoutException("Connect timed out")
+			}
+			uploaded.add(url)
+			return HttpPutResult.Success
+		}
+	}
+
+	@Test
+	fun `retries I-O failures such as connect timeouts and succeeds`() {
+		val fake = TimingOutHttpPutClient(times = 1)
+		createFile("artifact.jar")
+
+		val summary = MavenRepositoryUploader.to("Test Repo")
+			.from(stagingDir)
+			.at("https://repo.example.com")
+			.withCredentials("user", "token")
+			.withHttpClient(fake)
+			.withRetry(attempts = 3, backoffMillis = 1)
+			.upload()
+
+		assertThat(fake.callCount.get()).isEqualTo(2)
+		assertThat(summary.uploaded).isEqualTo(1)
+		assertThat(summary.failed).isEqualTo(0)
+	}
+
+	@Test
+	fun `a file that keeps timing out fails alone and the others still upload`() {
+		val fake = TimingOutHttpPutClient(failsFor = { it.endsWith("/artifact-0.jar") })
+		repeat(20) { i -> createFile("artifact-$i.jar") }
+
+		assertThatThrownBy {
+			MavenRepositoryUploader.to("Test Repo")
+				.from(stagingDir)
+				.at("https://repo.example.com")
+				.withCredentials("user", "token")
+				.withHttpClient(fake)
+				.withConcurrency(2)
+				.withRetry(attempts = 3, backoffMillis = 1)
+				.upload()
+		}
+			.isInstanceOf(GradleException::class.java)
+			.hasMessageContaining("Test Repo upload failed for 1 file(s)")
+			.hasMessageContaining("artifact-0.jar")
+			.hasMessageContaining("SocketTimeoutException: Connect timed out")
+
+		assertThat(fake.uploaded).hasSize(19)
+		assertThat(fake.callCount.get()).isEqualTo(19 + 3)
 	}
 
 	@Test

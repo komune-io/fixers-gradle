@@ -75,7 +75,7 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             kotlin {
-                js(IR) {
+                js {
                     browser()
                     nodejs()
                 }
@@ -169,7 +169,7 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             kotlin {
-                js(IR) {
+                js {
                     browser()
                     nodejs()
                 }
@@ -256,7 +256,7 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             kotlin {
-                js(IR) {
+                js {
                     browser()
                     nodejs()
                 }
@@ -367,15 +367,15 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             kotlin {
-                js(IR) {
+                js {
                     browser()
                     nodejs()
                 }
             }
 
             tasks.register("verifyNpmRegistryTokens") {
+                val npmExt = project.the<dev.petuska.npm.publish.extension.NpmPublishExtension>()
                 doLast {
-                    val npmExt = project.the<dev.petuska.npm.publish.extension.NpmPublishExtension>()
                     npmExt.registries.all {
                         val tokenValue = if (authToken.isPresent) authToken.get() else "<unset>"
                         println("registry=${'$'}{name} uri=${'$'}{uri.get()} token=${'$'}{tokenValue}")
