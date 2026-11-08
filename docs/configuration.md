@@ -173,7 +173,7 @@ The `Bundle` class contains configuration for project metadata.
 | name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
 | group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
 | description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
-| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
+| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | The VERSION environment variable, else the VERSION file | The version of the project |
 | url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |
 | licenseName | FIXERS_BUNDLE_LICENSE_NAME | fixers.bundle.license.name | "The Apache Software License, Version 2.0" | The name of the license |
 | licenseUrl | FIXERS_BUNDLE_LICENSE_URL | fixers.bundle.license.url | "https://www.apache.org/licenses/LICENSE-2.0.txt" | The URL of the license |
@@ -388,7 +388,7 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
 | disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
-| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt |
+| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt, resolved from the root project |
 | config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
 | buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
 | checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |

@@ -39,7 +39,6 @@ class JvmPlugin : Plugin<Project> {
 			compilerOptions {
 				freeCompilerArgs.add("-Xjsr305=strict")
 				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-				languageVersion.set(kotlinLanguageVersion())
 			}
 		}
 

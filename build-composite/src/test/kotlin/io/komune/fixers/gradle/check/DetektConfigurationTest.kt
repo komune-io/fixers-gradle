@@ -86,6 +86,43 @@ class DetektConfigurationTest {
     }
 
     @Test
+    fun `should resolve the baseline from the root project like the config file`(@TempDir dir: File) {
+        val (root, config) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("child")
+            .withProjectDir(File(dir, "child").apply { mkdirs() })
+            .build()
+        config.detekt.baseline.set("detekt-baseline.xml")
+
+        root.configureDetekt()
+
+        val detekt = child.extensions.getByType(DetektExtension::class.java)
+        assertThat(detekt.baseline.get().asFile.canonicalFile)
+            .isEqualTo(File(dir, "detekt-baseline.xml").canonicalFile)
+    }
+
+    @Test
+    fun `should give the detekt task the compile classpaths so typed rules run`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("child")
+            .withProjectDir(File(dir, "child").apply { mkdirs() })
+            .build()
+        child.plugins.apply("java")
+        val mainJar = File(dir, "main.jar").apply { writeText("") }
+        val testJar = File(dir, "test.jar").apply { writeText("") }
+        child.dependencies.add("implementation", child.files(mainJar))
+        child.dependencies.add("testImplementation", child.files(testJar))
+
+        root.configureDetekt()
+
+        val detekt = child.tasks.getByName("detekt") as Detekt
+        assertThat(detekt.classpath.files).contains(mainJar, testJar)
+    }
+
+    @Test
     fun `should configure report outputs on detekt tasks`() {
         val (root, _) = rootWithConfig()
 

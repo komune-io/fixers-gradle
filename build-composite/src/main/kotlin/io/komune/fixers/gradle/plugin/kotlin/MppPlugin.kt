@@ -41,13 +41,9 @@ class MppPlugin : Plugin<Project> {
 		extensions.configure(KotlinMultiplatformExtension::class.java) {
 			jvm {
 				logger.info("Configuring JVM compilation with JDK version: $jdkVersion")
-				compilations.all {
-					compileTaskProvider.configure {
-						compilerOptions {
-							jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-							languageVersion.set(kotlinLanguageVersion())
-						}
-					}
+				compilerOptions {
+					freeCompilerArgs.add("-Xjsr305=strict")
+					jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
 				}
 			}
 			sourceSets.getByName("jvmMain") {
@@ -58,7 +54,7 @@ class MppPlugin : Plugin<Project> {
 			}
 		}
 
-		configureJUnitPlatform()
+		configureJUnitPlatform(testCompilation = "jvmTest")
 	}
 
 	private fun Project.setupJsTarget() {

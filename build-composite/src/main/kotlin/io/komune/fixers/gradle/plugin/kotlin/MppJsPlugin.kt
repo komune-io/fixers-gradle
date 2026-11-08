@@ -4,8 +4,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
-import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 
 class MppJsPlugin : Plugin<Project> {
 
@@ -15,7 +13,7 @@ class MppJsPlugin : Plugin<Project> {
 
     private fun configureJsCompilation(project: Project) {
         project.extensions.configure(KotlinMultiplatformExtension::class.java) {
-            js(IR) {
+            js {
                 binaries.library()
                 browser {
                     testTask {
@@ -35,19 +33,10 @@ class MppJsPlugin : Plugin<Project> {
                 }
             }
         }
-
-        // Configure Kotlin JS compile and link tasks
-        project.tasks.withType(Kotlin2JsCompile::class.java).configureEach {
-            compilerOptions.configureJsOptions()
-        }
-        project.tasks.withType(KotlinJsIrLink::class.java).configureEach {
-            compilerOptions.configureJsOptions()
-        }
     }
     // https://kotlinlang.org/docs/js-project-setup.html
     private fun KotlinJsCompilerOptions.configureJsOptions() {
         target.set("es2015")
         freeCompilerArgs.add("-Xes-long-as-bigint")
-        freeCompilerArgs.add("-Xenable-suspend-function-exporting")
     }
 }

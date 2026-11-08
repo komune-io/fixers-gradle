@@ -11,6 +11,9 @@ import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 
+private const val DETEKT_TASK = "detekt"
+private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
+
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
     return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
 }
@@ -57,7 +60,7 @@ fun Project.configureDetekt() {
                 // If the config file does not exist, Detekt uses its built-in default config
 
                 fixersDetekt?.baseline?.orNull?.let {
-                    baseline.set(file(it))
+                    baseline.set(rootDir.resolve(it))
                 }
             }
 
@@ -87,6 +90,12 @@ fun Project.configureDetekt() {
                 }
 
                 finalizedBy(detektReportMergeXml, detektReportMergeSarif)
+            }
+
+            // `check` runs `detekt`, which the Detekt plugin registers without a classpath: the
+            // rules that need types are then skipped without a word.
+            tasks.withType<Detekt>().matching { it.name == DETEKT_TASK }.configureEach {
+                classpath.from(configurations.matching { it.name in COMPILE_CLASSPATHS })
             }
 
             detektReportMergeSarif.configure {

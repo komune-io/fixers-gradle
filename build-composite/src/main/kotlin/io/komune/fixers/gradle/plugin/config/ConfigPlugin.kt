@@ -3,7 +3,7 @@ package io.komune.fixers.gradle.plugin.config
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Repositories
-import io.komune.fixers.gradle.config.utils.versionFromFile
+import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -27,7 +27,13 @@ class ConfigPlugin : Plugin<Project> {
 
         val extension = target.config()
         val root: Project = target.rootProject
-        root.setVersion()
+        // Once per build: every module applies this plugin, and a later pass would overwrite
+        // a version a build script set in between.
+        val extra = root.extensions.extraProperties
+        if (!extra.has(VERSION_SET)) {
+            extra.set(VERSION_SET, true)
+            root.setVersion()
+        }
 
         // Use gradle.projectsEvaluated for configuration cache compatibility
         // This runs once after all projects are evaluated, avoiding per-project afterEvaluate
@@ -69,7 +75,7 @@ class ConfigPlugin : Plugin<Project> {
     }
 
     private fun Project.setVersion() {
-        version = versionFromFile() ?: version
+        version = resolveVersion() ?: version
         subprojects.forEach { subproject ->
             subproject.setVersion()
         }
@@ -111,6 +117,9 @@ class ConfigPlugin : Plugin<Project> {
         }
     }
 
+    private companion object {
+        const val VERSION_SET = "io.komune.fixers.gradle.config.versionSet"
+    }
 }
 
 /**

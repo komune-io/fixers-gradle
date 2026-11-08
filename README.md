@@ -82,6 +82,7 @@ plugins {
 // - JDK version (from fixers.jdk.version or default 17)
 // - Kotlin compiler options
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
+// - The JUnit Platform launcher on testRuntimeOnly, which Gradle 9 no longer provides
 ```
 
 ### io.komune.fixers.gradle.kotlin.mpp
@@ -194,7 +195,7 @@ fixers {
         name = "my-project"
         group = "com.example"
         description = "My awesome project"
-        version = "1.0.0"                                          // default: from VERSION file
+        version = "1.0.0"                                          // default: the VERSION environment variable, else the VERSION file
         url = "https://github.com/my-org/my-project"
         licenseName = "The Apache Software License, Version 2.0"   // default
         licenseUrl = "https://www.apache.org/licenses/LICENSE-2.0.txt" // default
@@ -234,6 +235,8 @@ fixers {
     }
 }
 ```
+
+The `.d.ts` cleaning expects a single contract package: set `kotlin.js.ir.output.granularity=whole-program` in the project's `gradle.properties`. The plugin leaves it to the project, since it changes the layout of every JS library the project publishes.
 
 ### SonarQube
 
@@ -275,6 +278,8 @@ fixers {
     }
 }
 ```
+
+`config` and `baseline` are resolved from the root project. The `detekt` task of a JVM module receives its main and test compile classpaths, so the rules that need types run.
 
 ### JaCoCo
 

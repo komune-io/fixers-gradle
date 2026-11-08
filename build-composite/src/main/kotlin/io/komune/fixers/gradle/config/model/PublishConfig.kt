@@ -2,7 +2,7 @@ package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
-import io.komune.fixers.gradle.config.utils.versionFromFile
+import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -194,12 +194,12 @@ open class PublishConfig(
     )
 
     /**
-     * Searches for the version in the VERSION file or falls back to the project's version.
+     * The CI's `VERSION` environment variable, else the VERSION file, else the project's version.
      *
      * @return A provider that resolves to the version string
      */
     val version: Provider<String> = project.provider {
-        project.versionFromFile() ?: project.version.toString()
+        project.resolveVersion() ?: project.version.toString()
     }
 
     /**

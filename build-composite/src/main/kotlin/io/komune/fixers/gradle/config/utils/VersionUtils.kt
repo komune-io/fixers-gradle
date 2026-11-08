@@ -8,3 +8,10 @@ fun Project.versionFromFile(): String? {
         versionFile.readText().trim()
     } else null
 }
+
+/**
+ * The version a CI hands over in the `VERSION` environment variable, else the `VERSION` file.
+ */
+fun Project.resolveVersion(
+    ciVersion: String? = providers.environmentVariable("VERSION").orNull
+): String? = ciVersion?.trim()?.takeIf { it.isNotEmpty() } ?: versionFromFile()
