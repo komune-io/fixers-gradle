@@ -4,8 +4,8 @@ import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
 
@@ -17,36 +17,39 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
         val jsDistributions = target.allprojects.map { project ->
             project.tasks.named { it.endsWith("ProductionLibraryDistribution") }
         }
+        // Resolve all Project-dependent values at configuration time for configuration cache compatibility
+        val inputDir = if(config.inputDirectory.isPresent) {
+            config.inputDirectory.get()
+        } else {
+            "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
+                target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
+            }
+        }
+        val outputDir = target.file(config.outputDirectory.get())
         target.tasks {
             register<Delete>("cleanTsGen") {
                 mustRunAfter(jsDistributions)
                 delete(config.outputDirectory.get())
             }
 
-            register<Copy>("tsGen") {
-                dependsOn("cleanTsGen")
+            // A Sync drops what the Kotlin output no longer has, and keeps the dependencies a JS package
+            // manager linked into a committed package.
+            register<Sync>("tsGen") {
                 dependsOn(jsDistributions)
-
-                // Resolve all Project-dependent values at configuration time for configuration cache compatibility
-                val inputDir = if(config.inputDirectory.isPresent) {
-                    config.inputDirectory.get()
-                } else {
-                    "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
-                        target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
-                    }
-                }
-                val outputDir = target.file(config.outputDirectory.get())
                 from(inputDir) {
                     exclude("*-test")
                 }
                 into(outputDir)
+                preserve { include("**/$NODE_MODULES/**") }
                 includeEmptyDirs = false
 
                 val cleaning = config.buildCleaningRegex()
                 doLast {
-                    outputDir.walkTopDown().filter { it.isFile }.forEach { it.cleanFile(cleaning) }
+                    outputDir.cleanTree(cleaning)
                 }
             }
+
+            registerTsGenCheck(config, jsDistributions, inputDir, outputDir)
         }
     }
 }
@@ -95,6 +98,10 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     }
 
     return cleaning
+}
+
+internal fun File.cleanTree(cleaning: Map<String, List<Pair<Regex, String>>>) {
+    walkTopDown().onEnter { it.name != NODE_MODULES }.filter { it.isFile }.forEach { it.cleanFile(cleaning) }
 }
 
 private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
@@ -185,5 +192,3 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         Regex("""(?<=: )any \| (?:null|undefined)(?=[;,)])""") to "any",
     )
 }
-
-internal fun canonicalMjs(text: String): String = text

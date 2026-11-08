@@ -38,7 +38,6 @@ class TsGenTaskTest {
             assertThat(project.tasks.findByName("cleanTsGen")).isNotNull
             val tsGen = project.tasks.findByName("tsGen")
             assertThat(tsGen).isNotNull
-            assertThat(tsGen!!.dependsOn).contains("cleanTsGen")
         }
 
         @Test
