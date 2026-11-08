@@ -3,6 +3,7 @@ package io.komune.fixers.gradle.plugin.config
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
@@ -106,6 +107,9 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
                 acc.replace(old, new)
             }
 
+            if (suffix == ".d.mts") {
+                checkDeclarationsCleaned(newContent)
+            }
             if (newContent != content) {
                 writeText(newContent)
             }
@@ -113,11 +117,33 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
     }
 }
 
+// What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
+private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
+private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
+
+/**
+ * Fails when a type the rules collapse survives them, nested deeper than they reach: the
+ * declarations would reference a type that no longer exists.
+ */
+private fun File.checkDeclarationsCleaned(content: String) {
+    val code = COMMENT.replace(content) { comment -> comment.value.replace(Regex("[^\n]"), " ") }
+    val leftovers = code.lineSequence().withIndex()
+        .mapNotNull { (index, line) -> LEFTOVER.find(line)?.let { "$path:${index + 1}: ${it.value}" } }
+        .toList()
+    if (leftovers.isNotEmpty()) {
+        throw GradleException(
+            "kt2Ts left Kotlin collection or Nullable types in the declarations, nested deeper than its rules "
+                + "reach; flatten the exported type or add an additionalCleaning rule:\n"
+                + leftovers.joinToString("\n")
+        )
+    }
+}
+
 private const val TRAILING_NULLABLE_PASSES = 4
 
 private const val LIST_PASSES = 3
 
-// `name?: type/* comment */ | null`, from the name, type and comment groups of the rules below.
+// `name?: type/* comment */ | null`, from the name, type and comment groups of the parameter rules.
 private const val OPTIONAL_OR_NULL = "$1?: $2$3 | null"
 
 // A type nested at most three levels deep. `=>` is matched first so that the `>` of an arrow
@@ -129,25 +155,32 @@ private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[
  * `T | null`: Kotlin and its JSON serializers send `null`, not an absent value.
  */
 private fun dmtsCleaning(): List<Pair<Regex, String>> {
+    // Repeated rules are compiled once and applied once per pass.
+    val collapseList = Regex("""Kt(?:Mutable)?(?:List|Set)<($TYPE)>""") to "$1[]"
+    val trailingNullable =
+        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to OPTIONAL_OR_NULL
     return listOf(
         // The marker body is matched exactly: a lazy body would run on to the next `};` of the file.
         Regex("""(?m)^ *readonly __doNotUseOrImplementIt: \{\n(?: +readonly [^:\n]+: unique symbol;\n)+ *\}"""
                 + """(?:\s*&\s*[\w.<>, ]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
-        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: [\w.<>, ]*\["__doNotUseOrImplementIt"\];\n""") to "",
+        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: [\w.<>, ]*\["__doNotUseOrImplementIt"\]"""
+                + """(?:\s*&\s*[\w.<>, ]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
         Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
         // The emitter declares the collections with their variance (`KtList<out E>`) since Kotlin 2.4.
-        Regex("""export declare interface (Kt(?:List|Set|Map))<(?:K, )?(?:out )?[EV]>[\s\S]*?\n"""
+        Regex("""export declare interface (Kt(?:Mutable)?(?:List|Set|Map))<(?:K, )?(?:out )?[EV]>[\s\S]*?\n"""
                 + """export declare namespace \1 \{[\s\S]*?\n\}\n""") to "",
         // A function type has to be parenthesised before a union or `[]` is appended to it.
-        Regex("""(Nullable|KtList|KtSet)<(\((?:[^()\n]|\([^()\n]*\))*\) => $TYPE)>""") to "$1<($2)>",
+        Regex("""(Nullable|Kt(?:Mutable)?(?:List|Set))<(\((?:[^()\n]|\([^()\n]*\))*\) => $TYPE)>""") to "$1<($2)>",
+        // `null` is not a valid record key.
+        Regex("""(Kt(?:Mutable)?Map)<Nullable<($TYPE)>, """) to "$1<$2, ",
         // A nullable element type has to become a union inside the array; unwrap it before the
         // collapse below, otherwise the property rule further down turns it into an optional
         // property instead (`x?: T[]`, which says the property may be absent, not the elements).
-        Regex("""Kt(List|Set)<Nullable<($TYPE)>>""") to "Kt$1<($2 | null)>",
+        Regex("""(Kt(?:Mutable)?(?:List|Set))<Nullable<($TYPE)>>""") to "$1<($2 | null)>",
         // Collapses one level of nesting per pass, the outermost first: three passes cover
         // `KtList<KtList<KtList<T>>>`, as deep as TYPE reaches.
-        *Array(LIST_PASSES) { Regex("""Kt(?:List|Set)<($TYPE)>""") to "$1[]" },
-        Regex("""KtMap<""") to "Record<",
+        *Array(LIST_PASSES) { collapseList },
+        Regex("""Kt(?:Mutable)?Map<""") to "Record<",
         // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
         // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
         // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
@@ -162,9 +195,10 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> {
         // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
         Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",
         Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
-        // A property the JSON may omit is optional; a parameter keeps the arity Kotlin gave it.
-        Regex("""(?<=readonly )(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
-                OPTIONAL_OR_NULL,
+        // A property the JSON may omit is optional, `val` or `var`; a parameter keeps the arity
+        // Kotlin gave it.
+        Regex("""(?m)^( +(?:readonly )?)(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
+                "$1$2?: $3$4 | null",
         Regex("""(?<=\(|, )(\w+)\?: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to
                 OPTIONAL_OR_NULL,
         // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
@@ -174,9 +208,7 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> {
         Regex("""(set \w+\()(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\))""") to "$1$2: $3$4 | null",
         // A trailing nullable parameter stays optional; one that a required parameter follows
         // cannot be (TS1016). One pass per trailing parameter, from the last.
-        *Array(TRAILING_NULLABLE_PASSES) {
-            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to OPTIONAL_OR_NULL
-        },
+        *Array(TRAILING_NULLABLE_PASSES) { trailingNullable },
         Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | null",
         Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | null",
         Regex("""\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "): $1$2 | null",
