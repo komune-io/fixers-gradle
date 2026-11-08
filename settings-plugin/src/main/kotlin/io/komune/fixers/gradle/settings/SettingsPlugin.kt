@@ -5,20 +5,25 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
+import org.gradle.api.initialization.resolve.RepositoriesMode
 import org.gradle.api.provider.Property
 
 /**
  * Loads the f2 version catalog as `catalogue`, at this plugin's own version, and declares the
  * Node.js and Yarn distributions Kotlin/JS downloads, each repository serving its module only.
  *
- * Nothing else is added: the project keeps its own Maven repositories, in its own order.
+ * Every repository lives in the settings: a project that declares one fails the build, and the
+ * fixers project plugins add none. No Maven repository is added here: the project declares its
+ * own, in its own order.
  */
 class SettingsPlugin : Plugin<Settings> {
 
     override fun apply(settings: Settings) {
         val version = FixersSettingsVersion.VALUE
         checkCatalogVersion(settings, version)
+        settings.dependencyResolutionManagement.repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
         settings.dependencyResolutionManagement.repositories.declareJsDistributions()
+        settings.gradle.extensions.extraProperties.set(MARKER, true)
         settings.dependencyResolutionManagement.versionCatalogs.create(CATALOG_NAME) {
             from("$CATALOG_COORDINATES:$version")
         }
@@ -29,6 +34,9 @@ class SettingsPlugin : Plugin<Settings> {
         const val CATALOG_NAME = "catalogue"
         const val CATALOG_COORDINATES = "io.komune.f2:f2-gradle-catalog"
         const val LOCAL_CATALOG = "gradle/libs.versions.toml"
+
+        /** Read by the fixers config plugin, which then adds no project repository. */
+        const val MARKER = "io.komune.fixers.gradle.settings"
     }
 }
 
@@ -39,7 +47,11 @@ class SettingsPlugin : Plugin<Settings> {
 private fun checkCatalogVersion(settings: Settings, version: String) {
     val catalog = settings.settingsDir.resolve(SettingsPlugin.LOCAL_CATALOG)
     if (!catalog.exists()) return
-    val declared = catalog.readLines().firstNotNullOfOrNull { FIXERS_VERSION.find(it)?.groupValues?.get(1) }
+    val declared = catalog.readLines()
+        .dropWhile { it.trim() != VERSIONS_SECTION }
+        .drop(1)
+        .takeWhile { !it.trim().startsWith("[") }
+        .firstNotNullOfOrNull { FIXERS_VERSION.find(it)?.groupValues?.get(1) }
     if (declared != null && declared != version) {
         throw GradleException(
             "${SettingsPlugin.LOCAL_CATALOG} declares fixers = \"$declared\", but the fixers settings plugin is " +
@@ -47,6 +59,8 @@ private fun checkCatalogVersion(settings: Settings, version: String) {
         )
     }
 }
+
+private const val VERSIONS_SECTION = "[versions]"
 
 private val FIXERS_VERSION = Regex("""^\s*fixers\s*=\s*"([^"]+)"""")
 

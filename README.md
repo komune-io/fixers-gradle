@@ -52,7 +52,6 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         mavenCentral()
     }
@@ -63,7 +62,7 @@ It:
 - creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version;
 - declares the Node.js and Yarn distributions Kotlin/JS downloads, each as an exclusive repository serving that module only, and clears the Kotlin plugin's download base URLs so it adds no project repository of its own.
 
-It adds no other repository: Maven Central, snapshots or `mavenLocal()` stay the project's to declare, in the order it chooses.
+It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS`: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins then add none (`fixers { repositories { } }` has no effect), and the Komune CI init script adds its repositories to the settings instead of the projects. It adds no Maven repository itself: Maven Central, snapshots or `mavenLocal()` stay the project's to declare, in the order it chooses.
 
 ### io.komune.fixers.gradle.config
 
@@ -93,8 +92,8 @@ fixers {
 ```
 
 Applied to the root project, it also enforces two conventions on every project:
-- **Spring Boot images**: a module that applies `org.springframework.boot` fails at configuration unless its `bootBuildImage` builder is pinned by digest (`…:<version>@sha256:<digest>`) and its buildpacks include a versioned `paketobuildpacks/health-checker`; fixers then sets `BP_HEALTH_CHECKER_ENABLED=true`. The versions stay in the project.
-- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version).
+- **Spring Boot images**: in a module that applies `org.springframework.boot`, `checkBootImage` (run by `check`) and `bootBuildImage` itself fail unless the builder is pinned by digest (`…:<version>@sha256:<digest>`) and the buildpacks include a versioned health checker (`docker.io/paketobuildpacks/health-checker:<version>` or `urn:cnb:registry:paketo-buildpacks/health-checker@<version>`); fixers sets `BP_HEALTH_CHECKER_ENABLED=true`. The versions stay in the project; `test` alone is not affected.
+- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); it fails too when the lock is missing.
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -134,7 +133,7 @@ plugins {
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
-Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
+Every JS test runs in both Chromium and Firefox. Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
 ### io.komune.fixers.gradle.publish
 

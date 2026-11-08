@@ -20,6 +20,12 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
  * 5. From the root, forces a patched BouncyCastle on KGP's PGP helper configuration
  *    in every project (see [alignBouncyCastle])
  */
+/**
+ * Set on `gradle` by the fixers settings plugin, which declares every repository in the settings
+ * and forbids project repositories: this plugin then adds none.
+ */
+internal const val SETTINGS_PLUGIN_MARKER = "io.komune.fixers.gradle.settings"
+
 class ConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         // Apply base plugin to get lifecycle tasks (assemble, build, check) if not already present
@@ -64,8 +70,10 @@ class ConfigPlugin : Plugin<Project> {
                         subproject.group = bundleGroup
                     }
                 }
-                root.allprojects.forEach { proj ->
-                    proj.configureRepositories(extension.repositories)
+                if (!root.gradle.extensions.extraProperties.has(SETTINGS_PLUGIN_MARKER)) {
+                    root.allprojects.forEach { proj ->
+                        proj.configureRepositories(extension.repositories)
+                    }
                 }
             }
 

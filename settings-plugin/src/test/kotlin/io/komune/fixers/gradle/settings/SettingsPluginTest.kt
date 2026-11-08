@@ -74,6 +74,47 @@ class SettingsPluginTest {
     }
 
     @Test
+    fun `should read the fixers version from the versions section only`() {
+        publishCatalog()
+        writeSettings()
+        File(projectDir, "gradle").mkdirs()
+        File(projectDir, "gradle/libs.versions.toml").writeText(
+            "[libraries]\nfixers = \"io.komune:other:0.0.1\"\n\n[versions]\nfixers = \"$version\"\n"
+        )
+
+        run("help")
+    }
+
+    @Test
+    fun `should forbid repositories declared by a project`() {
+        publishCatalog()
+        writeSettings()
+        File(projectDir, "build.gradle.kts").writeText("repositories { mavenCentral() }\n")
+
+        val result = runner("help").buildAndFail()
+
+        assertThat(result.output).contains("Build was configured to prefer settings repositories over project repositories")
+    }
+
+    @Test
+    fun `should build under the Komune CI init script`() {
+        publishCatalog()
+        writeSettings(
+            after = """
+                gradle.settingsEvaluated {
+                    println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
+                }
+            """.trimIndent(),
+        )
+        val initScript = File(CI_INIT_SCRIPT).absoluteFile
+        check(initScript.exists()) { "$initScript is missing" }
+
+        val result = runner("help", "--init-script", initScript.path).build()
+
+        assertThat(result.output).contains("repositories=Node.js, Yarn, Probe, MavenRepo, FixersGitHubPackages")
+    }
+
+    @Test
     fun `should accept a project catalog that declares the same fixers version`() {
         publishCatalog()
         writeSettings()
@@ -192,5 +233,8 @@ class SettingsPluginTest {
 
     private companion object {
         const val KOTLIN_VERSION = "2.4.21"
+
+        /** The init script the Komune CI action writes to `~/.gradle`, from the module directory. */
+        const val CI_INIT_SCRIPT = "../.github/actions/setup-gradle-github-pkg/init.gradle.kts"
     }
 }

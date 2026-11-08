@@ -10,33 +10,7 @@ runs:
     - id: setup_gradle
       run: |
         mkdir -p ~/.gradle
-        echo "settingsEvaluated {
-            pluginManagement {
-                repositories {
-                    mavenCentral()
-                    gradlePluginPortal()
-                    maven {
-                        url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
-                        credentials {
-                            username = System.getenv(\"FIXERS_PUBLISH_GITHUB_USERNAME\")
-                            password = System.getenv(\"FIXERS_PUBLISH_GITHUB_TOKEN\")
-                        }
-                    }
-                }
-            }
-        }
-        allprojects {
-            repositories {
-                mavenCentral()
-                maven {
-                    url = uri(\"https://maven.pkg.github.com/komune-io/fixers\")
-                    credentials {
-                        username = System.getenv(\"FIXERS_PUBLISH_GITHUB_USERNAME\")
-                        password = System.getenv(\"FIXERS_PUBLISH_GITHUB_TOKEN\")
-                    }
-                }
-            }
-        }" > ~/.gradle/init.gradle.kts
+        cp "${{ github.action_path }}/init.gradle.kts" ~/.gradle/init.gradle.kts
         chmod 600 ~/.gradle/init.gradle.kts
       shell: bash
     - id: set_output
