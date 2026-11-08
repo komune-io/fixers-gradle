@@ -15,7 +15,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     mainConfig?.kt2Ts?.let { config ->
         // Kotlin/JS writes build/js/packages while it assembles a library distribution.
         val jsDistributions = target.allprojects.map { project ->
-            project.tasks.named { it.endsWith("ProductionLibraryDistribution") }
+            project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
         }
         // Resolve all Project-dependent values at configuration time for configuration cache compatibility
         val inputDir = if(config.inputDirectory.isPresent) {

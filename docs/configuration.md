@@ -262,7 +262,7 @@ A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` f
 
 `tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched. `cleanTsGen` deletes `outputDirectory` entirely.
 
-`tsGenCheck` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` declares a name twice (TypeScript would merge the two). It ignores `node_modules`, source maps and the `version` of `package.json`, and compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. `check` depends on it, so a project that applies kt2Ts commits `outputDirectory`.
+`tsGenCheck` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` declares a name twice (TypeScript would merge the two). It ignores `node_modules`, source maps and the `version` of `package.json`, and compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. In a build that emits Kotlin/JS, `check` depends on it: `outputDirectory` is meant to be committed.
 
 #### Example
 

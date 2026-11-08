@@ -8,10 +8,12 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 
 internal const val NODE_MODULES = "node_modules"
+internal const val JS_DISTRIBUTION_SUFFIX = "ProductionLibraryDistribution"
 
 /**
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
- * when [outputDir] differs from them, or when a `.d.mts` declares a name twice. `check` runs it.
+ * when [outputDir] differs from them, or when a `.d.mts` declares a name twice. `check` runs it
+ * in a build that emits Kotlin/JS.
  */
 internal fun Project.registerTsGenCheck(
     config: Kt2Ts,
@@ -55,7 +57,11 @@ internal fun Project.registerTsGenCheck(
             }
         }
     }
-    tasks.matching { it.name == "check" }.configureEach { dependsOn(tsGenCheck) }
+    // Every project that applies the config plugin has a kt2Ts block; only one that emits Kotlin/JS has a contract.
+    val emitsJs = allprojects.any { project -> project.tasks.names.any { it.endsWith(JS_DISTRIBUTION_SUFFIX) } }
+    if (emitsJs) {
+        tasks.matching { it.name == "check" }.configureEach { dependsOn(tsGenCheck) }
+    }
     return tsGenCheck
 }
 
