@@ -230,8 +230,10 @@ class TsGenCheckTest {
             project.run("tsGen")
 
             assertThatThrownBy { project.run("tsGenCheck") }
-                .hasMessageContaining("pkg/kotlin/pkg.d.mts")
+                .hasMessageContaining("out/pkg/kotlin/pkg.d.mts")
                 .hasMessageContaining("interface Dto")
+                .hasMessageContaining("Rename")
+                .hasMessageNotContaining("Regenerate")
         }
 
         @Test

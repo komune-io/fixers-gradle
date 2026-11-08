@@ -38,14 +38,14 @@ internal fun Project.registerTsGenCheck(
         doNotTrackState("Compares the regenerated declarations with the committed copy")
         doLast {
             staging.cleanTree(cleaning)
-            val problems = staleFiles(staging, outputDir).map {
-                "$shownOutput/$it differs from the Kotlin/JS output."
-            } + duplicatedDeclarations(staging, allowedDuplicates.get())
-            if (problems.isNotEmpty()) {
+            val stale = staleFiles(staging, outputDir).map { "$shownOutput/$it differs from the Kotlin/JS output." }
+            val duplicated = duplicatedDeclarations(staging, allowedDuplicates.get()).map { "$shownOutput/$it" }
+            if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
                 throw GradleException(
                     "The TypeScript contract is not what the Kotlin generates:" +
-                        problems.joinToString("") { "\n  $it" } +
-                        "\nRegenerate it with `./gradlew tsGen` and commit the result."
+                        (stale + duplicated).joinToString("") { "\n  $it" } +
+                        (if (stale.isEmpty()) "" else "\nRegenerate it with `./gradlew tsGen` and commit the result.") +
+                        (if (duplicated.isEmpty()) "" else "\nRename one of the two Kotlin declarations; the emitter has no namespaces.")
                 )
             }
         }
