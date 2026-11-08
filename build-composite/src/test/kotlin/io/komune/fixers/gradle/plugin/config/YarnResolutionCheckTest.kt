@@ -42,7 +42,7 @@ class YarnResolutionCheckTest {
     fun `should accept resolutions that reach the lock`() {
         assertThat(
             yarnResolutionProblems(
-                mapOf("**/mocha/glob" to "14.0.4", "**/ws" to "8.22.2", "**/mocha/@isaacs/brace" to "1.0.0"),
+                mapOf("**/mocha/glob" to listOf("14.0.4"), "**/ws" to listOf("8.22.2"), "**/mocha/@isaacs/brace" to listOf("1.0.0")),
                 lock,
             )
         ).isEmpty()
@@ -50,35 +50,44 @@ class YarnResolutionCheckTest {
 
     @Test
     fun `should reject a resolution not scoped with any depth`() {
-        assertThat(yarnResolutionProblems(mapOf("ws" to "8.22.2"), lock))
+        assertThat(yarnResolutionProblems(mapOf("ws" to listOf("8.22.2")), lock))
             .singleElement().asString().contains("not scoped with **/")
-        assertThat(yarnResolutionProblems(mapOf("mocha/glob" to "14.0.4"), lock))
+        assertThat(yarnResolutionProblems(mapOf("mocha/glob" to listOf("14.0.4")), lock))
             .singleElement().asString().contains("not scoped with **/")
     }
 
     @Test
     fun `should reject a resolution whose parent does not depend on the package`() {
-        assertThat(yarnResolutionProblems(mapOf("**/karma-webpack/minimatch" to "11.0.5"), lock))
+        assertThat(yarnResolutionProblems(mapOf("**/karma-webpack/minimatch" to listOf("11.0.5")), lock))
             .singleElement().asString().isEqualTo("**/karma-webpack/minimatch: karma-webpack does not depend on minimatch in the lock")
     }
 
     @Test
     fun `should reject a resolution on a package nobody depends on`() {
-        assertThat(yarnResolutionProblems(mapOf("**/serialize-javascript" to "7.1.4"), lock))
+        assertThat(yarnResolutionProblems(mapOf("**/serialize-javascript" to listOf("7.1.4")), lock))
             .singleElement().asString().contains("no package depends on serialize-javascript")
     }
 
     @Test
     fun `should reject a resolution the lock does not hold at its version`() {
-        assertThat(yarnResolutionProblems(mapOf("**/mocha/glob" to "14.0.5"), lock))
+        assertThat(yarnResolutionProblems(mapOf("**/mocha/glob" to listOf("14.0.5")), lock))
             .singleElement().asString().contains("does not hold glob at 14.0.5")
     }
 
     @Test
     fun `should reject resolutions when there is no lock`() {
-        assertThat(yarnResolutionProblems(mapOf("**/ws" to "8.22.2"), null))
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), null))
             .singleElement().asString().startsWith("no yarn.lock")
         assertThat(yarnResolutionProblems(emptyMap(), null)).isEmpty()
+    }
+
+    @Test
+    fun `should reject a resolution that forces a range or several versions`() {
+        assertThat(yarnResolutionProblems(mapOf("**/mocha/glob" to listOf("^14"), "**/ws" to listOf("8.22.2", "8.22.3")), lock))
+            .containsExactly(
+                "**/mocha/glob: forces ^14, not one exact version",
+                "**/ws: forces 8.22.2 8.22.3, not one exact version",
+            )
     }
 
     @Test
@@ -90,6 +99,6 @@ class YarnResolutionCheckTest {
 
         val task = root.tasks.getByName(YARN_RESOLUTION_CHECK_TASK) as YarnResolutionCheckTask
         assertThat(root.tasks.getByName("check").taskDependencies.getDependencies(null)).contains(task)
-        assertThat(task.lockFile.get().asFile.path).endsWith("kotlin-js-store/yarn.lock")
+        assertThat(task.lockFile.files.single().path).endsWith("kotlin-js-store/yarn.lock")
     }
 }

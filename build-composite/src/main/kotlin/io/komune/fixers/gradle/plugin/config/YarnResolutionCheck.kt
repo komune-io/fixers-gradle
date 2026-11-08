@@ -3,21 +3,23 @@ package io.komune.fixers.gradle.plugin.config
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
 internal const val YARN_RESOLUTION_CHECK_TASK = "checkYarnResolutions"
 
 private const val ANY_DEPTH = "**/"
+
+private val EXACT_VERSION = Regex("""\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?""")
 
 /**
  * Fails when a yarn resolution forced on the Kotlin/JS lock is not scoped to any depth (`**`
@@ -28,18 +30,18 @@ private const val ANY_DEPTH = "**/"
 @DisableCachingByDefault(because = "A verification that produces no output")
 abstract class YarnResolutionCheckTask : DefaultTask() {
 
-    /** Resolution path to the forced version, as declared with `resolution(path, version)`. */
+    /** Resolution path to the versions it forces, as declared with `resolution(path, version)`. */
     @get:Input
-    abstract val resolutions: MapProperty<String, String>
+    abstract val resolutions: MapProperty<String, List<String>>
 
-    @get:InputFile
-    @get:Optional
+    /** The lock, which may be missing: a missing lock is a failure of this check, not of Gradle's. */
+    @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val lockFile: RegularFileProperty
+    abstract val lockFile: ConfigurableFileCollection
 
     @TaskAction
     fun check() {
-        val lock = lockFile.orNull?.asFile?.takeIf { it.exists() }?.readText()
+        val lock = lockFile.files.firstOrNull { it.exists() }?.readText()
         val problems = yarnResolutionProblems(resolutions.get(), lock)
         if (problems.isNotEmpty()) {
             throw GradleException(
@@ -58,11 +60,11 @@ internal fun Project.registerYarnResolutionCheck() {
             description = "Fails on a yarn resolution that is not scoped with **/ or does not reach the lock."
             resolutions.set(
                 yarn.resolutionsProperty.map { list ->
-                    list.associate { it.path to it.includedVersions.joinToString(" ") }
+                    list.associate { it.path to it.includedVersions.toList() }
                 }
             )
-            lockFile.set(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
-            mustRunAfter(tasks.matching { task -> task.name == "kotlinStoreYarnLock" })
+            lockFile.from(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
+            mustRunAfter(tasks.withType(YarnLockStoreTask::class.java))
         }
         tasks.named("check") { dependsOn(check) }
     }
@@ -74,19 +76,26 @@ internal fun Project.registerYarnResolutionCheck() {
  * path names, or any package for an unparented path, must depend on the package, and the lock
  * must hold the package at the forced version.
  */
-internal fun yarnResolutionProblems(resolutions: Map<String, String>, lock: String?): List<String> = when {
+internal fun yarnResolutionProblems(resolutions: Map<String, List<String>>, lock: String?): List<String> = when {
     resolutions.isEmpty() -> emptyList()
     lock == null -> listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
     else -> {
         val entries = parseYarnLock(lock)
-        resolutions.mapNotNull { (path, version) -> resolutionProblem(path, version, entries) }
+        resolutions.mapNotNull { (path, versions) -> resolutionProblem(path, versions, entries) }
     }
 }
 
-private fun resolutionProblem(path: String, version: String, entries: List<LockEntry>): String? {
-    if (!path.startsWith(ANY_DEPTH)) {
-        return "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
+private fun resolutionProblem(path: String, versions: List<String>, entries: List<LockEntry>): String? {
+    val version = versions.singleOrNull()?.takeIf { EXACT_VERSION.matches(it) }
+    return when {
+        !path.startsWith(ANY_DEPTH) ->
+            "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
+        version == null -> "$path: forces ${versions.joinToString(" ")}, not one exact version"
+        else -> lockProblem(path, version, entries)
     }
+}
+
+private fun lockProblem(path: String, version: String, entries: List<LockEntry>): String? {
     val names = packageNames(path.removePrefix(ANY_DEPTH))
     val pkg = names.last()
     val parent = names.getOrNull(names.size - 2)
