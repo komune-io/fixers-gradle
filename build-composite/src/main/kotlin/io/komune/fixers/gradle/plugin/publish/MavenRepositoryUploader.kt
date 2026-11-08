@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import java.io.File
+import java.io.IOException
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
@@ -28,13 +29,21 @@ object MavenRepositoryUploader {
     private const val HTTP_SERVER_ERROR = 500
     private const val HTTP_LAST_SERVER_ERROR = 599
 
+    /** Status reported for an upload that never got an HTTP response (connect timeout, reset, ...). */
+    private const val NO_HTTP_RESPONSE = 0
+
     /**
-     * A repository that is briefly overloaded or rate-limiting should not abort a release
-     * that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
+     * A repository that is briefly overloaded, rate-limiting or unreachable should not abort
+     * a release that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
      * and is returned as-is.
      */
     private fun HttpPutResult.Error.isTransient(): Boolean =
-        code == HTTP_TOO_MANY_REQUESTS || code in HTTP_SERVER_ERROR..HTTP_LAST_SERVER_ERROR
+        code == NO_HTTP_RESPONSE ||
+            code == HTTP_TOO_MANY_REQUESTS ||
+            code in HTTP_SERVER_ERROR..HTTP_LAST_SERVER_ERROR
+
+    private fun HttpPutResult.Error.describe(): String =
+        if (code == NO_HTTP_RESPONSE) "I/O error" else "HTTP $code"
 
     fun to(repoName: String): Builder = Builder(repoName)
 
@@ -58,18 +67,23 @@ object MavenRepositoryUploader {
 
         /**
          * Uploads a single file, retrying transient failures with exponential backoff.
+         * An I/O failure (connect timeout, connection reset, ...) counts as transient too.
          * Returns the last result once the attempts are exhausted, so a persistent failure
-         * still lands in the summary exactly as it did before.
+         * lands in the summary instead of cancelling the sibling uploads.
          */
         private suspend fun putWithRetry(url: String, authHeader: String, file: File, label: String): HttpPutResult {
             var backoff = initialBackoffMillis
             var attempt = 1
             while (true) {
-                val result = httpClient.put(url, authHeader, file)
+                val result = try {
+                    httpClient.put(url, authHeader, file)
+                } catch (e: IOException) {
+                    HttpPutResult.Error(NO_HTTP_RESPONSE, e.toString())
+                }
                 if (result !is HttpPutResult.Error || !result.isTransient() || attempt >= maxAttempts) {
                     return result
                 }
-                println("  ↻ [$label] HTTP ${result.code}, retrying in ${backoff}ms " +
+                println("  ↻ [$label] ${result.describe()}, retrying in ${backoff}ms " +
                     "(attempt ${attempt + 1}/$maxAttempts)")
                 delay(backoff)
                 backoff *= BACKOFF_FACTOR
@@ -117,8 +131,8 @@ object MavenRepositoryUploader {
                                 }
                                 is HttpPutResult.Error -> {
                                     failed.incrementAndGet()
-                                    println("  ✘ [$progress] Failed: $relativePath → HTTP ${result.code}")
-                                    errors.add("$relativePath → HTTP ${result.code}: ${result.message}")
+                                    println("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
+                                    errors.add("$relativePath → ${result.describe()}: ${result.message}")
                                 }
                             }
                         }
