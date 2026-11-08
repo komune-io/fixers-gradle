@@ -1,6 +1,6 @@
 VERSION = $(shell cat VERSION)
 
-.PHONY: clean lint build test stage promote version verify-metadata verify-metadata-dry
+.PHONY: clean lint build test stage promote version verify-metadata verify-metadata-dry js-lock-refresh
 
 clean:
 	./gradlew clean
@@ -13,7 +13,7 @@ build:
 
 test:
 	./gradlew test :build-composite:test
-	cd sandbox && ./gradlew test
+	cd sandbox && ./gradlew allTests test
 
 stage:
 	VERSION=$(VERSION) ./gradlew stage
@@ -43,3 +43,10 @@ verify-metadata: verify-metadata-dry
 # anything. Note: the full regen (verify-metadata) also needs the sandbox pass above.
 verify-metadata-dry:
 	./gradlew --write-verification-metadata pgp,sha256 --export-keys --dry-run build publishToMavenLocal detekt :build-composite:test
+
+# Regenerates sandbox/kotlin-js-store/yarn.lock from scratch. kotlinUpgradeYarnLock alone keeps
+# every locked entry that still satisfies its range, so stale (vulnerable) transitives survive;
+# deleting the lock first makes yarn resolve the latest allowed versions. Review the diff.
+js-lock-refresh:
+	rm -rf sandbox/build/js sandbox/kotlin-js-store/yarn.lock
+	cd sandbox && ./gradlew rootPackageJson --rerun kotlinUpgradeYarnLock
