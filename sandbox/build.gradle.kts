@@ -42,8 +42,9 @@ fixers {
 // their patched majors (GHSA alerts): mocha -> serialize-javascript ^6, glob ^10 (minimatch ^9),
 // diff ^7; karma-webpack -> minimatch ^9. The `**/` scope is required: without it yarn ignores the
 // path, and an unscoped resolution would also hit karma's own tree.
-// Remove the mocha entries once KGP ships mocha >= 12, the karma-webpack one once it ships a
-// karma-webpack that accepts minimatch >= 11.
+// Upstream bumps do not make a pin safe to drop (mocha 12 still asks for minimatch ^10, which is
+// vulnerable): remove a pin only once `js-lock-refresh` without it still resolves patched versions
+// for every advisory.
 plugins.withType<YarnPlugin> {
   the<YarnRootExtension>().apply {
     resolution("**/mocha/serialize-javascript", "7.1.4")
