@@ -29,7 +29,8 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
 
         val result = runGradleAndFail("help")
 
-        assertThat(result.output).contains("Build was configured to prefer settings repositories over project repositories")
+        assertThat(result.output)
+            .contains("Build was configured to prefer settings repositories over project repositories")
     }
 
     @Test

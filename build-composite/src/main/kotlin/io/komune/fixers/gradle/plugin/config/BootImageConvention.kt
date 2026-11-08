@@ -46,9 +46,9 @@ internal fun Project.enforceBootImageConvention() {
         val check = tasks.register(BOOT_IMAGE_CHECK_TASK, BootImageCheckTask::class.java) {
             group = "verification"
             description = "Fails when $BOOT_BUILD_IMAGE_TASK has no builder pinned by digest or no health checker."
-            imageTask.set(image.map { it.path })
-            builder.set(image.flatMap { it.property<Property<String>>("getBuilder") })
-            buildpacks.set(image.flatMap { it.property<ListProperty<String>>("getBuildpacks") })
+            imageTask.set(image.map { task -> task.path })
+            builder.set(image.flatMap { task -> task.property<Property<String>>("getBuilder") })
+            buildpacks.set(image.flatMap { task -> task.property<ListProperty<String>>("getBuildpacks") })
         }
         pluginManager.withPlugin("base") {
             tasks.named("check") { dependsOn(check) }

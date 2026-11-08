@@ -93,7 +93,8 @@ class SettingsPluginTest {
 
         val result = runner("help").buildAndFail()
 
-        assertThat(result.output).contains("Build was configured to prefer settings repositories over project repositories")
+        assertThat(result.output)
+            .contains("Build was configured to prefer settings repositories over project repositories")
     }
 
     @Test
