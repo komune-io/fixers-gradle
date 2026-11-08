@@ -17,6 +17,8 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
  * 2. Logs configuration information
  * 3. Propagates configuration from the root project to subprojects
  * 4. Configures Kotlin to TypeScript generation if enabled
+ * 5. From the root, forces a patched BouncyCastle on KGP's PGP helper configuration
+ *    in every project (see [alignBouncyCastle])
  */
 class ConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -33,6 +35,13 @@ class ConfigPlugin : Plugin<Project> {
         if (!extra.has(VERSION_SET)) {
             extra.set(VERSION_SET, true)
             root.setVersion()
+        }
+
+        // From the root, across every project: Kotlin subprojects do not all apply a fixers
+        // plugin (MPP modules skip ConfigPlugin, some apply plain `kotlin("jvm")`), yet KGP
+        // creates the configuration in each of them.
+        if (target == root) {
+            root.allprojects { alignBouncyCastle() }
         }
 
         // Use gradle.projectsEvaluated for configuration cache compatibility
