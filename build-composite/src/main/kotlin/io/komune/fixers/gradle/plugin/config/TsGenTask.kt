@@ -148,8 +148,8 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
         // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
         // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
-        // An enum that implements an interface keeps its members after `ordinal`: they do not
-        // exist on the string the JSON carries.
+        // The getters and setters an enum declares after `ordinal` (an interface it implements,
+        // its own properties) are dropped too: the JSON carries only the name.
         Regex("""export declare abstract class (\w+)(?: implements [\w.<>, ]+)? \{\n    private constructor\(\);\n"""
                 + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
                 + """        get ordinal\(\): \d+;\n    \};\n)*"""
@@ -168,8 +168,8 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
         Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?) \| undefined(?=\)|, )""") to
                 "$1: $2$3$orNull | undefined",
-        // A trailing nullable parameter can be left out, as before; one that a required parameter
-        // follows cannot (TS1016). One pass per trailing parameter, from the last.
+        // A trailing nullable parameter stays optional; one that a required parameter follows
+        // cannot be (TS1016). One pass per trailing parameter, from the last.
         *Array(TRAILING_NULLABLE_PASSES) {
             Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to "$1?: $2$3$orNull"
         },
