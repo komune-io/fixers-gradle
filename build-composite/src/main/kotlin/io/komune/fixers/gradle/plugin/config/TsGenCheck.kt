@@ -11,8 +11,7 @@ internal const val NODE_MODULES = "node_modules"
 
 /**
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
- * when [outputDir] differs from them, or when a `.d.mts` declares a name twice.
- * It is not wired into `check`: only a project that commits [outputDir] can run it.
+ * when [outputDir] differs from them, or when a `.d.mts` declares a name twice. `check` runs it.
  */
 internal fun Project.registerTsGenCheck(
     config: Kt2Ts,
@@ -23,9 +22,8 @@ internal fun Project.registerTsGenCheck(
     val source = file(inputDir)
     val staging = layout.buildDirectory.dir("kt2ts-check").get().asFile
     val cleaning = config.buildCleaningRegex()
-    val allowedDuplicates = config.allowedDuplicates
     val shownOutput = config.outputDirectory.get()
-    return tasks.register("tsGenCheck") {
+    val tsGenCheck = tasks.register("tsGenCheck") {
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
         dependsOn(jsDistributions)
@@ -42,7 +40,7 @@ internal fun Project.registerTsGenCheck(
             }
             staging.cleanTree(cleaning)
             val stale = staleFiles(staging, outputDir).map { "$shownOutput/$it differs from the Kotlin/JS output." }
-            val duplicated = duplicatedDeclarations(staging, allowedDuplicates.get()).map { "$shownOutput/$it" }
+            val duplicated = duplicatedDeclarations(staging).map { "$shownOutput/$it" }
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
                 val fixes = listOfNotNull(
                     "Regenerate it with `./gradlew tsGen` and commit the result.".takeIf { stale.isNotEmpty() },
@@ -57,6 +55,8 @@ internal fun Project.registerTsGenCheck(
             }
         }
     }
+    tasks.matching { it.name == "check" }.configureEach { dependsOn(tsGenCheck) }
+    return tsGenCheck
 }
 
 // The build's version, not the contract's. Anchored, so a dependency named `version` still counts.
@@ -91,19 +91,15 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
 // the emitter writes no trailing newline.
 private val declaredName = Regex("""export declare (?:abstract )?(interface|class|namespace) ([A-Za-z0-9_$]+)""")
 
-internal fun duplicatedDeclarations(fresh: File, allowed: Set<String>): List<String> =
+internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
-        val duplicated = declaredName.findAll(file.readText())
+        declaredName.findAll(file.readText())
             .map { "${it.groupValues[1]} ${it.groupValues[2]}" }
             .groupingBy { it }
             .eachCount()
             .filterValues { it > 1 }
             .keys
-        (duplicated - allowed).map {
-            "$path declares `$it` twice; TypeScript merges the two into one type."
-        } + (allowed - duplicated).map {
-            "$path no longer declares `$it` twice; drop it from kt2Ts.allowedDuplicates."
-        }
+            .map { "$path declares `$it` twice; TypeScript merges the two into one type." }
     }
 
 private val metadataInterfaces = Regex("""\[([A-Za-z_$][A-Za-z0-9_$]*(?:, [A-Za-z_$][A-Za-z0-9_$]*)+)\]""")
