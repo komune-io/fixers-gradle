@@ -7,6 +7,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.api.io.TempDirDeletionStrategy
 
 /**
  * Integration tests for the PublishPlugin.
@@ -328,7 +329,9 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      * the shared daemon.
      */
     @Test
-    fun `should bridge gradle portal credentials to system properties`(@TempDir testKitDir: Path) {
+    fun `should bridge gradle portal credentials to system properties`(
+        @TempDir(deletionStrategy = TempDirDeletionStrategy.IgnoreFailures::class) testKitDir: Path
+    ) {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
@@ -363,7 +366,9 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
      * other integration tests share.
      */
     @Test
-    fun `should not override explicit gradle publish key system property`(@TempDir testKitDir: Path) {
+    fun `should not override explicit gradle publish key system property`(
+        @TempDir(deletionStrategy = TempDirDeletionStrategy.IgnoreFailures::class) testKitDir: Path
+    ) {
         createGradlePluginPublishBuildFile()
 
         val buildFile = testProjectDir.resolve("build.gradle.kts").toFile()
