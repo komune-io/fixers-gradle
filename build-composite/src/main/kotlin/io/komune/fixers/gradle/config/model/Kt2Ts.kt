@@ -32,6 +32,16 @@ class Kt2Ts(
     )
 
     /**
+     * Types a Kotlin `T?` as `T | null` instead of `T | undefined`, and a nullable property as
+     * `x?: T | null` instead of `x?: T`. Kotlin and its JSON serializers send `null`.
+     */
+    val strictNullability: Property<Boolean> = project.property(
+        envKey = "FIXERS_KT2TS_STRICT_NULLABILITY",
+        projectKey = "fixers.kt2ts.strictNullability",
+        defaultValue = false
+    )
+
+    /**
      * Additional regex patterns for cleaning generated TypeScript files.
      * The map keys are file extensions, and the values are lists of regex patterns and their replacements.
      */
@@ -50,6 +60,7 @@ class Kt2Ts(
     fun mergeFrom(source: Kt2Ts): Kt2Ts {
         outputDirectory.mergeIfNotPresent(source.outputDirectory)
         inputDirectory.mergeIfNotPresent(source.inputDirectory)
+        strictNullability.mergeIfNotPresent(source.strictNullability)
         additionalCleaning.mergeIfNotPresent(source.additionalCleaning)
 
         return this

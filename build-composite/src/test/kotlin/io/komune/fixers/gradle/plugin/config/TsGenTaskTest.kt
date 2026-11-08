@@ -15,6 +15,11 @@ import org.junit.jupiter.api.io.TempDir
  */
 class TsGenTaskTest {
 
+    private fun Project.run(vararg taskNames: String) = taskNames.forEach { name ->
+        val task = tasks.getByName(name)
+        task.actions.forEach { it.execute(task) }
+    }
+
     private fun projectWithConfig(): Pair<Project, ConfigExtension> {
         val project = ProjectBuilder.builder().build()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
@@ -54,6 +59,56 @@ class TsGenTaskTest {
 
             assertThat(project.tasks.findByName("tsGen")).isNull()
             assertThat(project.tasks.findByName("cleanTsGen")).isNull()
+        }
+
+        @Test
+        fun `tsGen should wait for the Kotlin JS library distribution of every project`() {
+            val root = ProjectBuilder.builder().build()
+            val module = ProjectBuilder.builder().withName("module").withParent(root).build()
+            val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
+
+            root.configureKt2Ts(config)
+            val distribution = module.tasks.register("jsBrowserProductionLibraryDistribution").get()
+
+            val tsGen = root.tasks.getByName("tsGen")
+            assertThat(tsGen.taskDependencies.getDependencies(tsGen)).contains(distribution)
+            val cleanTsGen = root.tasks.getByName("cleanTsGen")
+            assertThat(cleanTsGen.mustRunAfter.getDependencies(cleanTsGen)).contains(distribution)
+        }
+
+        @Test
+        fun `tsGen should clean the copy and leave the Kotlin output untouched`(@TempDir dir: File) {
+            val input = File(dir, "packages/pkg/kotlin").apply { mkdirs() }
+            val raw = "export declare function names(): KtList<string>;\n"
+            File(input, "pkg.d.mts").writeText(raw)
+            val output = File(dir, "out")
+            val (project, config) = projectWithConfig()
+            config.kt2Ts.inputDirectory.set(File(dir, "packages").absolutePath)
+            config.kt2Ts.outputDirectory.set(output.absolutePath)
+
+            project.configureKt2Ts(config)
+            project.run("cleanTsGen", "tsGen")
+
+            assertThat(File(input, "pkg.d.mts").readText()).isEqualTo(raw)
+            assertThat(File(output, "pkg/kotlin/pkg.d.mts").readText())
+                .isEqualTo("export declare function names(): string[];\n")
+        }
+
+        @Test
+        fun `tsGen should not rewrite the npm packages of subprojects`(@TempDir dir: File) {
+            val root = ProjectBuilder.builder().withProjectDir(dir).build()
+            val module = ProjectBuilder.builder().withName("module").withParent(root).build()
+            val npmPackage = module.layout.buildDirectory.dir("packages/js").get().asFile.apply { mkdirs() }
+            val raw = "export declare function names(): KtList<string>;\n"
+            File(npmPackage, "module.d.mts").writeText(raw)
+            val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
+            config.kt2Ts.inputDirectory.set(File(dir, "empty").absolutePath)
+            config.kt2Ts.outputDirectory.set(File(dir, "out").absolutePath)
+
+            root.configureKt2Ts(config)
+            root.run("cleanTsGen", "tsGen")
+
+            assertThat(File(npmPackage, "module.d.mts").readText()).isEqualTo(raw)
         }
     }
 
@@ -185,6 +240,126 @@ class TsGenTaskTest {
             val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
 
             cleanProjectDir(File(dir, "does-not-exist").absolutePath, cleaning)
+        }
+    }
+
+    /**
+     * `kotlin-2.4.21.d.mts` is the unmodified output of Kotlin/JS 2.4.21 (ES modules, `es2015`,
+     * `-Xes-long-as-bigint`, production library) for a sample of DTOs, enums and functions;
+     * the expected files are what the rules make of it.
+     */
+    @Nested
+    inner class Kotlin2421DeclarationsTest {
+
+        @TempDir
+        lateinit var dir: File
+
+        private fun clean(strictNullability: Boolean = false): String {
+            val file = File(dir, "api.d.mts")
+            file.writeText(resource("kotlin-2.4.21.d.mts"))
+            val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
+            kt2Ts.strictNullability.set(strictNullability)
+            cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
+            return file.readText()
+        }
+
+        private fun resource(name: String): String =
+            javaClass.getResource("/kt2ts/$name")!!.readText()
+
+        @Test
+        fun `should match the expected declarations`() {
+            assertThat(clean()).isEqualTo(resource("kotlin-2.4.21.expected.d.mts"))
+        }
+
+        @Test
+        fun `should match the expected declarations with strict nullability`() {
+            assertThat(clean(strictNullability = true)).isEqualTo(resource("kotlin-2.4.21.strict.expected.d.mts"))
+        }
+
+        @Test
+        fun `should drop the collection interop declared with variance`() {
+            val result = clean()
+
+            assertThat(result).doesNotContain("interface out", "Record<K, out V>", "KtList", "KtMap", "KtSet")
+        }
+
+        @Test
+        fun `should collapse a Set like a List`() {
+            assertThat(clean()).contains("get setS(): string[];")
+        }
+
+        @Test
+        fun `should leave no Nullable outside comments`() {
+            val result = clean()
+
+            assertThat(Regex("""(?<!/\* )Nullable<""").findAll(result).toList()).isEmpty()
+            assertThat(result).contains("get onChange(): ((p0: string) => void) | undefined;")
+            assertThat(result).contains("mapSDtoNull: Record<string, (NestedDto | undefined)>")
+        }
+
+        @Test
+        fun `should keep a nullable constructor parameter required`() {
+            assertThat(clean()).contains("constructor(s: string, sNull: string | undefined, i: number,")
+        }
+
+        @Test
+        fun `should map a Long inside a generic type`() {
+            assertThat(clean()).contains("sumLongs(m: Record<string, number>): number;")
+        }
+
+        @Test
+        fun `should collapse enums that implement an interface or carry members`() {
+            val result = clean()
+
+            assertThat(result).contains("export type XState = \"CREATED\" | \"VALIDATED\";")
+            assertThat(result).contains("export type ProductStatus = \"DRAFT\" | \"PUBLISHED\" | \"ARCHIVED\";")
+        }
+
+        @Test
+        fun `should keep nullable properties optional and undefined by default`() {
+            val result = clean()
+
+            assertThat(result).contains("readonly name?: string;")
+            assertThat(result).contains("get sNull(): string | undefined;")
+        }
+
+        @Test
+        fun `should type nullable values as null with strict nullability`() {
+            val result = clean(strictNullability = true)
+
+            assertThat(result).contains("readonly name?: string | null;")
+            assertThat(result).contains("get sNull(): string | null;")
+            assertThat(result).contains("listSNull: (string | null)[]")
+            assertThat(result).contains("sNull: string | null, i: number")
+            assertThat(result).doesNotContain("| undefined")
+        }
+    }
+
+    @Nested
+    inner class StrictNullabilityTest {
+
+        @TempDir
+        lateinit var dir: File
+
+        private fun clean(content: String): String {
+            val file = File(dir, "api.d.mts")
+            file.writeText(content)
+            val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
+            kt2Ts.strictNullability.set(true)
+            cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
+            return file.readText()
+        }
+
+        @Test
+        fun `should keep the comment of a non exported nullable type before null`() {
+            val result = clean("export declare interface A {\n    readonly item: Nullable<any>/* Nullable<Graph> */;\n}\n")
+
+            assertThat(result).contains("readonly item?: any/* Nullable<Graph> */ | null;")
+        }
+
+        @Test
+        fun `should be off by default`() {
+            assertThat(Kt2Ts(ProjectBuilder.builder().build()).strictNullability.get()).isFalse()
         }
     }
 }
