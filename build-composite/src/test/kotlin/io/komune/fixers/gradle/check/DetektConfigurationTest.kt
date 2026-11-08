@@ -7,6 +7,7 @@ import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
+import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -193,5 +194,20 @@ class DetektConfigurationTest {
             assertThat(task.reports.html.required.get()).isFalse()
             assertThat(task.reports.markdown.required.get()).isFalse()
         }
+    }
+
+    @Test
+    fun `should run the typed detekt tasks of the multiplatform jvm target on check`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
     }
 }

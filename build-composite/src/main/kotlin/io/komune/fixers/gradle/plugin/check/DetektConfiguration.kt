@@ -15,6 +15,7 @@ import org.gradle.kotlin.dsl.withType
 private const val DETEKT_TASK = "detekt"
 private const val DETEKT_BASELINE_TASK = "detektBaseline"
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
+private val MPP_JVM_DETEKT_TASKS = setOf("detektMainJvm", "detektTestJvm")
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
     return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
@@ -94,14 +95,7 @@ fun Project.configureDetekt() {
                 finalizedBy(detektReportMergeXml, detektReportMergeSarif)
             }
 
-            // `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
-            // `detektBaseline`: the rules that need types are then skipped without a word.
-            tasks.withType<Detekt>().matching { it.name == DETEKT_TASK }.configureEach {
-                classpath.from(configurations.matching { it.name in COMPILE_CLASSPATHS })
-            }
-            tasks.withType<DetektCreateBaselineTask>().matching { it.name == DETEKT_BASELINE_TASK }.configureEach {
-                classpath.from(configurations.matching { it.name in COMPILE_CLASSPATHS })
-            }
+            configureTypedDetekt()
 
             detektReportMergeSarif.configure {
                 input.from(detektReportsWithExtension("sarif"))
@@ -110,6 +104,27 @@ fun Project.configureDetekt() {
             detektReportMergeXml.configure {
                 input.from(detektReportsWithExtension("xml"))
             }
+        }
+    }
+}
+
+/**
+ * `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
+ * `detektBaseline`: the rules that need types are then skipped without a word. Multiplatform
+ * sources sit outside `src/main`, where `detekt` looks: the typed tasks of the JVM target, which
+ * see `commonMain` too, are the ones that analyse them.
+ */
+private fun Project.configureTypedDetekt() {
+    val compileClasspaths = configurations.matching { configuration -> configuration.name in COMPILE_CLASSPATHS }
+    tasks.withType<Detekt>().matching { task -> task.name == DETEKT_TASK }.configureEach {
+        classpath.from(compileClasspaths)
+    }
+    tasks.withType<DetektCreateBaselineTask>().matching { task -> task.name == DETEKT_BASELINE_TASK }.configureEach {
+        classpath.from(compileClasspaths)
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        tasks.named("check") {
+            dependsOn(tasks.withType<Detekt>().matching { task -> task.name in MPP_JVM_DETEKT_TASKS })
         }
     }
 }

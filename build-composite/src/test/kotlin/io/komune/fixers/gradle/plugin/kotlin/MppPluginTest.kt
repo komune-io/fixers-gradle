@@ -99,6 +99,18 @@ class MppPluginTest {
     }
 
     @Test
+    fun `should treat warnings as errors and check ignored return values on every target`() {
+        val project = mppProject()
+
+        val compileJvm = project.tasks.getByName("compileKotlinJvm") as KotlinCompile
+        val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        listOf(compileJvm.compilerOptions, compileJs.compilerOptions).forEach { options ->
+            assertThat(options.allWarningsAsErrors.get()).isTrue()
+            assertThat(options.freeCompilerArgs.get()).contains("-Xreturn-value-checker=check")
+        }
+    }
+
+    @Test
     fun `should report the extra compiler warnings on every target`() {
         val project = mppProject()
 
