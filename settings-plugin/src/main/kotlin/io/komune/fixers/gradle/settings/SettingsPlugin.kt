@@ -89,7 +89,7 @@ private val JS_DOWNLOAD_SPECS = setOf(
 private fun Project.clearJsDownloadBaseUrls() {
     plugins.configureEach {
         extensions.extensionsSchema.elements
-            .filter { it.publicType.concreteClass.name in JS_DOWNLOAD_SPECS }
+            .filter { element -> element.publicType.concreteClass.name in JS_DOWNLOAD_SPECS }
             .forEach { element ->
                 val spec = extensions.getByName(element.name)
                 @Suppress("UNCHECKED_CAST")

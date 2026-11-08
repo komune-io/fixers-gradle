@@ -48,7 +48,10 @@ class SettingsPluginTest {
                 mavenLocal()
                 maven { name = "Probe"; url = uri("${repoDir.toURI()}") }
             """.trimIndent(),
-            after = """println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())""",
+            after = """
+                val names = dependencyResolutionManagement.repositories.map { it.name }
+                println("repositories=" + names.joinToString())
+            """.trimIndent(),
         )
 
         val result = run("help")
@@ -65,8 +68,9 @@ class SettingsPluginTest {
 
         val result = runner("help").buildAndFail()
 
-        assertThat(result.output)
-            .contains("gradle/libs.versions.toml declares fixers = \"0.0.1\", but the fixers settings plugin is $version")
+        assertThat(result.output).contains(
+            "gradle/libs.versions.toml declares fixers = \"0.0.1\", but the fixers settings plugin is $version"
+        )
     }
 
     @Test

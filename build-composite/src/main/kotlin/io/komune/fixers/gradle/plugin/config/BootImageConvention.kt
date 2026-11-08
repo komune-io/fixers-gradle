@@ -13,6 +13,7 @@ internal const val HEALTH_CHECKER_ENABLED = "BP_HEALTH_CHECKER_ENABLED"
 
 private const val HEALTH_CHECKER_BUILDPACK = "paketobuildpacks/health-checker"
 private const val DIGEST = "@sha256:"
+private val VERSION_SEPARATORS = setOf(':', '@')
 
 /**
  * Every Spring Boot image is built from a builder pinned by digest and carries Paketo's health
@@ -48,14 +49,15 @@ private fun Project.checkBootImages() {
 internal fun bootImageProblems(builder: String?, buildpacks: List<String>): List<String> {
     val problems = mutableListOf<String>()
     if (builder.isNullOrBlank()) {
-        problems += "no builder: set one pinned by digest, e.g. docker.io/paketobuildpacks/builder-noble-java-tiny:<version>@sha256:<digest>"
+        problems += "no builder: set one pinned by digest, " +
+            "e.g. docker.io/paketobuildpacks/builder-noble-java-tiny:<version>@sha256:<digest>"
     } else if (!builder.contains(DIGEST)) {
         problems += "builder $builder is not pinned by digest ($DIGEST…)"
     }
     val healthChecker = buildpacks.firstOrNull { it.contains(HEALTH_CHECKER_BUILDPACK) }
     if (healthChecker == null) {
         problems += "no health-checker buildpack: add docker.io/$HEALTH_CHECKER_BUILDPACK:<version>"
-    } else if (!healthChecker.substringAfter(HEALTH_CHECKER_BUILDPACK).let { it.startsWith(":") || it.startsWith("@") }) {
+    } else if (healthChecker.substringAfter(HEALTH_CHECKER_BUILDPACK).firstOrNull() !in VERSION_SEPARATORS) {
         problems += "health-checker buildpack $healthChecker has no version"
     }
     return problems

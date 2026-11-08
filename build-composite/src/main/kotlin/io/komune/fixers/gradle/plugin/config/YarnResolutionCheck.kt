@@ -11,6 +11,7 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
@@ -24,6 +25,7 @@ private const val ANY_DEPTH = "**/"
  * match without a word, and a pin whose parent left the tree keeps a dead entry in the lock, so
  * neither shows up otherwise.
  */
+@DisableCachingByDefault(because = "A verification that produces no output")
 abstract class YarnResolutionCheckTask : DefaultTask() {
 
     /** Resolution path to the forced version, as declared with `resolution(path, version)`. */
@@ -60,7 +62,7 @@ internal fun Project.registerYarnResolutionCheck() {
                 }
             )
             lockFile.set(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
-            mustRunAfter(tasks.matching { it.name == "kotlinStoreYarnLock" })
+            mustRunAfter(tasks.matching { task -> task.name == "kotlinStoreYarnLock" })
         }
         tasks.named("check") { dependsOn(check) }
     }
@@ -72,27 +74,31 @@ internal fun Project.registerYarnResolutionCheck() {
  * path names, or any package for an unparented path, must depend on the package, and the lock
  * must hold the package at the forced version.
  */
-internal fun yarnResolutionProblems(resolutions: Map<String, String>, lock: String?): List<String> {
-    if (resolutions.isEmpty()) return emptyList()
-    if (lock == null) return listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
-    val entries = parseYarnLock(lock)
-    return resolutions.mapNotNull { (path, version) ->
-        if (!path.startsWith(ANY_DEPTH)) {
-            return@mapNotNull "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
-        }
-        val names = packageNames(path.removePrefix(ANY_DEPTH))
-        val pkg = names.last()
-        val parent = names.getOrNull(names.size - 2)
-        val dependedOn = entries.any { entry ->
-            (parent == null || entry.name == parent) && pkg in entry.dependencies
-        }
-        val atVersion = entries.any { it.name == pkg && it.version == version }
-        when {
-            !dependedOn && parent == null -> "$path: no package depends on $pkg in the lock"
-            !dependedOn -> "$path: $parent does not depend on $pkg in the lock"
-            !atVersion -> "$path: the lock does not hold $pkg at $version"
-            else -> null
-        }
+internal fun yarnResolutionProblems(resolutions: Map<String, String>, lock: String?): List<String> = when {
+    resolutions.isEmpty() -> emptyList()
+    lock == null -> listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
+    else -> {
+        val entries = parseYarnLock(lock)
+        resolutions.mapNotNull { (path, version) -> resolutionProblem(path, version, entries) }
+    }
+}
+
+private fun resolutionProblem(path: String, version: String, entries: List<LockEntry>): String? {
+    if (!path.startsWith(ANY_DEPTH)) {
+        return "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
+    }
+    val names = packageNames(path.removePrefix(ANY_DEPTH))
+    val pkg = names.last()
+    val parent = names.getOrNull(names.size - 2)
+    val dependedOn = entries.any { entry ->
+        (parent == null || entry.name == parent) && pkg in entry.dependencies
+    }
+    val atVersion = entries.any { it.name == pkg && it.version == version }
+    return when {
+        !dependedOn && parent == null -> "$path: no package depends on $pkg in the lock"
+        !dependedOn -> "$path: $parent does not depend on $pkg in the lock"
+        !atVersion -> "$path: the lock does not hold $pkg at $version"
+        else -> null
     }
 }
 
@@ -113,10 +119,10 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
     val entries = mutableListOf<LockEntry>()
     var name: String? = null
     var version: String? = null
-    var dependencies = mutableSetOf<String>()
+    val dependencies = mutableSetOf<String>()
     var inDependencies = false
     fun flush() {
-        name?.let { entries += LockEntry(it, version, dependencies) }
+        name?.let { entries += LockEntry(it, version, dependencies.toSet()) }
     }
     lock.lineSequence().forEach { line ->
         when {
@@ -125,7 +131,7 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
                 flush()
                 name = specName(line.substringBefore(",").trim().removeSuffix(":"))
                 version = null
-                dependencies = mutableSetOf()
+                dependencies.clear()
                 inDependencies = false
             }
             line.startsWith("    ") && inDependencies ->
