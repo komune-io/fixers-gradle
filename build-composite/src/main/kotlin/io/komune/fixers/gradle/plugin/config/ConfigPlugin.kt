@@ -41,7 +41,10 @@ class ConfigPlugin : Plugin<Project> {
         // plugin (MPP modules skip ConfigPlugin, some apply plain `kotlin("jvm")`), yet KGP
         // creates the configuration in each of them.
         if (target == root) {
-            root.allprojects { alignBouncyCastle() }
+            root.allprojects {
+                alignBouncyCastle()
+                enforceBootImageConvention()
+            }
             root.registerYarnResolutionCheck()
         }
 
