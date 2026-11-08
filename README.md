@@ -101,10 +101,10 @@ plugins {
 // - Default dependencies for each target
 // - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
 //   -Xjsr305=strict on the JVM target
-// - JS tests run on Node with Mocha (jsNodeTest); jsBrowserTest is disabled
+// - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
-The JS tests need no browser on the build machine. A project upgrading from a version that ran them with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
+Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
 ### io.komune.fixers.gradle.publish
 

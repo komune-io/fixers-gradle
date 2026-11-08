@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalJsTestDsl::class)
+
 package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.ConfigExtension
@@ -9,7 +11,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
-import org.jetbrains.kotlin.gradle.targets.js.testing.mocha.KotlinMocha
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.jupiter.api.Test
@@ -92,20 +94,21 @@ class MppPluginTest {
     }
 
     @Test
-    fun `should run the js tests on node with mocha`() {
-        val project = mppProject()
-
-        val nodeTest = project.tasks.getByName("jsNodeTest") as KotlinJsTest
-        assertThat(nodeTest.enabled).isTrue()
-        assertThat(nodeTest.testFramework).isInstanceOf(KotlinMocha::class.java)
-    }
-
-    @Test
-    fun `should not run the js tests in a browser`() {
+    fun `should run the js tests in chromium and firefox with playwright`() {
         val project = mppProject()
 
         val browserTest = project.tasks.getByName("jsBrowserTest") as KotlinJsTest
-        assertThat(browserTest.enabled).isFalse()
+        assertThat(browserTest.enabled).isTrue()
+        val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+        val js = kotlin.targets.getByName("js") as KotlinJsIrTarget
+        assertThat(js.browser.test.allBrowserRunners.get().keys).containsExactlyInAnyOrder("chromium", "firefox")
+    }
+
+    @Test
+    fun `should not run the js tests on node`() {
+        val project = mppProject()
+
+        assertThat(project.tasks.findByName("jsNodeTest")).isNull()
     }
 
     @Test
