@@ -115,6 +115,11 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
 
 private const val TRAILING_NULLABLE_PASSES = 4
 
+private const val LIST_PASSES = 3
+
+// `name?: type/* comment */ | null`, from the name, type and comment groups of the rules below.
+private const val OPTIONAL_OR_NULL = "$1?: $2$3 | null"
+
 // A type nested at most three levels deep. `=>` is matched first so that the `>` of an arrow
 // never closes a type argument.
 private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n])*>)*>)*>)*"""
@@ -139,10 +144,9 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> {
         // collapse below, otherwise the property rule further down turns it into an optional
         // property instead (`x?: T[]`, which says the property may be absent, not the elements).
         Regex("""Kt(List|Set)<Nullable<($TYPE)>>""") to "Kt$1<($2 | null)>",
-        // Collapses one level of nesting per pass, hence the repetition: two passes cover
-        // `KtList<KtList<T>>` and `KtList<KtMap<K, V>>`. Deeper nesting needs a further copy.
-        Regex("""Kt(?:List|Set)<($TYPE)>""") to "$1[]",
-        Regex("""Kt(?:List|Set)<($TYPE)>""") to "$1[]",
+        // Collapses one level of nesting per pass, the outermost first: three passes cover
+        // `KtList<KtList<KtList<T>>>`, as deep as TYPE reaches.
+        *Array(LIST_PASSES) { Regex("""Kt(?:List|Set)<($TYPE)>""") to "$1[]" },
         Regex("""KtMap<""") to "Record<",
         // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
         // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
@@ -160,9 +164,9 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> {
         Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
         // A property the JSON may omit is optional; a parameter keeps the arity Kotlin gave it.
         Regex("""(?<=readonly )(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
-                "$1?: $2$3 | null",
+                OPTIONAL_OR_NULL,
         Regex("""(?<=\(|, )(\w+)\?: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to
-                "$1?: $2$3 | null",
+                OPTIONAL_OR_NULL,
         // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
         Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?) \| undefined(?=\)|, )""") to
                 "$1: $2$3 | null | undefined",
@@ -171,7 +175,7 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> {
         // A trailing nullable parameter stays optional; one that a required parameter follows
         // cannot be (TS1016). One pass per trailing parameter, from the last.
         *Array(TRAILING_NULLABLE_PASSES) {
-            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to "$1?: $2$3 | null"
+            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to OPTIONAL_OR_NULL
         },
         Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | null",
         Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | null",

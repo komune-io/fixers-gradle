@@ -333,6 +333,12 @@ class TsGenTaskTest {
         }
 
         @Test
+        fun `should collapse three nested lists`() {
+            assertThat(cleanSnippet("    get cube(): KtList<KtList<KtSet<string>>>;\n"))
+                .isEqualTo("    get cube(): string[][][];\n")
+        }
+
+        @Test
         fun `should map every Long to number`() {
             assertThat(cleanSnippet("    get ids(): KtList<Nullable<bigint>>;\n    readonly bigint: bigint;\n"))
                 .isEqualTo("    get ids(): (number | null)[];\n    readonly bigint: number;\n")
