@@ -41,11 +41,15 @@ internal fun Project.registerTsGenCheck(
             val stale = staleFiles(staging, outputDir).map { "$shownOutput/$it differs from the Kotlin/JS output." }
             val duplicated = duplicatedDeclarations(staging, allowedDuplicates.get()).map { "$shownOutput/$it" }
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
+                val fixes = listOfNotNull(
+                    "Regenerate it with `./gradlew tsGen` and commit the result.".takeIf { stale.isNotEmpty() },
+                    "Rename one of the two Kotlin declarations; the emitter has no namespaces."
+                        .takeIf { duplicated.isNotEmpty() },
+                )
                 throw GradleException(
                     "The TypeScript contract is not what the Kotlin generates:" +
                         (stale + duplicated).joinToString("") { "\n  $it" } +
-                        (if (stale.isEmpty()) "" else "\nRegenerate it with `./gradlew tsGen` and commit the result.") +
-                        (if (duplicated.isEmpty()) "" else "\nRename one of the two Kotlin declarations; the emitter has no namespaces.")
+                        fixes.joinToString("") { "\n$it" }
                 )
             }
         }
