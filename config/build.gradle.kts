@@ -12,8 +12,10 @@ project.plugins.withId("java-gradle-plugin") { // only do it if it's actually ap
 
 val generateToolVersions = tasks.register("generateToolVersions") {
     val jacocoVersion = libs.versions.jacoco.get()
+    val bouncyCastleVersion = libs.versions.bouncycastle.get()
     val outputDir = layout.buildDirectory.dir("generated/fixers/kotlin")
     inputs.property("jacocoVersion", jacocoVersion)
+    inputs.property("bouncyCastleVersion", bouncyCastleVersion)
     outputs.dir(outputDir)
     doLast {
         val file = outputDir.get().file("io/komune/fixers/gradle/config/model/FixersToolVersions.kt").asFile
@@ -27,6 +29,7 @@ val generateToolVersions = tasks.register("generateToolVersions") {
             | */
             |object FixersToolVersions {
             |    const val jacoco = "$jacocoVersion"
+            |    const val bouncyCastle = "$bouncyCastleVersion"
             |}
             |""".trimMargin()
         )

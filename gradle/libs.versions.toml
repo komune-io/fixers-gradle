@@ -10,6 +10,24 @@ mockito = "5.24.0"
 mockito-kotlin = "6.4.0"
 coroutines = "1.11.0"
 jacoco = "0.8.15"
+# Forced on KGP's kotlinBouncyCastleConfiguration by the published plugin (BouncyCastleAlignment.kt):
+# KGP 2.4.21 pins 1.84 (GHSA-9pwp-9qqc-pr26, GHSA-qp49-qgx5-5m26, fixed in 1.85). Remove this version
+# with alignBouncyCastle once KGP's own `bouncyCastleVersion` is 1.85 or later: check
+# `project.properties` in the kotlin-gradle-plugin jar.
+bouncycastle = "1.86"
+
+# Yarn resolutions for the sandbox's kotlin-js-store/yarn.lock (sandbox/build.gradle.kts).
+# KGP 2.4 pins mocha 11 and karma-webpack 5, whose declared ranges cap these transitives below
+# their patched majors (GHSA alerts): mocha -> serialize-javascript ^6, glob ^10 (minimatch ^9),
+# diff ^7; karma-webpack -> minimatch ^9.
+# Upstream bumps do not make a pin safe to drop (mocha 12 still asks for minimatch ^10, which is
+# vulnerable): remove a pin only once `make -f infra/make/libs.mk js-lock-refresh` without it still
+# resolves patched versions for every advisory.
+npm-mocha-serialize-javascript = "7.1.4"
+npm-mocha-glob = "14.0.4"
+npm-mocha-minimatch = "11.0.5"
+npm-mocha-diff = "8.0.4"
+npm-karma-webpack-minimatch = "11.0.5"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
