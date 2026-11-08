@@ -23,7 +23,8 @@ class MppPlugin : Plugin<Project> {
 		apply(plugin = "org.jetbrains.kotlin.multiplatform")
 		extensions.configure(KotlinMultiplatformExtension::class.java) {
 			compilerOptions {
-				freeCompilerArgs.add("-Wextra")
+				allWarningsAsErrors.set(true)
+				freeCompilerArgs.addAll("-Wextra", "-Xreturn-value-checker=check")
 			}
 			sourceSets {
 				configureEach {

@@ -80,7 +80,7 @@ plugins {
 
 // The plugin automatically configures:
 // - JDK version (from fixers.jdk.version or default 17)
-// - Kotlin compiler options: -Xjsr305=strict, and -Wextra (warnings only)
+// - Kotlin compiler options: -Xjsr305=strict, -Wextra, -Xreturn-value-checker=check, warnings as errors
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
 // - The JUnit Platform launcher on testRuntimeOnly when the tests use JUnit (Gradle 9 no longer provides it)
 ```
@@ -99,7 +99,8 @@ plugins {
 // The plugin automatically configures:
 // - Kotlin Multiplatform with common, JVM, and JS targets
 // - Default dependencies for each target
-// - Compiler options: -Wextra (warnings only); -Xjsr305=strict on the JVM target
+// - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
+//   -Xjsr305=strict on the JVM target
 // - JS tests run on Node with Mocha (jsNodeTest); jsBrowserTest is disabled
 ```
 
@@ -282,7 +283,7 @@ fixers {
 }
 ```
 
-`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run.
+`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMainJvm` and `detektTestJvm`, the typed tasks of the JVM target.
 
 ### JaCoCo
 

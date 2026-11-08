@@ -62,6 +62,15 @@ class JvmPluginTest {
     }
 
     @Test
+    fun `should treat warnings as errors and check ignored return values`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThat(kotlin.compilerOptions.allWarningsAsErrors.get()).isTrue()
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xreturn-value-checker=check")
+    }
+
+    @Test
     fun `should leave the kotlin language version to the compiler default`() {
         val project = jvmProject()
 
