@@ -8,7 +8,7 @@ repositories {
     gradlePluginPortal()
 }
 
-val generateToolVersions by tasks.registering {
+val generateToolVersions = tasks.register("generateToolVersions") {
     val jacocoVersion = libs.versions.jacoco.get()
     val outputDir = layout.buildDirectory.dir("generated/fixers/kotlin")
     inputs.property("jacocoVersion", jacocoVersion)

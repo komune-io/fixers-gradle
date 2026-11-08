@@ -427,7 +427,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
                 kotlin {
                     sourceSets {
-                        val jvmTest by getting {
+                        getByName("jvmTest") {
                             dependencies {
                                 implementation(kotlin("test"))
                             }
@@ -594,10 +594,11 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
                 }
 
                 tasks.register("verifyModuleDetektPath") {
+                    val moduleProject = project
                     doLast {
                         val config = rootProject.extensions.getByName("fixers")
                             as io.komune.fixers.gradle.config.ConfigExtension
-                        val properties = io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator(project)
+                        val properties = io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator(moduleProject)
                             .buildSonarProperties(config.sonar, null)
                         val detektPath = properties["sonar.kotlin.detekt.reportPaths"].toString()
                         val expected = rootProject.rootDir.resolve("build/reports/detekt/merge.xml").path
