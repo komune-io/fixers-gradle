@@ -185,3 +185,5 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         Regex("""(?<=: )any \| (?:null|undefined)(?=[;,)])""") to "any",
     )
 }
+
+internal fun canonicalMjs(text: String): String = text

@@ -5,7 +5,9 @@ import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.kotlin.dsl.mapProperty
+import org.gradle.kotlin.dsl.setProperty
 
 /**
  * Configuration for Kotlin to TypeScript generation.
@@ -40,6 +42,15 @@ class Kt2Ts(
         projectKey = "fixers.kt2ts.strictNullability",
         defaultValue = false
     )
+
+    /**
+     * Declarations `tsGenCheck` accepts twice in a `.d.mts`, written as they are declared
+     * (`interface UserDeletedEventDTO`). An entry that is no longer declared twice fails too.
+     */
+    val allowedDuplicates: SetProperty<String> =
+        project.objects.setProperty<String>().apply {
+            convention(emptySet())
+        }
 
     /**
      * Additional regex patterns for cleaning generated TypeScript files.
