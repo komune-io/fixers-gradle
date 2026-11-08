@@ -100,7 +100,10 @@ plugins {
 // - Kotlin Multiplatform with common, JVM, and JS targets
 // - Default dependencies for each target
 // - Compiler options: -Wextra (warnings only); -Xjsr305=strict on the JVM target
+// - JS tests run on Node with Mocha (jsNodeTest); jsBrowserTest is disabled
 ```
+
+The JS tests need no browser on the build machine. A project upgrading from a version that ran them with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
 ### io.komune.fixers.gradle.publish
 

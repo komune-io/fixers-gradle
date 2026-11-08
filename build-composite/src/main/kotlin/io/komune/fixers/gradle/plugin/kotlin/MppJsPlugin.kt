@@ -15,11 +15,16 @@ class MppJsPlugin : Plugin<Project> {
         project.extensions.configure(KotlinMultiplatformExtension::class.java) {
             js {
                 binaries.library()
+                // Tests run on Node: they need no browser on the build machine, and the
+                // Karma + webpack test tree stays out of kotlin-js-store/yarn.lock.
+                nodejs {
+                    testTask {
+                        useMocha()
+                    }
+                }
                 browser {
                     testTask {
-                        useKarma {
-                            useFirefoxHeadless()
-                        }
+                        enabled = false
                     }
                 }
                 generateTypeScriptDefinitions()
