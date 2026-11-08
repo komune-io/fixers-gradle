@@ -135,6 +135,11 @@
             <pgp value="19BEAB2D799C020F17C69126B16698A4ADF4D638"/>
          </artifact>
       </component>
+      <component group="org.gradle.kotlin" name="gradle-kotlin-dsl-plugins" version="6.7.13">
+         <artifact name="gradle-kotlin-dsl-plugins-6.7.13.jar">
+            <pgp value="F3FF33E96F18AA62DD580F9651FBF517CE6D6B80"/>
+         </artifact>
+      </component>
       <component group="org.gradle.kotlin" name="gradle-kotlin-dsl-plugins" version="6.7.3">
          <artifact name="gradle-kotlin-dsl-plugins-6.7.3.jar">
             <pgp value="1BD97A6A154E7810EE0BC832E2F38302C8075E3D"/>
