@@ -130,25 +130,37 @@ class TsGenCheckTest {
             assertThat(module.tasks.findByName("tsGenCheck")).isNull()
         }
 
+        private fun projectEmittingJs(): Project {
+            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
+            project.pluginManager.apply("base")
+            project.tasks.register("jsBrowserProductionLibraryDistribution")
+            return project
+        }
+
+        private fun Project.checkDependencies(): List<String> {
+            val check = tasks.getByName("check")
+            return check.taskDependencies.getDependencies(check).map { it.name }
+        }
+
         @Test
-        fun `should be wired into check`() {
+        fun `should be wired into check when the build emits Kotlin JS`() {
+            val project = projectEmittingJs()
+            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+
+            project.configureKt2Ts(config)
+
+            assertThat(project.checkDependencies()).contains("tsGenCheck")
+        }
+
+        @Test
+        fun `should stay out of check when the build emits no Kotlin JS`() {
             val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
             project.pluginManager.apply("base")
             val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
             project.configureKt2Ts(config)
 
-            val check = project.tasks.getByName("check")
-            assertThat(check.taskDependencies.getDependencies(check).map { it.name }).contains("tsGenCheck")
-        }
-
-        @Test
-        fun `should be wired into a check registered after it`() {
-            val project = project()
-            project.pluginManager.apply("base")
-
-            val check = project.tasks.getByName("check")
-            assertThat(check.taskDependencies.getDependencies(check).map { it.name }).contains("tsGenCheck")
+            assertThat(project.checkDependencies()).doesNotContain("tsGenCheck")
         }
 
         @Test
