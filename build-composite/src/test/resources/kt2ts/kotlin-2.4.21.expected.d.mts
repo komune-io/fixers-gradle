@@ -88,7 +88,23 @@ export declare interface ProductNoRuntimeDTO {
     readonly tags: string[];
     readonly status: ProductStatus;
 }
-export type XState = "CREATED" | "VALIDATED";
+export declare abstract class XState implements S2State {
+    private constructor();
+    static get CREATED(): XState & {
+        get name(): "CREATED";
+        get ordinal(): 0;
+    };
+    static get VALIDATED(): XState & {
+        get name(): "VALIDATED";
+        get ordinal(): 1;
+    };
+    static values(): [typeof XState.CREATED, typeof XState.VALIDATED];
+    static valueOf(value: string): XState;
+    get name(): "CREATED" | "VALIDATED";
+    get ordinal(): 0 | 1;
+    get position(): number;
+    set position(value: number);
+}
 export declare namespace XState {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
@@ -106,7 +122,27 @@ export declare function fetchDto(id: string): Promise<NestedDto>;
 export declare interface S2State {
     readonly position: number;
 }
-export type ProductStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export declare abstract class ProductStatus implements S2State {
+    private constructor();
+    static get DRAFT(): ProductStatus & {
+        get name(): "DRAFT";
+        get ordinal(): 0;
+    };
+    static get PUBLISHED(): ProductStatus & {
+        get name(): "PUBLISHED";
+        get ordinal(): 1;
+    };
+    static get ARCHIVED(): ProductStatus & {
+        get name(): "ARCHIVED";
+        get ordinal(): 2;
+    };
+    static values(): [typeof ProductStatus.DRAFT, typeof ProductStatus.PUBLISHED, typeof ProductStatus.ARCHIVED];
+    static valueOf(value: string): ProductStatus;
+    get name(): "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    get ordinal(): 0 | 1 | 2;
+    get position(): number;
+    get label(): string;
+}
 export declare namespace ProductStatus {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {

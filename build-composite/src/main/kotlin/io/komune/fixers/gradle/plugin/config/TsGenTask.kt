@@ -160,14 +160,13 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
         // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
         // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
-        // The members an enum declares after `ordinal` (an interface it implements, its own
-        // properties and functions) are dropped too: the JSON carries only the name.
-        Regex("""export declare abstract class (\w+)(?: implements [\w.<>, ]+)? \{\n    private constructor\(\);\n"""
+        // An enum that implements an interface or declares members is left a class: its consumers
+        // read its entries and members, which the .mjs still exports.
+        Regex("""export declare abstract class (\w+) \{\n    private constructor\(\);\n"""
                 + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
                 + """        get ordinal\(\): \d+;\n    \};\n)*"""
                 + """    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n"""
-                + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n"""
-                + """(?:    (?:(?:get|set) )?\w+\([^()\n]*\)(?:: [^;\n]+)?;\n)*\}\n"""
+                + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n\}\n"""
         ) to "export type $1 = $2;\n",
         // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
         Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",

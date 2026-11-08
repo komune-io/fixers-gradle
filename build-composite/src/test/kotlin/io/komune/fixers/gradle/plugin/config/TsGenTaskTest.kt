@@ -344,7 +344,7 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should collapse an enum that declares a function`() {
+        fun `should keep the declaration of an enum that declares a function`() {
             val result = cleanSnippet(
                 "export declare abstract class Mode {\n"
                     + "    private constructor();\n"
@@ -357,7 +357,8 @@ class TsGenTaskTest {
                     + "}\n"
             )
 
-            assertThat(result).isEqualTo("export type Mode = \"ON\";\n")
+            assertThat(result).contains("export declare abstract class Mode {", "static valueOf(value: string): Mode;", "describe(): string;")
+            assertThat(result).doesNotContain("export type Mode")
         }
 
         @Test
@@ -376,11 +377,36 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should collapse enums that implement an interface or carry members`() {
+        fun `should keep the exported values of enums that implement an interface or carry members`() {
             val result = clean()
 
-            assertThat(result).contains("export type XState = \"CREATED\" | \"VALIDATED\";")
-            assertThat(result).contains("export type ProductStatus = \"DRAFT\" | \"PUBLISHED\" | \"ARCHIVED\";")
+            // The .mjs still exports these classes: their entries and valueOf stay declared.
+            assertThat(result).contains(
+                "export declare abstract class XState implements S2State {",
+                "    static get CREATED(): XState & {",
+                "    static valueOf(value: string): XState;",
+                "    get position(): number;",
+                "export declare abstract class ProductStatus implements S2State {",
+                "    static valueOf(value: string): ProductStatus;",
+                "    get label(): string;",
+            )
+            assertThat(result).doesNotContain("export type XState", "export type ProductStatus")
+        }
+
+        @Test
+        fun `should still collapse an enum without members`() {
+            val result = cleanSnippet(
+                "export declare abstract class Mode {\n"
+                    + "    private constructor();\n"
+                    + "    static get ON(): Mode & {\n        get name(): \"ON\";\n        get ordinal(): 0;\n    };\n"
+                    + "    static values(): [typeof Mode.ON];\n"
+                    + "    static valueOf(value: string): Mode;\n"
+                    + "    get name(): \"ON\";\n"
+                    + "    get ordinal(): 0;\n"
+                    + "}\n"
+            )
+
+            assertThat(result).isEqualTo("export type Mode = \"ON\";\n")
         }
 
         @Test
