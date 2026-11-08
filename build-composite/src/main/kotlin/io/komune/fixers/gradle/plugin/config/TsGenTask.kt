@@ -13,13 +13,19 @@ import org.gradle.kotlin.dsl.register
 fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     val target = this
     mainConfig?.kt2Ts?.let { config ->
+        // Kotlin/JS writes build/js/packages while it assembles a library distribution.
+        val jsDistributions = target.allprojects.map { project ->
+            project.tasks.matching { it.name.endsWith("ProductionLibraryDistribution") }
+        }
         target.tasks {
             register<Delete>("cleanTsGen") {
+                mustRunAfter(jsDistributions)
                 delete(config.outputDirectory.get())
             }
 
             register<Copy>("tsGen") {
                 dependsOn("cleanTsGen")
+                dependsOn(jsDistributions)
 
                 // Resolve all Project-dependent values at configuration time for configuration cache compatibility
                 val inputDir = if(config.inputDirectory.isPresent) {
@@ -29,33 +35,19 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
                         target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
                     }
                 }
+                val outputDir = target.file(config.outputDirectory.get())
                 from(inputDir) {
                     exclude("*-test")
                 }
-                into(config.outputDirectory.get())
+                into(outputDir)
                 includeEmptyDirs = false
 
                 val cleaning = config.buildCleaningRegex()
-
-                // Capture subproject paths at configuration time (not Project references)
-                val subprojectBuildDirs = target.subprojects.map { subproject ->
-                    "${subproject.layout.buildDirectory.asFile.get().absolutePath}/packages/js"
-                }
-
-                doFirst {
-                    cleanSubProjectDirs(subprojectBuildDirs, cleaning)
-                }
-                eachFile {
-                    file.cleanFile(cleaning)
+                doLast {
+                    outputDir.walkTopDown().filter { it.isFile }.forEach { it.cleanFile(cleaning) }
                 }
             }
         }
-    }
-}
-
-private fun cleanSubProjectDirs(buildDirs: List<String>, cleaning: Map<String, List<Pair<Regex, String>>>) {
-    buildDirs.forEach { folder ->
-        cleanProjectDir(folder, cleaning)
     }
 }
 
@@ -90,41 +82,8 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // Modern Kotlin/JS ESM exporter output (KtList / KtMap / bigint), emitted as `.d.mts`.
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
-        ".d.mts" to listOf(
-            Regex("""    readonly __doNotUseOrImplementIt: \{[\s\S]*?\}"""
-                    + """(?:\s*&\s*[\w.<>]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
-            Regex("""    readonly __doNotUseOrImplementIt: [\w.<>]*\["__doNotUseOrImplementIt"\];\n""") to "",
-            Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
-            Regex("""export declare interface KtList<E>[\s\S]*?\n"""
-                    + """export declare namespace KtList \{[\s\S]*?\n\}\n""") to "",
-            // A nullable element type has to become a union inside the array; unwrap it before the
-            // collapse below, otherwise the property rule further down turns it into an optional
-            // property instead (`x?: T[]`, which says the property may be absent, not the elements).
-            Regex("""KtList<Nullable<((?:[^<>]|<[^<>]*>)*)>>""") to "KtList<($1 | undefined)>",
-            // Collapses one level of nesting per pass, hence the repetition: two passes cover
-            // `KtList<KtList<T>>` and `KtList<KtMap<K, V>>`. Deeper nesting needs a further copy.
-            Regex("""KtList<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
-            Regex("""KtList<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
-            Regex("""export declare interface KtMap<K, V>[\s\S]*?\n"""
-                    + """export declare namespace KtMap \{[\s\S]*?\n\}\n""") to "",
-            Regex("""KtMap""") to "Record",
-            // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
-            // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
-            // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
-            Regex("""export declare abstract class (\w+) \{\n    private constructor\(\);\n"""
-                    + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
-                    + """        get ordinal\(\): \d+;\n    \};\n)*"""
-                    + """    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n"""
-                    + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n\}\n"""
-            ) to "export type $1 = $2;\n",
-            // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
-            Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",
-            Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
-            Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
-            Regex("""get (\w+)\(\): Nullable<((?:[^<>]|<[^<>]*>)*)>""") to "get $1(): $2 | undefined",
-            Regex("""\): Nullable<([\w.<>, \[\]]*)>""") to "): $1 | undefined",
-            Regex(""": bigint""") to ": number",
-        ) + (additionalCleaningMap[".d.mts"] ?: emptyList()),
+        ".d.mts" to dmtsCleaning(strictNullability.get())
+            + (additionalCleaningMap[".d.mts"] ?: emptyList()),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
         ) + (additionalCleaningMap["package.json"] ?: emptyList())
@@ -152,4 +111,74 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
             }
         }
     }
+}
+
+private const val TRAILING_NULLABLE_PASSES = 4
+
+// A type nested at most three levels deep. `=>` is matched first so that the `>` of an arrow
+// never closes a type argument.
+private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n])*>)*>)*>)*"""
+
+/**
+ * Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `null` is typed
+ * `undefined`, or `null` with [strictNullability].
+ */
+private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> {
+    val absent = if (strictNullability) "null" else "undefined"
+    val orNull = if (strictNullability) " | null" else ""
+    return listOf(
+        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: \{[\s\S]*?\}"""
+                + """(?:\s*&\s*[\w.<>]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
+        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: [\w.<>]*\["__doNotUseOrImplementIt"\];\n""") to "",
+        Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
+        // The emitter declares the collections with their variance (`KtList<out E>`) since Kotlin 2.4.
+        Regex("""export declare interface (Kt(?:List|Set|Map))<(?:K, )?(?:out )?[EV]>[\s\S]*?\n"""
+                + """export declare namespace \1 \{[\s\S]*?\n\}\n""") to "",
+        // A function type has to be parenthesised before a union is appended to it.
+        Regex("""Nullable<(\((?:[^()\n]|\([^()\n]*\))*\) => $TYPE)>""") to "Nullable<($1)>",
+        // A nullable element type has to become a union inside the array; unwrap it before the
+        // collapse below, otherwise the property rule further down turns it into an optional
+        // property instead (`x?: T[]`, which says the property may be absent, not the elements).
+        Regex("""Kt(List|Set)<Nullable<($TYPE)>>""") to "Kt$1<($2 | $absent)>",
+        // Collapses one level of nesting per pass, hence the repetition: two passes cover
+        // `KtList<KtList<T>>` and `KtList<KtMap<K, V>>`. Deeper nesting needs a further copy.
+        Regex("""Kt(?:List|Set)<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
+        Regex("""Kt(?:List|Set)<((?:[^<>]|<[^<>]*>)*)>""") to "$1[]",
+        Regex("""KtMap<""") to "Record<",
+        // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
+        // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
+        // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
+        // An enum that implements an interface keeps its members after `ordinal`: they do not
+        // exist on the string the JSON carries.
+        Regex("""export declare abstract class (\w+)(?: implements [\w.<>, ]+)? \{\n    private constructor\(\);\n"""
+                + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
+                + """        get ordinal\(\): \d+;\n    \};\n)*"""
+                + """    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n"""
+                + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n"""
+                + """(?:    (?:get|set) \w+\([^()\n]*\)(?:: [^;\n]+)?;\n)*\}\n"""
+        ) to "export type $1 = $2;\n",
+        // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
+        Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",
+        Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
+        // A property the JSON may omit is optional; a parameter keeps the arity Kotlin gave it.
+        Regex("""(?<=readonly )(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
+                "$1?: $2$3$orNull",
+        Regex("""(?<=\(|, )(\w+)\?: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to
+                "$1?: $2$3$orNull",
+        // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
+        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?) \| undefined(?=\)|, )""") to
+                "$1: $2$3$orNull | undefined",
+        // A trailing nullable parameter can be left out, as before; one that a required parameter
+        // follows cannot (TS1016). One pass per trailing parameter, from the last.
+        *Array(TRAILING_NULLABLE_PASSES) {
+            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to "$1?: $2$3$orNull"
+        },
+        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | $absent",
+        Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | $absent",
+        Regex("""\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "): $1$2 | $absent",
+        // What is left sits inside another type, such as the values of a map.
+        Regex("""(?<!/\* )Nullable<($TYPE)>""") to "($1 | $absent)",
+        Regex("""(?<=: |<|, |\| )bigint(?=[;,>)\[ ]|$)""") to "number",
+        Regex("""(?<=: )any \| (?:null|undefined)(?=[;,)])""") to "any",
+    )
 }

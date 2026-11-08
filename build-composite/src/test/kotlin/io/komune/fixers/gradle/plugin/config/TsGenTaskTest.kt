@@ -303,6 +303,16 @@ class TsGenTaskTest {
         }
 
         @Test
+        fun `should keep trailing nullable parameters optional`() {
+            val file = File(dir, "fn.d.mts")
+            file.writeText("export declare function f(a: Nullable<string>, b: string, c: Nullable<KtMap<string, number>>, d: Nullable<string>): void;\n")
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+
+            assertThat(file.readText())
+                .isEqualTo("export declare function f(a: string | undefined, b: string, c?: Record<string, number>, d?: string): void;\n")
+        }
+
+        @Test
         fun `should map a Long inside a generic type`() {
             assertThat(clean()).contains("sumLongs(m: Record<string, number>): number;")
         }
