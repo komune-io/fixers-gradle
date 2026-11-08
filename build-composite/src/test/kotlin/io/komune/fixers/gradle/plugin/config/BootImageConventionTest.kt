@@ -62,27 +62,63 @@ class BootImageConventionTest {
     }
 
     @Test
-    fun `should enable the health checker on a conforming image`() {
+    fun `should accept the health checker in its registry form`() {
+        assertThat(
+            bootImageProblems(pinnedBuilder, listOf("urn:cnb:registry:paketo-buildpacks/health-checker@2.14.1"))
+        ).isEmpty()
+    }
+
+    @Test
+    fun `should enable the health checker on the image task`() {
         val module = bootModule()
         val task = module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage
-        task.builder.set(pinnedBuilder)
-        task.buildpacks.set(listOf(healthChecker))
-
-        (module as ProjectInternal).evaluate()
 
         assertThat(task.environment.get()).containsEntry(HEALTH_CHECKER_ENABLED, "true")
     }
 
     @Test
-    fun `should fail the configuration of a module whose image breaks the convention`() {
+    fun `should leave the configuration and the other tasks alone`() {
+        val module = bootModule()
+        var realized = false
+        module.tasks.register("unrelated") { realized = true }
+        (module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage).builder.set("unpinned:1")
+
+        (module as ProjectInternal).evaluate()
+
+        assertThat(realized).isFalse()
+    }
+
+    @Test
+    fun `should fail check on an image that breaks the convention`() {
         val module = bootModule()
         (module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage).builder.set("paketobuildpacks/builder-jammy-tiny:0.0.553")
+        val check = module.tasks.getByName(BOOT_IMAGE_CHECK_TASK)
 
-        assertThatThrownBy { (module as ProjectInternal).evaluate() }
-            .rootCause()
+        assertThat(module.tasks.getByName("check").taskDependencies.getDependencies(null)).contains(check)
+        assertThatThrownBy { check.actions.forEach { it.execute(check) } }
             .hasMessageContaining(":app:bootBuildImage does not follow the fixers image convention")
             .hasMessageContaining("is not pinned by digest")
             .hasMessageContaining("no health-checker buildpack")
+    }
+
+    @Test
+    fun `should pass check on a conforming image`() {
+        val module = bootModule()
+        val image = module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage
+        image.builder.set(pinnedBuilder)
+        image.buildpacks.set(listOf(healthChecker))
+        val check = module.tasks.getByName(BOOT_IMAGE_CHECK_TASK)
+
+        check.actions.forEach { it.execute(check) }
+    }
+
+    @Test
+    fun `should refuse to build an image that breaks the convention`() {
+        val module = bootModule()
+        val image = module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage
+
+        assertThatThrownBy { image.actions.forEach { it.execute(image) } }
+            .hasMessageContaining("no builder")
     }
 
     private fun bootModule(): Project {
@@ -90,6 +126,7 @@ class BootImageConventionTest {
         val root = ProjectBuilder.builder().build()
         val module = ProjectBuilder.builder().withParent(root).withName("app").build()
         root.plugins.apply(ConfigPlugin::class.java)
+        module.plugins.apply("base")
         module.plugins.apply(SPRING_BOOT_PLUGIN_ID)
         return module
     }
