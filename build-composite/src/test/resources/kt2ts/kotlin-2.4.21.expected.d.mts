@@ -21,25 +21,25 @@ export declare namespace NestedDto {
     }
 }
 export declare class SampleDto {
-    constructor(s: string, sNull: string | undefined, i: number, iNull: number | undefined, d: number, bNull: boolean | undefined, listSNull: (string | undefined)[], onChange: ((p0: string) => void) | undefined, listS: string[], listDtoNull: NestedDto[] | undefined, mapSS: Record<string, string>, mapSDtoNull: Record<string, (NestedDto | undefined)>, setS: string[], arrS: Array<string>, nested: NestedDto, hidden: any/* Hidden */, dateIso: string);
+    constructor(s: string, sNull: string | null, i: number, iNull: number | null, d: number, bNull: boolean | null, listSNull: (string | null)[], onChange: ((p0: string) => void) | null, listS: string[], listDtoNull: NestedDto[] | null, mapSS: Record<string, string>, mapSDtoNull: Record<string, (NestedDto | null)>, setS: string[], arrS: Array<string>, nested: NestedDto, hidden: any/* Hidden */, dateIso: string);
     get s(): string;
-    get sNull(): string | undefined;
+    get sNull(): string | null;
     get i(): number;
-    get iNull(): number | undefined;
+    get iNull(): number | null;
     get d(): number;
-    get bNull(): boolean | undefined;
-    get listSNull(): (string | undefined)[];
-    get onChange(): ((p0: string) => void) | undefined;
+    get bNull(): boolean | null;
+    get listSNull(): (string | null)[];
+    get onChange(): ((p0: string) => void) | null;
     get listS(): string[];
-    get listDtoNull(): NestedDto[] | undefined;
+    get listDtoNull(): NestedDto[] | null;
     get mapSS(): Record<string, string>;
-    get mapSDtoNull(): Record<string, (NestedDto | undefined)>;
+    get mapSDtoNull(): Record<string, (NestedDto | null)>;
     get setS(): string[];
     get arrS(): Array<string>;
     get nested(): NestedDto;
     get hidden(): any/* Hidden */;
     get dateIso(): string;
-    copy(s?: string, sNull?: string, i?: number, iNull?: number, d?: number, bNull?: boolean, listSNull?: (string | undefined)[], onChange?: ((p0: string) => void), listS?: string[], listDtoNull?: NestedDto[], mapSS?: Record<string, string>, mapSDtoNull?: Record<string, (NestedDto | undefined)>, setS?: string[], arrS?: Array<string>, nested?: NestedDto, hidden?: any/* Hidden */, dateIso?: string): SampleDto;
+    copy(s?: string, sNull?: string | null, i?: number, iNull?: number | null, d?: number, bNull?: boolean | null, listSNull?: (string | null)[], onChange?: ((p0: string) => void) | null, listS?: string[], listDtoNull?: NestedDto[] | null, mapSS?: Record<string, string>, mapSDtoNull?: Record<string, (NestedDto | null)>, setS?: string[], arrS?: Array<string>, nested?: NestedDto, hidden?: any/* Hidden */, dateIso?: string): SampleDto;
     toString(): string;
     hashCode(): number;
     equals(other?: any): boolean;
@@ -66,11 +66,11 @@ export declare namespace SampleDto {
 export declare function listDtos(): NestedDto[];
 export declare function idOf(raw: string): ProductId;
 export declare class LongDto {
-    constructor(l: number, lNull: number | undefined, lList: number[]);
+    constructor(l: number, lNull: number | null, lList: number[]);
     get l(): number;
-    get lNull(): number | undefined;
+    get lNull(): number | null;
     get lList(): number[];
-    copy(l?: number, lNull?: number, lList?: number[]): LongDto;
+    copy(l?: number, lNull?: number | null, lList?: number[]): LongDto;
     toString(): string;
     hashCode(): number;
     equals(other?: any): boolean;
@@ -84,7 +84,7 @@ export declare namespace LongDto {
 export declare function sumLongs(m: Record<string, number>): number;
 export declare interface ProductNoRuntimeDTO {
     readonly id: string;
-    readonly name?: string;
+    readonly name?: string | null;
     readonly tags: string[];
     readonly status: ProductStatus;
 }

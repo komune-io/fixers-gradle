@@ -213,7 +213,7 @@ class TsGenTaskTest {
                 "interface A {\n    readonly label: Nullable<string>;\n}\n"
             )
 
-            assertThat(result).contains("readonly label?: string;")
+            assertThat(result).contains("readonly label?: string | null;")
         }
 
         @Test
@@ -254,11 +254,10 @@ class TsGenTaskTest {
         @TempDir
         lateinit var dir: File
 
-        private fun clean(strictNullability: Boolean = false): String {
+        private fun clean(): String {
             val file = File(dir, "api.d.mts")
             file.writeText(resource("kotlin-2.4.21.d.mts"))
             val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
-            kt2Ts.strictNullability.set(strictNullability)
             cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
             return file.readText()
         }
@@ -269,11 +268,6 @@ class TsGenTaskTest {
         @Test
         fun `should match the expected declarations`() {
             assertThat(clean()).isEqualTo(resource("kotlin-2.4.21.expected.d.mts"))
-        }
-
-        @Test
-        fun `should match the expected declarations with strict nullability`() {
-            assertThat(clean(strictNullability = true)).isEqualTo(resource("kotlin-2.4.21.strict.expected.d.mts"))
         }
 
         @Test
@@ -293,13 +287,13 @@ class TsGenTaskTest {
             val result = clean()
 
             assertThat(Regex("""(?<!/\* )Nullable<""").findAll(result).toList()).isEmpty()
-            assertThat(result).contains("get onChange(): ((p0: string) => void) | undefined;")
-            assertThat(result).contains("mapSDtoNull: Record<string, (NestedDto | undefined)>")
+            assertThat(result).contains("get onChange(): ((p0: string) => void) | null;")
+            assertThat(result).contains("mapSDtoNull: Record<string, (NestedDto | null)>")
         }
 
         @Test
         fun `should keep a nullable constructor parameter required`() {
-            assertThat(clean()).contains("constructor(s: string, sNull: string | undefined, i: number,")
+            assertThat(clean()).contains("constructor(s: string, sNull: string | null, i: number,")
         }
 
         private fun cleanSnippet(content: String): String {
@@ -329,7 +323,7 @@ class TsGenTaskTest {
         @Test
         fun `should keep the parameter of a nullable setter required`() {
             assertThat(cleanSnippet("    set name(value: Nullable<string>);\n"))
-                .isEqualTo("    set name(value: string | undefined);\n")
+                .isEqualTo("    set name(value: string | null);\n")
         }
 
         @Test
@@ -341,7 +335,7 @@ class TsGenTaskTest {
         @Test
         fun `should map every Long to number`() {
             assertThat(cleanSnippet("    get ids(): KtList<Nullable<bigint>>;\n    readonly bigint: bigint;\n"))
-                .isEqualTo("    get ids(): (number | undefined)[];\n    readonly bigint: number;\n")
+                .isEqualTo("    get ids(): (number | null)[];\n    readonly bigint: number;\n")
         }
 
         @Test
@@ -369,7 +363,7 @@ class TsGenTaskTest {
             cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
 
             assertThat(file.readText())
-                .isEqualTo("export declare function f(a: string | undefined, b: string, c?: Record<string, number>, d?: string): void;\n")
+                .isEqualTo("export declare function f(a: string | null, b: string, c?: Record<string, number> | null, d?: string | null): void;\n")
         }
 
         @Test
@@ -411,16 +405,8 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should keep nullable properties optional and undefined by default`() {
+        fun `should type nullable values as null`() {
             val result = clean()
-
-            assertThat(result).contains("readonly name?: string;")
-            assertThat(result).contains("get sNull(): string | undefined;")
-        }
-
-        @Test
-        fun `should type nullable values as null with strict nullability`() {
-            val result = clean(strictNullability = true)
 
             assertThat(result).contains("readonly name?: string | null;")
             assertThat(result).contains("get sNull(): string | null;")
@@ -431,7 +417,7 @@ class TsGenTaskTest {
     }
 
     @Nested
-    inner class StrictNullabilityTest {
+    inner class NullabilityTest {
 
         @TempDir
         lateinit var dir: File
@@ -440,7 +426,6 @@ class TsGenTaskTest {
             val file = File(dir, "api.d.mts")
             file.writeText(content)
             val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
-            kt2Ts.strictNullability.set(true)
             cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
             return file.readText()
         }
@@ -450,11 +435,6 @@ class TsGenTaskTest {
             val result = clean("export declare interface A {\n    readonly item: Nullable<any>/* Nullable<Graph> */;\n}\n")
 
             assertThat(result).contains("readonly item?: any/* Nullable<Graph> */ | null;")
-        }
-
-        @Test
-        fun `should be off by default`() {
-            assertThat(Kt2Ts(ProjectBuilder.builder().build()).strictNullability.get()).isFalse()
         }
     }
 }

@@ -256,8 +256,9 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 |----------|---------------------|------------------|---------------|-------------|
 | outputDirectory | FIXERS_KT2TS_OUTPUT_DIRECTORY | fixers.kt2ts.outputDirectory | "platform/web/kotlin" | The directory where TypeScript files will be generated |
 | inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
-| strictNullability | FIXERS_KT2TS_STRICT_NULLABILITY | fixers.kt2ts.strictNullability | false | Types a Kotlin `T?` as `T \| null` (a nullable property as `x?: T \| null`) instead of `T \| undefined` (`x?: T`) |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
+
+A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` for a property, `(T | null)[]` for a list element, `T | null` for a getter, a return or a parameter (a trailing parameter stays optional). Kotlin and its JSON serializers send `null`.
 
 `tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It cleans the copy in `outputDirectory` and leaves the Kotlin/JS build untouched.
 

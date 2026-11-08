@@ -82,7 +82,7 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // Modern Kotlin/JS ESM exporter output (KtList / KtMap / bigint), emitted as `.d.mts`.
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
-        ".d.mts" to dmtsCleaning(strictNullability.get())
+        ".d.mts" to dmtsCleaning()
             + (additionalCleaningMap[".d.mts"] ?: emptyList()),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
@@ -120,12 +120,10 @@ private const val TRAILING_NULLABLE_PASSES = 4
 private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n])*>)*>)*>)*"""
 
 /**
- * Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `null` is typed
- * `undefined`, or `null` with [strictNullability].
+ * Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `T?` is typed
+ * `T | null`: Kotlin and its JSON serializers send `null`, not an absent value.
  */
-private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> {
-    val absent = if (strictNullability) "null" else "undefined"
-    val orNull = if (strictNullability) " | null" else ""
+private fun dmtsCleaning(): List<Pair<Regex, String>> {
     return listOf(
         // The marker body is matched exactly: a lazy body would run on to the next `};` of the file.
         Regex("""(?m)^ *readonly __doNotUseOrImplementIt: \{\n(?: +readonly [^:\n]+: unique symbol;\n)+ *\}"""
@@ -140,7 +138,7 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         // A nullable element type has to become a union inside the array; unwrap it before the
         // collapse below, otherwise the property rule further down turns it into an optional
         // property instead (`x?: T[]`, which says the property may be absent, not the elements).
-        Regex("""Kt(List|Set)<Nullable<($TYPE)>>""") to "Kt$1<($2 | $absent)>",
+        Regex("""Kt(List|Set)<Nullable<($TYPE)>>""") to "Kt$1<($2 | null)>",
         // Collapses one level of nesting per pass, hence the repetition: two passes cover
         // `KtList<KtList<T>>` and `KtList<KtMap<K, V>>`. Deeper nesting needs a further copy.
         Regex("""Kt(?:List|Set)<($TYPE)>""") to "$1[]",
@@ -162,24 +160,24 @@ private fun dmtsCleaning(strictNullability: Boolean): List<Pair<Regex, String>> 
         Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
         // A property the JSON may omit is optional; a parameter keeps the arity Kotlin gave it.
         Regex("""(?<=readonly )(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
-                "$1?: $2$3$orNull",
+                "$1?: $2$3 | null",
         Regex("""(?<=\(|, )(\w+)\?: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to
-                "$1?: $2$3$orNull",
+                "$1?: $2$3 | null",
         // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
         Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?) \| undefined(?=\)|, )""") to
-                "$1: $2$3$orNull | undefined",
+                "$1: $2$3 | null | undefined",
         // A setter parameter can never be optional (TS1051).
-        Regex("""(set \w+\()(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\))""") to "$1$2: $3$4 | $absent",
+        Regex("""(set \w+\()(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\))""") to "$1$2: $3$4 | null",
         // A trailing nullable parameter stays optional; one that a required parameter follows
         // cannot be (TS1016). One pass per trailing parameter, from the last.
         *Array(TRAILING_NULLABLE_PASSES) {
-            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to "$1?: $2$3$orNull"
+            Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to "$1?: $2$3 | null"
         },
-        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | $absent",
-        Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | $absent",
-        Regex("""\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "): $1$2 | $absent",
+        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | null",
+        Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | null",
+        Regex("""\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "): $1$2 | null",
         // What is left sits inside another type, such as the values of a map.
-        Regex("""(?<!/\* )Nullable<($TYPE)>""") to "($1 | $absent)",
+        Regex("""(?<!/\* )Nullable<($TYPE)>""") to "($1 | null)",
         Regex("""\bbigint\b(?!\??:)""") to "number",
         Regex("""(?<=: )any \| (?:null|undefined)(?=[;,)])""") to "any",
     )
