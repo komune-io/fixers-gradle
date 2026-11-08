@@ -42,6 +42,7 @@ class ConfigPlugin : Plugin<Project> {
         // creates the configuration in each of them.
         if (target == root) {
             root.allprojects { alignBouncyCastle() }
+            root.registerYarnResolutionCheck()
         }
 
         // Use gradle.projectsEvaluated for configuration cache compatibility
