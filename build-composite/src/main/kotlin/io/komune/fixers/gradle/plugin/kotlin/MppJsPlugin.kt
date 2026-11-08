@@ -15,7 +15,7 @@ class MppJsPlugin : Plugin<Project> {
 
     private fun configureJsCompilation(project: Project) {
         project.extensions.configure(KotlinMultiplatformExtension::class.java) {
-            js(IR) {
+            js {
                 binaries.library()
                 browser {
                     testTask {

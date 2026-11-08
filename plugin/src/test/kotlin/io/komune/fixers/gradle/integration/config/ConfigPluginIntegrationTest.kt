@@ -154,8 +154,9 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             tasks.register("verifyRootGroup") {
+                val projectGroup = project.group
                 doLast {
-                    println("Root group: ${'$'}{project.group}")
+                    println("Root group: ${'$'}projectGroup")
                 }
             }
         """.trimIndent())
@@ -168,8 +169,9 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
             }
 
             tasks.register("verifySubGroup") {
+                val projectGroup = project.group
                 doLast {
-                    println("Sub group: ${'$'}{project.group}")
+                    println("Sub group: ${'$'}projectGroup")
                 }
             }
         """.trimIndent())
