@@ -61,11 +61,3 @@ gradlePlugin.plugins.configureEach {
 		}
 	}
 }
-
-tasks.withType<Test> {
-	useJUnitPlatform()
-	// Tests must be deterministic regardless of ambient release credentials:
-	// FIXERS_* env vars are read as property conventions by the config models, and VERSION
-	// (exported by CI) wins over the VERSION file the tests write.
-	setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") && it != "VERSION" })
-}
