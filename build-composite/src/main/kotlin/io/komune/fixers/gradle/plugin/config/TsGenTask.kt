@@ -83,8 +83,8 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // Modern Kotlin/JS ESM exporter output (KtList / KtMap / bigint), emitted as `.d.mts`.
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
-        ".d.mts" to dmtsCleaning()
-            + (additionalCleaningMap[".d.mts"] ?: emptyList()),
+        DMTS to dmtsCleaning()
+            + (additionalCleaningMap[DMTS] ?: emptyList()),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
         ) + (additionalCleaningMap["package.json"] ?: emptyList())
@@ -107,7 +107,7 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
                 acc.replace(old, new)
             }
 
-            if (suffix == ".d.mts") {
+            if (suffix == DMTS) {
                 checkDeclarationsCleaned(newContent)
             }
             if (newContent != content) {
@@ -117,13 +117,16 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
     }
 }
 
+private const val DMTS = ".d.mts"
+
 // What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
 private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
 /**
  * Fails when a type the rules collapse survives them, nested deeper than they reach: the
- * declarations would reference a type that no longer exists.
+ * declarations would reference a type that no longer exists. Every task that cleans a `.d.mts`
+ * runs it: `tsGen`, and `npmTsGenTask` before an NPM publication.
  */
 private fun File.checkDeclarationsCleaned(content: String) {
     val code = COMMENT.replace(content) { comment -> comment.value.replace(Regex("[^\n]"), " ") }
