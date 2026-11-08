@@ -110,6 +110,10 @@ abstract class BaseIntegrationTest {
      * depends on execution order. Giving it its own TestKit directory gives it its own daemon
      * and a deterministic starting point.
      *
+     * The dedicated daemon outlives the build and can still be writing to its caches when
+     * JUnit deletes the directory, so declare it with
+     * `@TempDir(deletionStrategy = TempDirDeletionStrategy.IgnoreFailures::class)`.
+     *
      * @param testKitDir A directory, unique to the test, for TestKit's working storage.
      * @param arguments The Gradle arguments to pass.
      * @return The build result.
