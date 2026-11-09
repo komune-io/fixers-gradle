@@ -17,8 +17,9 @@ private const val DETEKT_BASELINE_TASK = "detektBaseline"
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
 private const val CHECK_TASK = "check"
 
-// The typed tasks Detekt registers per JVM target of a multiplatform module: `detektMain<Target>`,
-// `detektTest<Target>`. The per-source-set tasks end in `SourceSet`, the JVM module's in nothing.
+// The typed tasks Detekt registers per target of a multiplatform module (today the JVM ones):
+// `detektMain<Target>`, `detektTest<Target>`. The per-source-set tasks end in `SourceSet`, the
+// JVM module's in nothing.
 private val MPP_TYPED_DETEKT_TASK = Regex("detekt(Main|Test)[A-Z][A-Za-z0-9]*(?<!SourceSet)")
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
@@ -115,7 +116,7 @@ fun Project.configureDetekt() {
 /**
  * `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
  * `detektBaseline`: the rules that need types are then skipped without a word. Multiplatform
- * sources sit outside `src/main`, where `detekt` looks: the typed tasks of the JVM targets, which
+ * sources sit outside `src/main`, where `detekt` looks: the typed tasks of every target, which
  * see `commonMain` too, are the ones that analyse them.
  */
 private fun Project.configureTypedDetekt() {
