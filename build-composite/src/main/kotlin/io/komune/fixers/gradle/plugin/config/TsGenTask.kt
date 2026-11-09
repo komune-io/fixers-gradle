@@ -45,7 +45,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
 
                 val cleaning = config.buildCleaningRegex()
                 doLast {
-                    outputDir.walkTopDown().filter { file -> file.isFile }.forEach { file -> file.cleanFile(cleaning) }
+                    outputDir.walkTopDown().filter { it.isFile }.forEach { it.cleanFile(cleaning) }
                 }
             }
         }
@@ -84,7 +84,7 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
         DMTS to dmtsCleaning()
-            + additionalCleaningMap[DMTS].orEmpty(),
+            + (additionalCleaningMap[DMTS] ?: emptyList()),
         "package.json" to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
         ) + (additionalCleaningMap["package.json"] ?: emptyList())
