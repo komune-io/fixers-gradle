@@ -14,11 +14,16 @@ enum class Kt2TsFiles {
     ALL,
 
     /**
-     * The `.d.mts` declarations and the `package.json` of each package only, the TypeScript
-     * contract a library reviews; each `package.json` carries version `0.0.0`, so a release
-     * does not rewrite them.
+     * The declarations (`.d.mts`, and the legacy `.d.ts`) and the `package.json` of each package
+     * only, the TypeScript contract a library reviews; each `package.json` carries version
+     * [CONTRACT_VERSION], so a release does not rewrite them.
      */
-    DECLARATIONS,
+    DECLARATIONS;
+
+    companion object {
+        /** The `package.json` version of a [DECLARATIONS] contract, which does not follow the build's. */
+        const val CONTRACT_VERSION = "0.0.0"
+    }
 }
 
 /**
@@ -45,10 +50,14 @@ class Kt2Ts(
         projectKey = "fixers.kt2ts.inputDirectory"
     )
 
-    /** What the output directory holds: [Kt2TsFiles.ALL] by default. */
-    val committedFiles: Property<Kt2TsFiles> = project.objects.property<Kt2TsFiles>().apply {
-        convention(Kt2TsFiles.ALL)
-    }
+    /**
+     * What the output directory holds: [Kt2TsFiles.ALL] when neither this project nor the root
+     * sets it. No convention, so that a subproject takes the root's value through [mergeFrom].
+     */
+    val committedFiles: Property<Kt2TsFiles> = project.objects.property<Kt2TsFiles>()
+
+    /** [committedFiles], or [Kt2TsFiles.ALL] when it is not set. */
+    val committedFilesOrDefault get() = committedFiles.orElse(Kt2TsFiles.ALL)
 
     /**
      * Additional regex patterns for cleaning generated TypeScript files.

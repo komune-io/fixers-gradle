@@ -25,12 +25,12 @@ class TsGenCheckTest {
     private val input get() = File(dir, "packages")
     private val output get() = File(dir, "out")
 
-    private fun project(committedFiles: Kt2TsFiles = Kt2TsFiles.ALL): Project {
+    private fun project(committedFiles: Kt2TsFiles? = null): Project {
         val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.kt2Ts.inputDirectory.set(input.absolutePath)
         config.kt2Ts.outputDirectory.set(output.absolutePath)
-        config.kt2Ts.committedFiles.set(committedFiles)
+        committedFiles?.let { config.kt2Ts.committedFiles.set(it) }
         project.configureKt2Ts(config)
         return project
     }
@@ -64,6 +64,7 @@ class TsGenCheckTest {
             emit("pkg/kotlin/pkg.d.mts", "export declare function names(): KtList<string>;\n")
             emit("pkg/kotlin/pkg.mjs", "export function names() {}\n")
             emit("pkg/kotlin/pkg.mjs.map", "{}\n")
+            emit("pkg/kotlin/legacy.d.ts", "export declare function legacy(): string;\n")
         }
 
         @Test
@@ -76,9 +77,9 @@ class TsGenCheckTest {
             val written = File(output, "pkg").walkTopDown().filter { it.isFile }
                 .map { it.relativeTo(output).invariantSeparatorsPath }.toList()
             assertThat(written)
-                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts")
+                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts", "pkg/kotlin/legacy.d.ts")
             assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): string[];")
-            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"$CONTRACT_VERSION\"")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
         }
 
         @Test
@@ -119,7 +120,7 @@ class TsGenCheckTest {
             emit("pkg/package.json", packageJson.replace("1.2.3-SNAPSHOT", "1.2.4"))
 
             project.run("tsGenCheck")
-            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"$CONTRACT_VERSION\"")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
         }
     }
 

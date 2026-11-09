@@ -275,7 +275,7 @@ fixers {
 }
 ```
 
-`committedFiles` chooses what `tsGen` writes and `tsGenCheck` compares. `ALL` copies every file of the Kotlin/JS packages, for a front that imports the copy. `DECLARATIONS` keeps the `.d.mts` declarations and each `package.json` only, for a library that commits its TypeScript contract to review it; each `package.json` then carries version `0.0.0` instead of the build's, so a release rewrites none of them.
+`committedFiles` chooses what `tsGen` writes and `tsGenCheck` compares. `ALL` copies every file of the Kotlin/JS packages, for a front that imports the copy. `DECLARATIONS` keeps the declarations (`.d.mts`, and the legacy `.d.ts`) and each `package.json` only, for a library that commits its TypeScript contract to review it; each `package.json` then carries version `0.0.0` instead of the build's, so a release rewrites none of them. Set on the root project, it applies to every subproject that does not set its own.
 
 The `.d.ts` cleaning expects a single contract package: set `kotlin.js.ir.output.granularity=whole-program` in the project's `gradle.properties`. The plugin leaves it to the project, since it changes the layout of every JS library the project publishes.
 

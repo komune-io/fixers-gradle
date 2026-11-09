@@ -45,7 +45,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
                 val source = target.file(inputDir)
                 val output = outputDir
                 val rules = cleaning
-                val committed = config.committedFiles
+                val committed = config.committedFilesOrDefault
                 inputs.files(target.emittedTree(source)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
                 inputs.property("cleaning", rules.fingerprint())
                 inputs.property("committedFiles", committed)
@@ -64,26 +64,24 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     }
 }
 
-/** A `package.json` version that does not follow the build's, for [Kt2TsFiles.DECLARATIONS]. */
-internal const val CONTRACT_VERSION = "0.0.0"
-
 /** Whether this mode writes the file at [path], relative to the packages directory. */
 private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
     Kt2TsFiles.ALL -> true
-    Kt2TsFiles.DECLARATIONS -> path.endsWith(".d.mts") || path.substringAfterLast('/') == "package.json"
+    Kt2TsFiles.DECLARATIONS ->
+        path.endsWith(DMTS) || path.endsWith(".d.ts") || path.substringAfterLast('/') == "package.json"
 }
 
 /**
  * Makes this directory the contract `tsGen` writes from the Kotlin/JS output under [source]: the
  * files [committed] keeps, cleaned by [rules], and with [Kt2TsFiles.DECLARATIONS] each
- * `package.json` at [CONTRACT_VERSION].
+ * `package.json` at [Kt2TsFiles.CONTRACT_VERSION].
  */
 internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex, String>>>, committed: Kt2TsFiles) {
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
     if (committed == Kt2TsFiles.DECLARATIONS) {
         packageFiles().filterKeys { it.substringAfterLast('/') == "package.json" }.values.forEach { file ->
-            file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"$CONTRACT_VERSION\""))
+            file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
         }
     }
 }

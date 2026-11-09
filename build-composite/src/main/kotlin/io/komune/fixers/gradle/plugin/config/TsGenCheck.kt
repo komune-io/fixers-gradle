@@ -51,7 +51,7 @@ internal fun Project.registerTsGenCheck(
         val output = outputDir()
         val rules = cleaning()
         val shownOutput = config.outputDirectory.get()
-        val committed = config.committedFiles
+        val committed = config.committedFilesOrDefault
         val stagingDir = staging.get().asFile
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
