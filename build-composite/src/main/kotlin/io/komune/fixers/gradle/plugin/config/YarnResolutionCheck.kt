@@ -1,14 +1,18 @@
 package io.komune.fixers.gradle.plugin.config
 
+import groovy.json.JsonException
 import groovy.json.JsonSlurper
 import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -25,7 +29,8 @@ private const val NPM_ALIAS = "npm:"
 
 private val EXACT_VERSION = Regex("""\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?""")
 
-private val DEPENDENCY_FIELDS = listOf("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")
+// A peer dependency is not installed by yarn v1 for the package that declares it: it asks for nothing.
+private val DEPENDENCY_FIELDS = listOf("dependencies", "devDependencies", "optionalDependencies")
 
 /**
  * Fails when a yarn resolution forced on the Kotlin/JS lock is not scoped to any depth (`**`
@@ -46,18 +51,19 @@ abstract class YarnResolutionCheckTask : DefaultTask() {
     abstract val lockFile: ConfigurableFileCollection
 
     /**
-     * The outputs of `rootPackageJson`, among them the root `package.json` Kotlin/JS writes, whose
-     * `workspaces` are the Kotlin/JS modules: yarn keeps them out of the lock, so their dependencies
-     * are read from their own `package.json`.
+     * The root `package.json` that `rootPackageJson` writes, whose `workspaces` are the Kotlin/JS
+     * modules: yarn keeps them out of the lock, so their dependencies are read from their own
+     * `package.json`.
      */
-    @get:InputFiles
+    @get:InputFile
+    @get:Optional
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val rootPackageJson: ConfigurableFileCollection
+    abstract val rootPackageJson: RegularFileProperty
 
     @TaskAction
     fun check() {
         val lock = lockFile.files.firstOrNull { it.exists() }?.readText()
-        val root = rootPackageJson.files.firstOrNull { it.name == "package.json" && it.exists() }
+        val root = rootPackageJson.orNull?.asFile
         val problems = yarnResolutionProblems(resolutions.get(), lock, root?.let(::workspaceDependencies).orEmpty())
         if (problems.isNotEmpty()) {
             throw GradleException(
@@ -80,7 +86,11 @@ internal fun Project.registerYarnResolutionCheck() {
                 }
             )
             lockFile.from(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
-            rootPackageJson.from(tasks.withType(RootPackageJsonTask::class.java))
+            // Not every RootPackageJsonTask: wasmRootPackageJson writes the Wasm one.
+            rootPackageJson.set(
+                tasks.named(RootPackageJsonTask.NAME, RootPackageJsonTask::class.java)
+                    .flatMap { task -> task.rootPackageJsonFile }
+            )
             // Every task that writes a lock: kotlinStoreYarnLock and kotlinUpgradeYarnLock write the one read here.
             mustRunAfter(tasks.withType(LockCopyTask::class.java))
         }
@@ -90,10 +100,18 @@ internal fun Project.registerYarnResolutionCheck() {
 
 /** What the workspaces listed in [rootPackageJson] ask for, from each one's own `package.json`. */
 internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
-    val root = readJson(rootPackageJson)
-    val workspaces = (root["workspaces"] as? List<*>).orEmpty().filterIsInstance<String>()
-    return workspaces.map { rootPackageJson.resolveSibling(it).resolve("package.json") }
-        .filter { it.exists() }
+    val workspaces = readJson(rootPackageJson)["workspaces"]
+    if (workspaces != null && (workspaces !is List<*> || workspaces.any { it !is String })) {
+        refuse(rootPackageJson, "`workspaces` is not a list of paths: $workspaces")
+    }
+    return (workspaces as List<*>?).orEmpty().map { workspace ->
+        if ('*' in workspace.toString()) {
+            refuse(rootPackageJson, "workspace pattern `$workspace` is not read; list the paths")
+        }
+        rootPackageJson.resolveSibling(workspace.toString()).resolve("package.json").also {
+            if (!it.exists()) refuse(rootPackageJson, "workspace `$workspace` has no $it")
+        }
+    }
         .flatMapTo(mutableSetOf()) { file ->
             val json = readJson(file)
             DEPENDENCY_FIELDS.flatMap { field ->
@@ -102,7 +120,14 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
         }
 }
 
-private fun readJson(file: File): Map<*, *> = (JsonSlurper().parse(file) as? Map<*, *>).orEmpty()
+private fun refuse(file: File, problem: String, cause: Throwable? = null): Nothing =
+    throw GradleException("$file: $problem", cause)
+
+private fun readJson(file: File): Map<*, *> = try {
+    JsonSlurper().parse(file) as? Map<*, *> ?: refuse(file, "not a JSON object")
+} catch (e: JsonException) {
+    refuse(file, e.message.orEmpty(), e)
+}
 
 /**
  * One message per resolution in [resolutions] (path to forced version) that is not scoped to any
@@ -151,16 +176,29 @@ private fun lockProblem(path: String, version: String, entries: List<LockEntry>,
         entries.any { entry -> entry.isOf(parent) && entry.dependencies.any { it.isOf(pkg) } }
     }
     val atVersion = entries.any { it.isOf(pkg) && it.version == version }
-    val unrequested = entries.filter { it.isOf(pkg) }.flatMap { it.specs }
-        .filter { it.isOf(pkg) && it !in requested && it != Spec(pkg, version) }
     return when {
-        !dependedOn && parent == null && unrequested.isNotEmpty() ->
-            "$path: the lock holds ${unrequested.joinToString { "${it.name}@${it.range}" }}, " +
-                "which neither a lock entry nor a workspace asks for"
-        !dependedOn && parent == null -> "$path: no package depends on $pkg in the lock"
+        !dependedOn && parent == null -> unrequestedProblem(path, pkg, version, entries, requested)
         !dependedOn -> "$path: $parent does not depend on $pkg in the lock"
         !atVersion -> "$path: the lock does not hold $pkg at $version"
         else -> null
+    }
+}
+
+/** For an unparented [path] nobody depends on: the lock specs of [pkg] nobody asks for, if any. */
+private fun unrequestedProblem(
+    path: String,
+    pkg: String,
+    version: String,
+    entries: List<LockEntry>,
+    requested: Set<Spec>,
+): String {
+    val unrequested = entries.filter { it.isOf(pkg) }.flatMap { it.specs }
+        .filter { it.isOf(pkg) && it !in requested && it != Spec(pkg, version) }
+    return if (unrequested.isEmpty()) {
+        "$path: no package depends on $pkg in the lock"
+    } else {
+        "$path: the lock holds ${unrequested.joinToString { "${it.name}@${it.range}" }}, " +
+            "which neither a lock entry nor a workspace asks for"
     }
 }
 

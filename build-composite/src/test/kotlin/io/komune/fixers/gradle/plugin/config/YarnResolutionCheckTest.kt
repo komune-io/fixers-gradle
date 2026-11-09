@@ -3,6 +3,7 @@ package io.komune.fixers.gradle.plugin.config
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -125,13 +126,28 @@ class YarnResolutionCheckTest {
     fun `should read what the workspaces of the root package json ask for`(@TempDir dir: File) {
         File(dir, "package.json").writeText("""{"name": "root", "workspaces": ["packages/a", "packages_imported/b/1.0.0"]}""")
         File(dir, "packages/a").mkdirs()
-        File(dir, "packages/a/package.json")
-            .writeText("""{"name": "a", "dependencies": {"ws": "8.20.1"}, "devDependencies": {"cjs": "npm:other@^1.0.0"}}""")
+        File(dir, "packages/a/package.json").writeText(
+            """{"name": "a", "dependencies": {"ws": "8.20.1"}, "devDependencies": {"cjs": "npm:other@^1.0.0"},""" +
+                """ "peerDependencies": {"peer": "^1.0.0"}}"""
+        )
         File(dir, "packages_imported/b/1.0.0").mkdirs()
         File(dir, "packages_imported/b/1.0.0/package.json").writeText("""{"name": "b", "dependencies": {"ws": "8.20.1"}}""")
 
         assertThat(workspaceDependencies(File(dir, "package.json")))
             .containsExactlyInAnyOrder(Spec("ws", "8.20.1"), Spec("cjs", "npm:other@^1.0.0"))
+    }
+
+    @Test
+    fun `should refuse workspaces it cannot read`(@TempDir dir: File) {
+        val root = File(dir, "package.json")
+        root.writeText("""{"workspaces": ["packages/*"]}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("workspace pattern `packages/*`")
+        root.writeText("""{"workspaces": ["packages/gone"]}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("workspace `packages/gone` has no")
+        root.writeText("""{"workspaces": {"packages": ["a"]}}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("`workspaces` is not a list of paths")
+        root.writeText("""{"workspaces": [""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageStartingWith("$root:")
     }
 
     @Test
