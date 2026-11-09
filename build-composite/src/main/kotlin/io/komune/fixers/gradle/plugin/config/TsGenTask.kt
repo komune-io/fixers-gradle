@@ -6,7 +6,7 @@ import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Delete
-import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
 
@@ -18,42 +18,45 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
         val jsDistributions = target.allprojects.map { project ->
             project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
         }
-        // Resolve all Project-dependent values at configuration time for configuration cache compatibility
-        val inputDir = if(config.inputDirectory.isPresent) {
-            config.inputDirectory.get()
-        } else {
-            "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
-                target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
+        // Resolved when a task is realized, not in every project that applies the plugin.
+        val inputDir by lazy {
+            if(config.inputDirectory.isPresent) {
+                config.inputDirectory.get()
+            } else {
+                "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
+                    target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
+                }
             }
         }
-        val outputDir = target.file(config.outputDirectory.get())
+        val outputDir by lazy { target.file(config.outputDirectory.get()) }
+        val cleaning by lazy { config.buildCleaningRegex() }
         target.tasks {
             register<Delete>("cleanTsGen") {
                 mustRunAfter(jsDistributions)
                 delete(config.outputDirectory.get())
             }
 
-            // A Sync drops what the Kotlin output no longer has, and keeps the dependencies a JS package
-            // manager linked into a committed package.
-            register<Sync>("tsGen") {
+            // Not a Copy or a Sync: either tracks its whole destination, and with it the links a JS package
+            // manager makes under node_modules — a dangling one fails the task, each install makes it stale.
+            register("tsGen") {
                 dependsOn(jsDistributions)
-                from(inputDir) {
-                    exclude("*-test")
-                }
-                into(outputDir)
-                preserve { include("**/$NODE_MODULES/**") }
-                includeEmptyDirs = false
-
-                val cleaning = config.buildCleaningRegex()
+                mustRunAfter("cleanTsGen")
+                val source = target.file(inputDir)
+                val output = outputDir
+                val rules = cleaning
+                inputs.files(target.emittedTree(source)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
+                inputs.property("cleaning", rules.fingerprint())
+                outputs.files(target.packageTree(output))
                 doLast {
-                    outputDir.cleanTree(cleaning)
+                    output.syncFrom(source)
+                    output.cleanTree(rules)
                 }
             }
 
             // Every module that applies the config plugin gets a tsGen, resolving the directories against
             // itself; the check would fail there on an output directory the module does not have.
             if (target == target.rootProject) {
-                registerTsGenCheck(config, jsDistributions, inputDir, outputDir)
+                registerTsGenCheck(config, jsDistributions, { target.file(inputDir) }, { outputDir }, { cleaning })
             }
         }
     }
