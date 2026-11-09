@@ -325,6 +325,8 @@ class TsGenCheckTest {
                 "export declare const same: string;\nexport declare let same: number;\n",
                 "export declare enum same {\n}\nexport declare var same: number;\n",
                 "export type same = string;\nexport declare interface same {\n}\n",
+                "export declare const enum same {\n}\nexport declare enum same {\n}\n",
+                "export declare class same {\n}\nexport declare const same: string;\n",
             ).forEach { declarations ->
                 emit("pkg/kotlin/pkg.d.mts", declarations)
                 val project = project()
@@ -343,6 +345,27 @@ class TsGenCheckTest {
                 "export declare function one(): void;\nexport declare const two: string;\n" +
                     "export type three = string;\nexport declare enum four {\n}\n"
             )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should accept a type and a value of the same name`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export type Status = \"ON\" | \"OFF\";\nexport declare const Status: {\n    readonly ON: Status;\n};\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should read a const enum under its own name`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare const enum One {\n}\nexport declare const enum Two {\n}\n")
             val project = project()
             project.run("tsGen")
 

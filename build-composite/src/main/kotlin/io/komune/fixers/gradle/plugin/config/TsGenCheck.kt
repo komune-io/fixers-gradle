@@ -30,7 +30,8 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
  * when the output directory differs from them, or when a `.d.mts` exports a name twice: two of its
  * classes, interfaces, functions, constants, variables, enums or type aliases, as named in
- * JavaScript, or two namespaces, the one namespace of a companion being allowed. `check` runs it
+ * JavaScript, or two namespaces, the one namespace of a companion and the pair of one type
+ * (interface, type alias) and one value (function, constant, variable) being allowed. `check` runs it
  * in a build that emits Kotlin/JS.
  *
  * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
@@ -141,22 +142,35 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
     }
 }
 
-// Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. TypeScript
-// merges a class and an interface of one name, and rejects any other pair; only a namespace of that
-// name is a Kotlin companion. Anchored at the start of a line, where the emitter writes the top-level
-// declarations: an export nested in a namespace belongs to that namespace.
+// Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. Anchored
+// at the start of a line, where the emitter writes the top-level declarations: an export nested in a
+// namespace belongs to that namespace. A `const enum` is an enum.
 private val declaredName = Regex(
     """^export (?:declare )?(?:abstract )?""" +
-        """(interface|class|namespace|function|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
+        """(interface|class|namespace|function|const enum|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
     RegexOption.MULTILINE,
 )
+
+/** Declarations that name a type only, and those that name a value only; a class or an enum names both. */
+private val typeOnly = setOf("interface", "type")
+private val valueOnly = setOf("function", "const", "let", "var")
+
+/**
+ * TypeScript keeps one type and one value of a name apart, so a type-only declaration and a
+ * value-only one of the same name are not a duplicate; any other pair is, a class and an
+ * interface included, which TypeScript merges into one type. The namespaces are counted apart:
+ * one namespace of a name is a Kotlin companion.
+ */
+private val isDuplicate: (List<String>) -> Boolean = { kinds ->
+    kinds.size > 1 && !(kinds.size == 2 && kinds.count { it in typeOnly } == 1 && kinds.count { it in valueOnly } == 1)
+}
 
 internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
         declaredName.findAll(file.readText())
-            .map { it.groupValues[1] to it.groupValues[2] }
+            .map { it.groupValues[1].removePrefix("const ") to it.groupValues[2] }
             .groupBy { (kind, name) -> (kind == "namespace") to name }
-            .filterValues { it.size > 1 }
+            .filterValues { declarations -> isDuplicate(declarations.map { it.first }) }
             .map { (key, declarations) ->
                 "$path declares `${key.second}` twice: " +
                     declarations.joinToString(", ") { (kind, name) -> "$kind $name" } +
