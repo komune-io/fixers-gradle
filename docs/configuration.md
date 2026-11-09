@@ -258,6 +258,12 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 | inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
 
+A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` for a property (`val` or `var`), `(T | null)[]` for a list element, `T | null` for a getter, a return or a parameter. A trailing parameter stays optional, including a parameter of a callback type. Kotlin and its JSON serializers send `null`.
+
+`KtList`, `KtSet` and their mutable variants become arrays and `KtMap`/`KtMutableMap` becomes `Record`, up to three levels of nesting. `tsGen`, and `npmTsGenTask` when NPM cleaning is enabled, fail, naming the file and line, when a `.d.mts` they clean still contains one of these types or `Nullable<` outside a comment: flatten the exported type, or add an `additionalCleaning` rule.
+
+`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It does not wait for a module built with `binaries.executable()`. It cleans the copy in `outputDirectory` and leaves the Kotlin/JS build untouched; it no longer rewrites the `build/packages/js` of subprojects, which `npmTsGenTask` cleans before an NPM publication. The task wiring requires Gradle 8.6 or later.
+
 #### Example
 
 ```kotlin
