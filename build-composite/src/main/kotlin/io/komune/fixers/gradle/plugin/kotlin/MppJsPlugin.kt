@@ -2,9 +2,11 @@ package io.komune.fixers.gradle.plugin.kotlin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.ExperimentalJsTestDsl
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
+@OptIn(ExperimentalJsTestDsl::class)
 class MppJsPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
@@ -16,10 +18,11 @@ class MppJsPlugin : Plugin<Project> {
             js {
                 binaries.library()
                 browser {
-                    testTask {
-                        useKarma {
-                            useFirefoxHeadless()
-                        }
+                    // Playwright downloads the browsers it drives, so the tests run in a real
+                    // Chromium and Firefox without a browser installed on the build machine.
+                    test {
+                        chromium()
+                        firefox()
                     }
                 }
                 generateTypeScriptDefinitions()

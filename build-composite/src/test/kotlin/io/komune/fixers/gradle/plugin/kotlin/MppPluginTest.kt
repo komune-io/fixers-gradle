@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalJsTestDsl::class)
+
 package io.komune.fixers.gradle.plugin.kotlin
 
 import io.komune.fixers.gradle.config.ConfigExtension
@@ -8,6 +10,8 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.jupiter.api.Test
@@ -87,6 +91,31 @@ class MppPluginTest {
             assertThat(link.compilerOptions.target.get()).isEqualTo("es2015")
             assertThat(link.compilerOptions.freeCompilerArgs.get()).contains("-Xes-long-as-bigint")
         }
+    }
+
+    @Test
+    fun `should run the js tests in chromium and firefox with playwright`() {
+        val project = mppProject()
+
+        val browserTest = project.tasks.getByName("jsBrowserTest") as KotlinJsTest
+        assertThat(browserTest.enabled).isTrue()
+        val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+        val js = kotlin.targets.getByName("js") as KotlinJsIrTarget
+        assertThat(js.browser.test.allBrowserRunners.get().keys).containsExactlyInAnyOrder("chromium", "firefox")
+    }
+
+    @Test
+    fun `should not run the js tests on node`() {
+        val project = mppProject()
+
+        assertThat(project.tasks.findByName("jsNodeTest")).isNull()
+    }
+
+    @Test
+    fun `should keep the browser library distribution`() {
+        val project = mppProject()
+
+        assertThat(project.tasks.names).contains("jsBrowserProductionLibraryDistribution")
     }
 
     @Test

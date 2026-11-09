@@ -23,8 +23,5 @@
     <ID>UseOrEmpty:PublishPlugin.kt:PublishPlugin$fixersConfig.publish.pkgGithubToken.orNull ?: ""</ID>
     <ID>UseOrEmpty:PublishPlugin.kt:PublishPlugin$fixersConfig.publish.pkgGithubUsername.orNull ?: ""</ID>
     <ID>UseOrEmpty:PublishPlugin.kt:mgmtDeps?.let { deps -&gt; dependencyNodes(deps) .filter { !isBomImport(it) } .mapNotNull { dep -&gt; val groupId = nodeChildText(dep, "groupId") val artifactId = nodeChildText(dep, "artifactId") val version = nodeChildText(dep, "version") if (groupId != null &amp;&amp; artifactId != null &amp;&amp; version != null) { "$groupId:$artifactId" to version } else { null } } .toMap() } ?: emptyMap()</ID>
-    <ID>UseOrEmpty:TsGenTask.kt:additionalCleaningMap[".d.mts"] ?: emptyList()</ID>
-    <ID>UseOrEmpty:TsGenTask.kt:additionalCleaningMap[".d.ts"] ?: emptyList()</ID>
-    <ID>UseOrEmpty:TsGenTask.kt:additionalCleaningMap["package.json"] ?: emptyList()</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -141,6 +141,20 @@ class ConfigPluginTest {
         }
 
         @Test
+        fun `should add no project repository when the fixers settings plugin declares them`() {
+            val root = ProjectBuilder.builder().build()
+            val module = ProjectBuilder.builder().withParent(root).withName("module").build()
+            root.gradle.extensions.extraProperties.set(SETTINGS_PLUGIN_MARKER, true)
+            root.plugins.apply(ConfigPlugin::class.java)
+            root.extensions.fixers!!.repositories.mavenLocal.set(true)
+
+            fireProjectsEvaluated(root)
+
+            assertThat(root.repositories).isEmpty()
+            assertThat(module.repositories).isEmpty()
+        }
+
+        @Test
         fun `should configure custom maven urls and sonatype snapshots when enabled`() {
             val root = ProjectBuilder.builder().build()
             root.plugins.apply(ConfigPlugin::class.java)

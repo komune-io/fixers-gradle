@@ -4,4 +4,5 @@ includeBuild("build-composite")
 
 include("config")
 include("plugin")
+include("settings-plugin")
 include("integration-tests")
