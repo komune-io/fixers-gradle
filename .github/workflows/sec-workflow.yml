@@ -58,11 +58,13 @@ jobs:
           java-version: ${{ inputs.java-version }}
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      # The restored ~/.gradle holds changing modules (SNAPSHOT) Gradle trusts for 24 h:
+      # without --refresh-dependencies the graph is built against a stale snapshot.
       - name: Submit Dependency Graph
         if: github.actor != 'dependabot[bot]'
         uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
-          additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache
+          additional-arguments: -I ${{ steps.jvm.outputs.setup_gradle_github_pkg }} --no-configuration-cache --refresh-dependencies
           build-scan-publish: true
           build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
           build-scan-terms-of-use-agree: "yes"
