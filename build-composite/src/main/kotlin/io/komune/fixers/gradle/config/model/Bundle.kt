@@ -2,7 +2,7 @@ package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
-import io.komune.fixers.gradle.config.utils.versionFromFile
+import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 
@@ -44,7 +44,7 @@ class Bundle(
     val version: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_VERSION",
         projectKey = "fixers.bundle.version",
-        defaultValue = project.versionFromFile() ?: project.version.toString()
+        defaultValue = project.resolveVersion() ?: project.version.toString()
     )
 
     /**

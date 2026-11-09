@@ -7,6 +7,7 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.jupiter.api.Test
@@ -66,13 +67,68 @@ class MppPluginTest {
     }
 
     @Test
-    fun `should configure js compilation for es2015 with export flags`() {
+    fun `should configure js compilation for es2015 with bigint longs`() {
         val project = mppProject()
 
         val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
         assertThat(compileJs.compilerOptions.target.get()).isEqualTo("es2015")
         assertThat(compileJs.compilerOptions.freeCompilerArgs.get())
-            .contains("-Xes-long-as-bigint", "-Xenable-suspend-function-exporting")
+            .contains("-Xes-long-as-bigint")
+            .doesNotContain("-Xenable-suspend-function-exporting")
+    }
+
+    @Test
+    fun `should give the js link tasks the options of the js target`() {
+        val project = mppProject()
+
+        val links = project.tasks.withType(KotlinJsIrLink::class.java)
+        assertThat(links).isNotEmpty
+        links.forEach { link ->
+            assertThat(link.compilerOptions.target.get()).isEqualTo("es2015")
+            assertThat(link.compilerOptions.freeCompilerArgs.get()).contains("-Xes-long-as-bigint")
+        }
+    }
+
+    @Test
+    fun `should compile the jvm target with strict jsr305 like the jvm plugin`() {
+        val project = mppProject()
+
+        val compileJvm = project.tasks.getByName("compileKotlinJvm") as KotlinCompile
+        assertThat(compileJvm.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict")
+        assertThat(compileJvm.compilerOptions.languageVersion.orNull).isNull()
+    }
+
+    @Test
+    fun `should treat warnings as errors and check ignored return values on every target`() {
+        val project = mppProject()
+
+        val compileJvm = project.tasks.getByName("compileKotlinJvm") as KotlinCompile
+        val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        listOf(compileJvm.compilerOptions, compileJs.compilerOptions).forEach { options ->
+            assertThat(options.allWarningsAsErrors.get()).isTrue()
+            assertThat(options.freeCompilerArgs.get()).contains("-Xreturn-value-checker=check")
+        }
+    }
+
+    @Test
+    fun `should report the extra compiler warnings on every target`() {
+        val project = mppProject()
+
+        val compileJvm = project.tasks.getByName("compileKotlinJvm") as KotlinCompile
+        val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        assertThat(compileJvm.compilerOptions.freeCompilerArgs.get()).contains("-Wextra")
+        assertThat(compileJs.compilerOptions.freeCompilerArgs.get()).contains("-Wextra")
+    }
+
+    @Test
+    fun `should add the junit platform launcher to the jvm test runtime`() {
+        val project = mppProject()
+
+        project.dependencies.add("jvmTestImplementation", "org.jetbrains.kotlin:kotlin-test-junit5:2.4.21")
+
+        val jvmTestRuntime = project.configurations.getByName("jvmTestRuntimeClasspath")
+        assertThat(jvmTestRuntime.incoming.dependencies.map { "${it.group}:${it.name}" })
+            .contains("org.junit.platform:junit-platform-launcher")
     }
 
     @Test

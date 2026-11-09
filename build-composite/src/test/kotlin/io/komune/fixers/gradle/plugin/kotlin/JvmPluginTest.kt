@@ -58,8 +58,24 @@ class JvmPluginTest {
 
         val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
         assertThat(kotlin.compilerOptions.jvmTarget.get()).isEqualTo(JvmTarget.JVM_17)
-        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict")
-        assertThat(kotlin.compilerOptions.languageVersion.orNull).isNotNull
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict", "-Wextra")
+    }
+
+    @Test
+    fun `should treat warnings as errors and check ignored return values`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThat(kotlin.compilerOptions.allWarningsAsErrors.get()).isTrue()
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xreturn-value-checker=check")
+    }
+
+    @Test
+    fun `should leave the kotlin language version to the compiler default`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThat(kotlin.compilerOptions.languageVersion.orNull).isNull()
     }
 
     @Test
@@ -79,12 +95,31 @@ class JvmPluginTest {
     }
 
     @Test
+    fun `should add the junit platform launcher to the test runtime of junit tests`() {
+        val project = jvmProject()
+        project.dependencies.add("testImplementation", "org.junit.jupiter:junit-jupiter:5.13.4")
+
+        val testRuntime = project.configurations.getByName("testRuntimeClasspath")
+        assertThat(testRuntime.incoming.dependencies.map { "${it.group}:${it.name}" })
+            .contains("org.junit.platform:junit-platform-launcher")
+    }
+
+    @Test
+    fun `should not add the junit platform launcher when nothing brings junit`() {
+        val project = jvmProject()
+
+        val testRuntime = project.configurations.getByName("testRuntimeClasspath")
+        assertThat(testRuntime.incoming.dependencies.map { "${it.group}:${it.name}" })
+            .doesNotContain("org.junit.platform:junit-platform-launcher")
+    }
+
+    @Test
     fun `should add implementation info to jar manifest`() {
         val project = jvmProject()
         project.version = "1.2.3"
 
         val jar = project.tasks.getByName("jar") as Jar
         assertThat(jar.manifest.attributes["Implementation-Title"]).isEqualTo("jvm-lib")
-        assertThat(jar.manifest.attributes["Implementation-Version"]).isEqualTo(project.version)
+        assertThat(jar.manifest.writtenVersion()).isEqualTo("1.2.3")
     }
 }

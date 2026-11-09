@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.check
 
 import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
@@ -10,6 +11,16 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
+
+private const val DETEKT_TASK = "detekt"
+private const val DETEKT_BASELINE_TASK = "detektBaseline"
+private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
+private const val CHECK_TASK = "check"
+
+// The typed tasks Detekt registers per target of a multiplatform module (today the JVM ones):
+// `detektMain<Target>`, `detektTest<Target>`. The per-source-set tasks end in `SourceSet`, the
+// JVM module's in nothing.
+private val MPP_TYPED_DETEKT_TASK = Regex("detekt(Main|Test)[A-Z][A-Za-z0-9]*(?<!SourceSet)")
 
 fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
     return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
@@ -89,6 +100,8 @@ fun Project.configureDetekt() {
                 finalizedBy(detektReportMergeXml, detektReportMergeSarif)
             }
 
+            configureTypedDetekt()
+
             detektReportMergeSarif.configure {
                 input.from(detektReportsWithExtension("sarif"))
             }
@@ -96,6 +109,27 @@ fun Project.configureDetekt() {
             detektReportMergeXml.configure {
                 input.from(detektReportsWithExtension("xml"))
             }
+        }
+    }
+}
+
+/**
+ * `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
+ * `detektBaseline`: the rules that need types are then skipped without a word. Multiplatform
+ * sources sit outside `src/main`, where `detekt` looks: the typed tasks of every target, which
+ * see `commonMain` too, are the ones that analyse them.
+ */
+private fun Project.configureTypedDetekt() {
+    val compileClasspaths = configurations.matching { configuration -> configuration.name in COMPILE_CLASSPATHS }
+    tasks.withType<Detekt>().matching { task -> task.name == DETEKT_TASK }.configureEach {
+        classpath.from(compileClasspaths)
+    }
+    tasks.withType<DetektCreateBaselineTask>().matching { task -> task.name == DETEKT_BASELINE_TASK }.configureEach {
+        classpath.from(compileClasspaths)
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        tasks.matching { task -> task.name == CHECK_TASK }.configureEach {
+            dependsOn(tasks.withType<Detekt>().matching { task -> MPP_TYPED_DETEKT_TASK.matches(task.name) })
         }
     }
 }

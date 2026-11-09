@@ -1,11 +1,14 @@
 package io.komune.fixers.gradle.check
 
 import dev.detekt.gradle.Detekt
+import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
+import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -83,6 +86,28 @@ class DetektConfigurationTest {
 
         val detekt = root.extensions.getByType(DetektExtension::class.java)
         assertThat(detekt.baseline.get().asFile.name).isEqualTo("detekt-baseline.xml")
+    }
+
+    @Test
+    fun `should give the detekt and baseline tasks the compile classpaths so typed rules run`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("child")
+            .withProjectDir(File(dir, "child").apply { mkdirs() })
+            .build()
+        child.plugins.apply("java")
+        val mainJar = File(dir, "main.jar").apply { writeText("") }
+        val testJar = File(dir, "test.jar").apply { writeText("") }
+        child.dependencies.add("implementation", child.files(mainJar))
+        child.dependencies.add("testImplementation", child.files(testJar))
+
+        root.configureDetekt()
+
+        val detekt = child.tasks.getByName("detekt") as Detekt
+        assertThat(detekt.classpath.files).contains(mainJar, testJar)
+        val baseline = child.tasks.getByName("detektBaseline") as DetektCreateBaselineTask
+        assertThat(baseline.classpath.files).contains(mainJar, testJar)
     }
 
     @Test
@@ -170,5 +195,71 @@ class DetektConfigurationTest {
             assertThat(task.reports.html.required.get()).isFalse()
             assertThat(task.reports.markdown.required.get()).isFalse()
         }
+    }
+
+    @Test
+    fun `should run the typed detekt tasks of the multiplatform jvm target on check`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
+    }
+
+    @Test
+    fun `should run the typed detekt tasks of every multiplatform jvm target on check`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        child.extensions.getByType(KotlinMultiplatformExtension::class.java).jvm("desktop")
+        root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm", "detektMainDesktop", "detektTestDesktop")
+    }
+
+    @Test
+    fun `should wire check when the multiplatform plugin comes after detekt`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        root.configureDetekt()
+        child.plugins.apply(MppPlugin::class.java)
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
+    }
+
+    @Test
+    fun `should run a typed detekt task of any target and nothing for targets without one`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        root.configureDetekt()
+
+        val withoutJsTask = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(child.tasks.findByName("detektMainJs")).isNull()
+        assertThat(withoutJsTask).contains("detektMainJvm").noneMatch { it.endsWith("Js") || it.endsWith("Metadata") }
+
+        child.tasks.register("detektMainJs", Detekt::class.java)
+        val withJsTask = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(withJsTask).contains("detektMainJvm", "detektMainJs")
     }
 }

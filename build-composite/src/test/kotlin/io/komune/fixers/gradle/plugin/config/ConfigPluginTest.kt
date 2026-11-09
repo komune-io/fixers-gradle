@@ -58,6 +58,22 @@ class ConfigPluginTest {
         }
 
         @Test
+        fun `should not overwrite a version set by a build script when another project applies the plugin`(
+            @TempDir dir: File
+        ) {
+            File(dir, "VERSION").writeText("9.9.9\n")
+            val root = ProjectBuilder.builder().withProjectDir(dir).build()
+            val child = ProjectBuilder.builder().withParent(root).build()
+
+            root.plugins.apply(ConfigPlugin::class.java)
+            root.version = "3.0.0-script"
+            child.plugins.apply(ConfigPlugin::class.java)
+
+            assertThat(root.version.toString()).isEqualTo("3.0.0-script")
+            assertThat(child.version.toString()).isEqualTo("9.9.9")
+        }
+
+        @Test
         fun `should keep project version when no VERSION file exists`() {
             val root = ProjectBuilder.builder().build()
             root.version = "1.2.3"
