@@ -1,3 +1,5 @@
+import io.komune.fixers.gradle.config.model.Kt2TsFiles
+
 println(
   """
 TOOL VERSIONS
@@ -29,6 +31,6 @@ fixers {
   }
   kt2Ts {
     outputDirectory = "ts"
-    committedFiles = io.komune.fixers.gradle.config.model.Kt2TsFiles.DECLARATIONS
+    committedFiles = Kt2TsFiles.DECLARATIONS
   }
 }
