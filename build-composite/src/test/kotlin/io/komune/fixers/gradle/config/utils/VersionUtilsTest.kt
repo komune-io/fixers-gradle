@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
 /**
- * Unit tests for [versionFromFile].
+ * Unit tests for [versionFromFile] and [resolveVersion].
  */
 class VersionUtilsTest {
 
@@ -48,5 +48,25 @@ class VersionUtilsTest {
             .build()
 
         assertThat(sub.versionFromFile()).isEqualTo("4.5.6")
+    }
+
+    @Test
+    fun `should prefer the VERSION environment variable over the VERSION file`() {
+        File(rootDir, "VERSION").writeText("1.0.0")
+
+        assertThat(rootProject().resolveVersion(ciVersion = "2.0.0-ci")).isEqualTo("2.0.0-ci")
+    }
+
+    @Test
+    fun `should fall back to the VERSION file when the environment variable is blank`() {
+        File(rootDir, "VERSION").writeText("1.0.0")
+
+        assertThat(rootProject().resolveVersion(ciVersion = " ")).isEqualTo("1.0.0")
+        assertThat(rootProject().resolveVersion(ciVersion = null)).isEqualTo("1.0.0")
+    }
+
+    @Test
+    fun `should return null when neither the environment variable nor the file is set`() {
+        assertThat(rootProject().resolveVersion(ciVersion = null)).isNull()
     }
 }

@@ -173,7 +173,7 @@ The `Bundle` class contains configuration for project metadata.
 | name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
 | group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
 | description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
-| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
+| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | The VERSION environment variable, else the VERSION file | The version of the project |
 | url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |
 | licenseName | FIXERS_BUNDLE_LICENSE_NAME | fixers.bundle.license.name | "The Apache Software License, Version 2.0" | The name of the license |
 | licenseUrl | FIXERS_BUNDLE_LICENSE_URL | fixers.bundle.license.url | "https://www.apache.org/licenses/LICENSE-2.0.txt" | The URL of the license |
@@ -258,9 +258,11 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 | inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
 
-A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` for a property, `(T | null)[]` for a list element, `T | null` for a getter, a return or a parameter (a trailing parameter stays optional). Kotlin and its JSON serializers send `null`.
+A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` for a property (`val` or `var`), `(T | null)[]` for a list element, `T | null` for a getter, a return or a parameter. A trailing parameter stays optional, including a parameter of a callback type. Kotlin and its JSON serializers send `null`.
 
-`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched. `cleanTsGen` deletes `outputDirectory` entirely.
+`KtList`, `KtSet` and their mutable variants become arrays and `KtMap`/`KtMutableMap` becomes `Record`, up to three levels of nesting. `tsGen`, and `npmTsGenTask` when NPM cleaning is enabled, fail, naming the file and line, when a `.d.mts` they clean still contains one of these types or `Nullable<` outside a comment: flatten the exported type, or add an `additionalCleaning` rule.
+
+`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It does not wait for a module built with `binaries.executable()`. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched; `cleanTsGen` deletes `outputDirectory` entirely. It no longer rewrites the `build/packages/js` of subprojects, which `npmTsGenTask` cleans before an NPM publication. The task wiring requires Gradle 8.6 or later.
 
 `tsGenCheck` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` declares a name twice (TypeScript would merge the two). It ignores `node_modules`, source maps and the `version` of `package.json`, and compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. In a build that emits Kotlin/JS, `check` depends on it: `outputDirectory` is meant to be committed.
 
@@ -394,7 +396,7 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
 | disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
-| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt |
+| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt, resolved from each module |
 | config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
 | buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
 | checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |

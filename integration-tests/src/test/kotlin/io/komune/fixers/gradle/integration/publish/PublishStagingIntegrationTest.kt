@@ -90,7 +90,7 @@ class PublishStagingIntegrationTest : BaseIntegrationTest() {
 
 			kotlin {
 				jvm()
-				js(IR) {
+				js {
 					browser()
 				}
 			}
@@ -105,9 +105,7 @@ class PublishStagingIntegrationTest : BaseIntegrationTest() {
 		File(commonSrc, "MppLib.kt").writeText("""
 			package com.example
 
-			expect class MppLib() {
-				fun hello(): String
-			}
+			expect fun hello(): String
 		""".trimIndent())
 
 		val jvmSrc = testProjectDir.resolve("lib-mpp/src/jvmMain/kotlin/com/example").toFile()
@@ -115,9 +113,7 @@ class PublishStagingIntegrationTest : BaseIntegrationTest() {
 		File(jvmSrc, "MppLibJvm.kt").writeText("""
 			package com.example
 
-			actual class MppLib {
-				actual fun hello() = "Hello from JVM"
-			}
+			actual fun hello() = "Hello from JVM"
 		""".trimIndent())
 
 		val jsSrc = testProjectDir.resolve("lib-mpp/src/jsMain/kotlin/com/example").toFile()
@@ -125,9 +121,7 @@ class PublishStagingIntegrationTest : BaseIntegrationTest() {
 		File(jsSrc, "MppLibJs.kt").writeText("""
 			package com.example
 
-			actual class MppLib {
-				actual fun hello() = "Hello from JS"
-			}
+			actual fun hello() = "Hello from JS"
 		""".trimIndent())
 	}
 

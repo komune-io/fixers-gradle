@@ -37,9 +37,9 @@ class JvmPlugin : Plugin<Project> {
 		extensions.configure(KotlinJvmProjectExtension::class.java) {
 			jvmToolchain(jdkVersion)
 			compilerOptions {
-				freeCompilerArgs.add("-Xjsr305=strict")
+				allWarningsAsErrors.set(true)
+				freeCompilerArgs.addAll("-Xjsr305=strict", "-Wextra", "-Xreturn-value-checker=check")
 				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-				languageVersion.set(kotlinLanguageVersion())
 			}
 		}
 

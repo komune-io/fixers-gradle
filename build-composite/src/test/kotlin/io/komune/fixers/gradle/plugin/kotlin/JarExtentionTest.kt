@@ -26,7 +26,7 @@ class JarExtentionTest {
 
         val manifest = (project.tasks.getByName("jar") as Jar).manifest
         assertThat(manifest.attributes["Implementation-Title"]).isEqualTo("my-lib")
-        assertThat(manifest.attributes["Implementation-Version"]).isEqualTo("1.2.3")
+        assertThat(manifest.writtenVersion()).isEqualTo("1.2.3")
     }
 
     @Test
@@ -37,6 +37,17 @@ class JarExtentionTest {
         val later = project.tasks.register("extraJar", Jar::class.java).get()
 
         assertThat(later.manifest.attributes["Implementation-Title"]).isEqualTo("late-lib")
-        assertThat(later.manifest.attributes["Implementation-Version"]).isEqualTo("9.9.9")
+        assertThat(later.manifest.writtenVersion()).isEqualTo("9.9.9")
+    }
+
+    @Test
+    fun `should write the version the project holds when the manifest is written`() {
+        val project = javaProject("ci-lib", "1.0.0")
+
+        project.setupJarInfo()
+        val jar = project.tasks.getByName("jar") as Jar
+        project.version = "2.0.0-ci"
+
+        assertThat(jar.manifest.writtenVersion()).isEqualTo("2.0.0-ci")
     }
 }

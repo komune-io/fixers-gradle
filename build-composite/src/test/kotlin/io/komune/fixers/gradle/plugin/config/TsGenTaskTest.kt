@@ -4,6 +4,8 @@ import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Nested
@@ -329,6 +331,74 @@ class TsGenTaskTest {
         fun `should collapse a list of functions`() {
             assertThat(cleanSnippet("    get cbs(): KtList<(p0: string) => void>;\n"))
                 .isEqualTo("    get cbs(): ((p0: string) => void)[];\n")
+        }
+
+        private fun cleanResource(name: String): String {
+            val file = File(dir, "resource.d.mts")
+            file.writeText(resource(name))
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+            return file.readText()
+        }
+
+        @Test
+        fun `should strip the marker of a class with two parents`() {
+            val result = cleanResource("kotlin-2.4.21-mutable.d.mts")
+
+            assertThat(result).doesNotContain("__doNotUseOrImplementIt")
+            assertThat(result).contains("export declare class TwoParents implements Base1, Base2 {\n    constructor(one: string, two: string);")
+        }
+
+        @Test
+        fun `should collapse the mutable collections and drop their declarations`() {
+            val result = cleanResource("kotlin-2.4.21-mutable.d.mts")
+
+            assertThat(result).doesNotContain("KtMutable")
+            assertThat(result).contains(
+                "    get ml(): string[];",
+                "    get ms(): string[];",
+                "    get mm(): Record<string, number>;",
+            )
+        }
+
+        @Test
+        fun `should drop Nullable from a map key`() {
+            assertThat(cleanResource("kotlin-2.4.21-mutable.d.mts")).contains("    get nullKey(): Record<string, number>;")
+        }
+
+        @Test
+        fun `should make a nullable var of an interface optional`() {
+            assertThat(cleanSnippet("export declare interface VarDto {\n    label: Nullable<string>;\n}\n"))
+                .isEqualTo("export declare interface VarDto {\n    label?: string | null;\n}\n")
+        }
+
+        @Test
+        fun `should fail on a collection nested deeper than the rules reach`() {
+            val file = File(dir, "deep.d.mts")
+            file.writeText("export declare interface Deep {\n    readonly cube: KtList<KtList<KtList<KtList<string>>>>;\n}\n")
+            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+
+            assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining("deep.d.mts:2")
+                .hasMessageContaining("KtList<")
+        }
+
+        @Test
+        fun `should fail on a Nullable the rules leave behind`() {
+            val file = File(dir, "left.d.mts")
+            file.writeText("export declare interface Left {\n    readonly x: Nullable<Record<string, Record<string, Record<string, Record<string, string>>>>>;\n}\n")
+            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+
+            assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining("left.d.mts:2")
+                .hasMessageContaining("Nullable<")
+        }
+
+        @Test
+        fun `should accept Nullable inside a comment`() {
+            assertThat(cleanSnippet("    readonly item: Nullable<any>/* Nullable<Graph> */;\n"))
+                .isEqualTo("    readonly item?: any/* Nullable<Graph> */ | null;\n")
         }
 
         @Test
