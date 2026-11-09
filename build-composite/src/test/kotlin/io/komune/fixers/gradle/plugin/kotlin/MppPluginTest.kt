@@ -82,6 +82,22 @@ class MppPluginTest {
     }
 
     @Test
+    fun `should make a declaration the js export cannot express a compilation error`() {
+        val project = mppProject()
+
+        val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        assertThat(compileJs.compilerOptions.freeCompilerArgs.get()).contains(
+            "-Xwarning-level=NON_EXPORTABLE_TYPE:error",
+            "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error",
+            "-Xreport-all-warnings",
+        )
+        project.tasks.withType(KotlinJsIrLink::class.java).forEach { link ->
+            assertThat(link.compilerOptions.freeCompilerArgs.get())
+                .contains("-Xwarning-level=NON_EXPORTABLE_TYPE:error", "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error")
+        }
+    }
+
+    @Test
     fun `should give the js link tasks the options of the js target`() {
         val project = mppProject()
 
