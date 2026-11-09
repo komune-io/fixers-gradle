@@ -5,8 +5,8 @@ import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
 
@@ -16,37 +16,47 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     mainConfig?.kt2Ts?.let { config ->
         // Kotlin/JS writes build/js/packages while it assembles a library distribution.
         val jsDistributions = target.allprojects.map { project ->
-            project.tasks.named { it.endsWith("ProductionLibraryDistribution") }
+            project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
         }
+        // Resolved when a task is realized, not in every project that applies the plugin.
+        val inputDir by lazy {
+            if(config.inputDirectory.isPresent) {
+                config.inputDirectory.get()
+            } else {
+                "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
+                    target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
+                }
+            }
+        }
+        val outputDir by lazy { target.file(config.outputDirectory.get()) }
+        val cleaning by lazy { config.buildCleaningRegex() }
         target.tasks {
             register<Delete>("cleanTsGen") {
                 mustRunAfter(jsDistributions)
                 delete(config.outputDirectory.get())
             }
 
-            register<Copy>("tsGen") {
-                dependsOn("cleanTsGen")
+            // Not a Copy or a Sync: either tracks its whole destination, and with it the links a JS package
+            // manager makes under node_modules — a dangling one fails the task, each install makes it stale.
+            register("tsGen") {
                 dependsOn(jsDistributions)
-
-                // Resolve all Project-dependent values at configuration time for configuration cache compatibility
-                val inputDir = if(config.inputDirectory.isPresent) {
-                    config.inputDirectory.get()
-                } else {
-                    "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
-                        target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
-                    }
-                }
-                val outputDir = target.file(config.outputDirectory.get())
-                from(inputDir) {
-                    exclude("*-test")
-                }
-                into(outputDir)
-                includeEmptyDirs = false
-
-                val cleaning = config.buildCleaningRegex()
+                mustRunAfter("cleanTsGen")
+                val source = target.file(inputDir)
+                val output = outputDir
+                val rules = cleaning
+                inputs.files(target.emittedTree(source)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
+                inputs.property("cleaning", rules.fingerprint())
+                outputs.files(target.packageTree(output))
                 doLast {
-                    outputDir.walkTopDown().filter { file -> file.isFile }.forEach { file -> file.cleanFile(cleaning) }
+                    output.syncFrom(source)
+                    output.cleanTree(rules)
                 }
+            }
+
+            // Every module that applies the config plugin gets a tsGen, resolving the directories against
+            // itself; the check would fail there on an output directory the module does not have.
+            if (target == target.rootProject) {
+                registerTsGenCheck(config, jsDistributions, { target.file(inputDir) }, { outputDir }, { cleaning })
             }
         }
     }
@@ -96,6 +106,10 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     }
 
     return cleaning
+}
+
+internal fun File.cleanTree(cleaning: Map<String, List<Pair<Regex, String>>>) {
+    walkTopDown().onEnter { it.name != NODE_MODULES }.filter { it.isFile }.forEach { it.cleanFile(cleaning) }
 }
 
 private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
