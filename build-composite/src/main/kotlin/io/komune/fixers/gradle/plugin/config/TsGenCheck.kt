@@ -51,6 +51,7 @@ internal fun Project.registerTsGenCheck(
         val output = outputDir()
         val rules = cleaning()
         val shownOutput = config.outputDirectory.get()
+        val committed = config.committedFiles
         val stagingDir = staging.get().asFile
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
@@ -60,14 +61,14 @@ internal fun Project.registerTsGenCheck(
         inputs.files(emittedTree(source)).withPropertyName("emitted").withPathSensitivity(PathSensitivity.RELATIVE)
         inputs.files(packageTree(output)).withPropertyName("committed").withPathSensitivity(PathSensitivity.RELATIVE)
         inputs.property("cleaning", rules.fingerprint())
+        inputs.property("committedFiles", committed)
         outputs.dir(stagingDir)
         doLast {
             stagingDir.deleteRecursively()
-            stagingDir.syncFrom(source)
+            stagingDir.writeContract(source, rules, committed.get())
             if (stagingDir.walkTopDown().none { it.isFile }) {
                 throw GradleException("No Kotlin/JS output under $source to compare $shownOutput with.")
             }
-            stagingDir.cleanTree(rules)
             val stale = staleFiles(stagingDir, output).map { "$shownOutput/$it." }
             val duplicated = duplicatedDeclarations(stagingDir).map { "$shownOutput/$it" }
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
@@ -94,7 +95,7 @@ internal fun Project.registerTsGenCheck(
 }
 
 // The build's version, not the contract's. Anchored, so a dependency named `version` still counts.
-private val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
+internal val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
 
 private fun File.comparable(): String {
     val text = readText()
@@ -106,17 +107,18 @@ private fun File.comparable(): String {
 }
 
 /** Every file of a package, by relative path, without the dependencies linked under node_modules. */
-private fun File.packageFiles(): Map<String, File> =
+internal fun File.packageFiles(): Map<String, File> =
     walkTopDown().onEnter { it.name != NODE_MODULES }
         .filter { it.isFile }
         .associateBy { it.relativeTo(this).invariantSeparatorsPath }
 
 /**
- * Makes this directory hold what the Kotlin/JS build emitted under [source], its test packages
- * left out: copies every file, deletes those it no longer emits, and leaves node_modules alone.
+ * Makes this directory hold what the Kotlin/JS build emitted under [source] that [keep] accepts,
+ * its test packages left out: copies every such file, deletes the others, and leaves node_modules
+ * alone.
  */
-internal fun File.syncFrom(source: File) {
-    val emitted = source.packageFiles().filterKeys { !it.substringBefore('/').endsWith("-test") }
+internal fun File.syncFrom(source: File, keep: (String) -> Boolean = { true }) {
+    val emitted = source.packageFiles().filterKeys { !it.substringBefore('/').endsWith("-test") && keep(it) }
     (packageFiles().keys - emitted.keys).forEach { resolve(it).delete() }
     emitted.forEach { (path, file) -> file.copyTo(resolve(path), overwrite = true) }
     walkBottomUp().onEnter { it.name != NODE_MODULES }

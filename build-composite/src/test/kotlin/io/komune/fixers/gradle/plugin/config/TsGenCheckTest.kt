@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.model.Kt2TsFiles
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -24,11 +25,12 @@ class TsGenCheckTest {
     private val input get() = File(dir, "packages")
     private val output get() = File(dir, "out")
 
-    private fun project(): Project {
+    private fun project(committedFiles: Kt2TsFiles = Kt2TsFiles.ALL): Project {
         val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.kt2Ts.inputDirectory.set(input.absolutePath)
         config.kt2Ts.outputDirectory.set(output.absolutePath)
+        config.kt2Ts.committedFiles.set(committedFiles)
         project.configureKt2Ts(config)
         return project
     }
@@ -51,6 +53,75 @@ class TsGenCheckTest {
         File(output, path).apply { parentFile.mkdirs() }.writeText(content)
 
     private fun committed(path: String) = File(output, path)
+
+    @Nested
+    inner class Declarations {
+
+        private val packageJson = "{\n  \"name\": \"pkg\",\n  \"version\": \"1.2.3-SNAPSHOT\",\n  \"devDependencies\": {}\n}\n"
+
+        private fun emitPackage() {
+            emit("pkg/package.json", packageJson)
+            emit("pkg/kotlin/pkg.d.mts", "export declare function names(): KtList<string>;\n")
+            emit("pkg/kotlin/pkg.mjs", "export function names() {}\n")
+            emit("pkg/kotlin/pkg.mjs.map", "{}\n")
+        }
+
+        @Test
+        fun `tsGen should write only the declarations and the package json`() {
+            emitPackage()
+            commit("pkg/kotlin/old.mjs", "left by the full copy\n")
+
+            project(Kt2TsFiles.DECLARATIONS).run("tsGen")
+
+            val written = File(output, "pkg").walkTopDown().filter { it.isFile }
+                .map { it.relativeTo(output).invariantSeparatorsPath }.toList()
+            assertThat(written)
+                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts")
+            assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): string[];")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"$CONTRACT_VERSION\"")
+        }
+
+        @Test
+        fun `tsGen should keep every file by default`() {
+            emitPackage()
+
+            project().run("tsGen")
+
+            assertThat(committed("pkg/kotlin/pkg.mjs")).exists()
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"1.2.3-SNAPSHOT\"")
+        }
+
+        @Test
+        fun `tsGenCheck should not compare a JavaScript file`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/kotlin/pkg.mjs", "export function names() { return [] }\n")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `tsGenCheck should fail on a changed declaration`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/kotlin/pkg.d.mts", "export declare function other(): string;\n")
+
+            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/pkg.d.mts differs")
+        }
+
+        @Test
+        fun `tsGenCheck should accept a new build version`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/package.json", packageJson.replace("1.2.3-SNAPSHOT", "1.2.4"))
+
+            project.run("tsGenCheck")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"$CONTRACT_VERSION\"")
+        }
+    }
 
     @Nested
     inner class TsGenOutput {

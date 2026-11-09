@@ -6,6 +6,20 @@ import org.gradle.api.Project
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.mapProperty
+import org.gradle.kotlin.dsl.property
+
+/** What `tsGen` writes to the output directory, which the project commits. */
+enum class Kt2TsFiles {
+    /** Every file of the Kotlin/JS packages: a consumer that imports the copy needs the `.mjs` too. */
+    ALL,
+
+    /**
+     * The `.d.mts` declarations and the `package.json` of each package only, the TypeScript
+     * contract a library reviews; each `package.json` carries version `0.0.0`, so a release
+     * does not rewrite them.
+     */
+    DECLARATIONS,
+}
 
 /**
  * Configuration for Kotlin to TypeScript generation.
@@ -31,6 +45,11 @@ class Kt2Ts(
         projectKey = "fixers.kt2ts.inputDirectory"
     )
 
+    /** What the output directory holds: [Kt2TsFiles.ALL] by default. */
+    val committedFiles: Property<Kt2TsFiles> = project.objects.property<Kt2TsFiles>().apply {
+        convention(Kt2TsFiles.ALL)
+    }
+
     /**
      * Additional regex patterns for cleaning generated TypeScript files.
      * The map keys are file extensions, and the values are lists of regex patterns and their replacements.
@@ -51,6 +70,7 @@ class Kt2Ts(
         outputDirectory.mergeIfNotPresent(source.outputDirectory)
         inputDirectory.mergeIfNotPresent(source.inputDirectory)
         additionalCleaning.mergeIfNotPresent(source.additionalCleaning)
+        committedFiles.mergeIfNotPresent(source.committedFiles)
 
         return this
     }
