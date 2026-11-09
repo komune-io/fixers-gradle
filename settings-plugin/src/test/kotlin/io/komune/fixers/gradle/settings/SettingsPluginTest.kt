@@ -116,6 +116,29 @@ class SettingsPluginTest {
     }
 
     @Test
+    fun `should give a build that prefers settings repositories the CI repositories in its settings`() {
+        File(projectDir, "settings.gradle.kts").writeText(
+            """
+            dependencyResolutionManagement {
+                repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+                repositories { maven { name = "Probe"; url = uri("${repoDir.toURI()}") } }
+            }
+            rootProject.name = "probe"
+            gradle.settingsEvaluated {
+                println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
+            }
+            """.trimIndent()
+        )
+        File(projectDir, "build.gradle.kts").writeText("println(\"projectRepositories=\" + repositories.size)\n")
+
+        val result = runner("help", "--init-script", File(CI_INIT_SCRIPT).absoluteFile.path).build()
+
+        assertThat(result.output)
+            .contains("repositories=Probe, MavenRepo, FixersGitHubPackages")
+            .contains("projectRepositories=0")
+    }
+
+    @Test
     fun `should accept a project catalog that declares the same fixers version`() {
         publishCatalog()
         writeSettings()
