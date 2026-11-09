@@ -68,7 +68,7 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
 private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
     Kt2TsFiles.ALL -> true
     Kt2TsFiles.DECLARATIONS ->
-        path.endsWith(DMTS) || path.endsWith(".d.ts") || path.substringAfterLast('/') == "package.json"
+        path.endsWith(DMTS) || path.endsWith(".d.ts") || path.substringAfterLast('/') == PACKAGE_JSON
 }
 
 /**
@@ -80,7 +80,7 @@ internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
     if (committed == Kt2TsFiles.DECLARATIONS) {
-        packageFiles().filterKeys { it.substringAfterLast('/') == "package.json" }.values.forEach { file ->
+        packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
             file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
         }
     }
@@ -119,9 +119,9 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
         DMTS to dmtsCleaning()
             + additionalCleaningMap[DMTS].orEmpty(),
-        "package.json" to listOf(
+        PACKAGE_JSON to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
-        ) + additionalCleaningMap["package.json"].orEmpty()
+        ) + additionalCleaningMap[PACKAGE_JSON].orEmpty()
     )
 
     // Add any additional cleaning patterns not already included
@@ -156,6 +156,8 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
 }
 
 private const val DMTS = ".d.mts"
+
+internal const val PACKAGE_JSON = "package.json"
 
 // What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")

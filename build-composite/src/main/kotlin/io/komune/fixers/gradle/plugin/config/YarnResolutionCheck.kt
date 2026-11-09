@@ -104,11 +104,11 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
     if (workspaces != null && (workspaces !is List<*> || workspaces.any { it !is String })) {
         refuse(rootPackageJson, "`workspaces` is not a list of paths: $workspaces")
     }
-    return (workspaces as List<*>?).orEmpty().map { workspace ->
+    return workspaces.orEmpty().map { workspace ->
         if ('*' in workspace.toString()) {
             refuse(rootPackageJson, "workspace pattern `$workspace` is not read; list the paths")
         }
-        rootPackageJson.resolveSibling(workspace.toString()).resolve("package.json").also {
+        rootPackageJson.resolveSibling(workspace.toString()).resolve(PACKAGE_JSON).also {
             if (!it.exists()) refuse(rootPackageJson, "workspace `$workspace` has no $it")
         }
     }

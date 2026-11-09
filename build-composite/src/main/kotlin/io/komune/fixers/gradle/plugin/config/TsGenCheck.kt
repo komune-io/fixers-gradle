@@ -100,7 +100,7 @@ internal val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MU
 private fun File.comparable(): String {
     val text = readText()
     return when {
-        name == "package.json" -> packageVersion.replace(text, "  \"version\": \"\"")
+        name == PACKAGE_JSON -> packageVersion.replace(text, "  \"version\": \"\"")
         name.endsWith(".mjs") -> canonicalMjs(text)
         else -> text
     }
