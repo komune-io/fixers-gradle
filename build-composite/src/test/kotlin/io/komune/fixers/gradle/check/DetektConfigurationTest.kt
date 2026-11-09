@@ -242,4 +242,24 @@ class DetektConfigurationTest {
         val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
         assertThat(checkDependencies).contains("detektMainJvm", "detektTestJvm")
     }
+
+    @Test
+    fun `should run a typed detekt task of any target and nothing for targets without one`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        root.configureDetekt()
+
+        val withoutJsTask = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(child.tasks.findByName("detektMainJs")).isNull()
+        assertThat(withoutJsTask).contains("detektMainJvm").noneMatch { it.endsWith("Js") || it.endsWith("Metadata") }
+
+        child.tasks.register("detektMainJs", Detekt::class.java)
+        val withJsTask = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(withJsTask).contains("detektMainJvm", "detektMainJs")
+    }
 }

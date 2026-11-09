@@ -312,7 +312,7 @@ fixers {
 }
 ```
 
-`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of each JVM target, and their baselines are written by `detektBaselineMain<Target>` and `detektBaselineTest<Target>`, not `detektBaseline`.
+`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of every target that has them (Detekt registers them for JVM targets), and their baselines are written by `detektBaselineMain<Target>` and `detektBaselineTest<Target>`, not `detektBaseline`.
 
 ### JaCoCo
 
