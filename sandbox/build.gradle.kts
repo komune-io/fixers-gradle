@@ -1,3 +1,5 @@
+import io.komune.fixers.gradle.config.model.Kt2TsFiles
+
 println(
   """
 TOOL VERSIONS
@@ -28,7 +30,7 @@ fixers {
     url = "https://github.com/komune-io/fixers-gradle/tree/main/sandbox"
   }
   kt2Ts {
-    outputDirectory = "build/d2/"
-    inputDirectory = "ef"
+    outputDirectory = "ts"
+    committedFiles = Kt2TsFiles.DECLARATIONS
   }
 }
