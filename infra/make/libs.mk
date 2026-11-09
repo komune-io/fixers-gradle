@@ -13,7 +13,7 @@ build:
 
 test:
 	./gradlew test :build-composite:test
-	cd sandbox && ./gradlew allTests test
+	cd sandbox && ./gradlew check
 
 stage:
 	VERSION=$(VERSION) ./gradlew stage

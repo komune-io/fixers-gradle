@@ -28,7 +28,7 @@ fixers {
     url = "https://github.com/komune-io/fixers-gradle/tree/main/sandbox"
   }
   kt2Ts {
-    outputDirectory = "build/d2/"
-    inputDirectory = "ef"
+    outputDirectory = "ts"
+    committedFiles = io.komune.fixers.gradle.config.model.Kt2TsFiles.DECLARATIONS
   }
 }
