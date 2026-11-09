@@ -319,6 +319,47 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should name any exported declaration made twice`() {
+            listOf(
+                "export declare function same(): void;\nexport declare function same(): string;\n",
+                "export declare const same: string;\nexport declare let same: number;\n",
+                "export declare enum same {\n}\nexport declare var same: number;\n",
+                "export type same = string;\nexport declare interface same {\n}\n",
+            ).forEach { declarations ->
+                emit("pkg/kotlin/pkg.d.mts", declarations)
+                val project = project()
+                project.run("tsGen")
+
+                assertThatThrownBy { project.run("tsGenCheck") }
+                    .`as`(declarations)
+                    .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `same` twice")
+            }
+        }
+
+        @Test
+        fun `should accept exported declarations of distinct names`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export declare function one(): void;\nexport declare const two: string;\n" +
+                    "export type three = string;\nexport declare enum four {\n}\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should accept a dependency's declaration repeated in each package that bundles it`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function shared(): void;\n")
+            emit("other/kotlin/other.d.mts", "export declare function shared(): void;\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
         fun `should run after tsGen`() {
             val project = project()
             val check = project.tasks.getByName("tsGenCheck")

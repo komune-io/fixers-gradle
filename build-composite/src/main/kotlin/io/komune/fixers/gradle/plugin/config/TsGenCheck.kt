@@ -28,8 +28,10 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
 
 /**
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
- * when the output directory differs from them, or when a `.d.mts` declares a name twice. `check`
- * runs it in a build that emits Kotlin/JS.
+ * when the output directory differs from them, or when a `.d.mts` exports a name twice: two of its
+ * classes, interfaces, functions, constants, variables, enums or type aliases, as named in
+ * JavaScript, or two namespaces, the one namespace of a companion being allowed. `check` runs it
+ * in a build that emits Kotlin/JS.
  *
  * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
  * two declarations of one name that come from dependencies reach the linked declarations
@@ -70,7 +72,8 @@ internal fun Project.registerTsGenCheck(
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
                 val fixes = listOfNotNull(
                     "Regenerate it with `./gradlew tsGen` and commit the result.".takeIf { stale.isNotEmpty() },
-                    "Rename one of the two Kotlin declarations; the emitter has no namespaces."
+                    ("Rename one of the two Kotlin declarations, or give one a distinct `@JsName`; " +
+                        "the emitter has no namespaces.")
                         .takeIf { duplicated.isNotEmpty() },
                 )
                 throw GradleException(
@@ -138,9 +141,13 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
     }
 }
 
-// TypeScript merges a class and an interface of the same name too; only a namespace of that name is
-// a Kotlin companion. Unanchored, because the emitter writes no trailing newline.
-private val declaredName = Regex("""export declare (?:abstract )?(interface|class|namespace) ([A-Za-z0-9_$]+)""")
+// Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. TypeScript
+// merges a class and an interface of one name, and rejects any other pair; only a namespace of that
+// name is a Kotlin companion. Unanchored, because the emitter writes no trailing newline.
+private val declaredName = Regex(
+    """export (?:declare )?(?:abstract )?""" +
+        """(interface|class|namespace|function|const|let|var|enum|type) ([A-Za-z0-9_$]+)"""
+)
 
 internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
@@ -151,7 +158,7 @@ internal fun duplicatedDeclarations(fresh: File): List<String> =
             .map { (key, declarations) ->
                 "$path declares `${key.second}` twice: " +
                     declarations.joinToString(", ") { (kind, name) -> "$kind $name" } +
-                    "; TypeScript merges them into one type."
+                    "; TypeScript merges them into one, or rejects the pair."
             }
     }
 
