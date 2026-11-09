@@ -350,6 +350,19 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should accept one name exported by two namespaces`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export declare namespace One {\n    export const id: string;\n}\n" +
+                    "export declare namespace Two {\n    export const id: string;\n}\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
         fun `should accept a dependency's declaration repeated in each package that bundles it`() {
             emit("pkg/kotlin/pkg.d.mts", "export declare function shared(): void;\n")
             emit("other/kotlin/other.d.mts", "export declare function shared(): void;\n")

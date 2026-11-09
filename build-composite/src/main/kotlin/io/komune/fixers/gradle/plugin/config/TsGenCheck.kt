@@ -143,10 +143,12 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
 
 // Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. TypeScript
 // merges a class and an interface of one name, and rejects any other pair; only a namespace of that
-// name is a Kotlin companion. Unanchored, because the emitter writes no trailing newline.
+// name is a Kotlin companion. Anchored at the start of a line, where the emitter writes the top-level
+// declarations: an export nested in a namespace belongs to that namespace.
 private val declaredName = Regex(
-    """export (?:declare )?(?:abstract )?""" +
-        """(interface|class|namespace|function|const|let|var|enum|type) ([A-Za-z0-9_$]+)"""
+    """^export (?:declare )?(?:abstract )?""" +
+        """(interface|class|namespace|function|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
+    RegexOption.MULTILINE,
 )
 
 internal fun duplicatedDeclarations(fresh: File): List<String> =
