@@ -74,7 +74,9 @@ internal fun Project.registerYarnResolutionCheck() {
  * One message per resolution in [resolutions] (path to forced version) that is not scoped to any
  * depth, or that [lock] (a yarn v1 lock, null when absent) shows without effect: the parent the
  * path names, or any package for an unparented path, must depend on the package, and the lock
- * must hold the package at the forced version.
+ * must hold the package at the forced version. A workspace package (a Kotlin/JS module) has no
+ * entry in the lock, so an unparented path also counts as depended on when the lock holds a
+ * spec of the package that no entry asks for, other than the forced version yarn adds itself.
  */
 internal fun yarnResolutionProblems(resolutions: Map<String, List<String>>, lock: String?): List<String> = when {
     resolutions.isEmpty() -> emptyList()
@@ -100,8 +102,8 @@ private fun lockProblem(path: String, version: String, entries: List<LockEntry>)
     val pkg = names.last()
     val parent = names.getOrNull(names.size - 2)
     val dependedOn = entries.any { entry ->
-        (parent == null || entry.name == parent) && pkg in entry.dependencies
-    }
+        (parent == null || entry.name == parent) && entry.dependencies.any { it.name == pkg }
+    } || parent == null && workspaceSpecs(pkg, version, entries).isNotEmpty()
     val atVersion = entries.any { it.name == pkg && it.version == version }
     return when {
         !dependedOn && parent == null -> "$path: no package depends on $pkg in the lock"
@@ -111,7 +113,18 @@ private fun lockProblem(path: String, version: String, entries: List<LockEntry>)
     }
 }
 
-private class LockEntry(val name: String, val version: String?, val dependencies: Set<String>)
+/** Specs of [pkg] the lock resolves that no entry depends on: a workspace package asked for them. */
+private fun workspaceSpecs(pkg: String, version: String, entries: List<LockEntry>): Set<Spec> {
+    val requested = entries.flatMapTo(mutableSetOf()) { it.dependencies }
+    return entries.filter { it.name == pkg }
+        .flatMapTo(mutableSetOf()) { it.specs }
+        .minus(requested)
+        .minus(Spec(pkg, version))
+}
+
+private data class Spec(val name: String, val range: String)
+
+private class LockEntry(val name: String, val version: String?, val specs: Set<Spec>, val dependencies: Set<Spec>)
 
 /** Splits `a/@scope/b/c` into `[a, @scope/b, c]`. */
 private fun packageNames(path: String): List<String> {
@@ -126,25 +139,27 @@ private fun packageNames(path: String): List<String> {
 
 private fun parseYarnLock(lock: String): List<LockEntry> {
     val entries = mutableListOf<LockEntry>()
-    var name: String? = null
+    var specs = emptySet<Spec>()
     var version: String? = null
-    val dependencies = mutableSetOf<String>()
+    val dependencies = mutableSetOf<Spec>()
     var inDependencies = false
     fun flush() {
-        name?.let { entries += LockEntry(it, version, dependencies.toSet()) }
+        specs.firstOrNull()?.let { entries += LockEntry(it.name, version, specs, dependencies.toSet()) }
     }
     lock.lineSequence().forEach { line ->
         when {
             line.isBlank() || line.startsWith("#") -> Unit
             !line.startsWith(" ") -> {
                 flush()
-                name = specName(line.substringBefore(",").trim().removeSuffix(":"))
+                specs = line.trim().removeSuffix(":").split(",").mapTo(mutableSetOf()) { spec(it.trim()) }
                 version = null
                 dependencies.clear()
                 inDependencies = false
             }
-            line.startsWith("    ") && inDependencies ->
-                dependencies += line.trim().substringBeforeLast(" ").trim('"')
+            line.startsWith("    ") && inDependencies -> {
+                val field = line.trim()
+                dependencies += Spec(field.substringBefore(" ").trim('"'), field.substringAfter(" ").trim('"'))
+            }
             else -> {
                 val field = line.trim()
                 inDependencies = field == "dependencies:" || field == "optionalDependencies:"
@@ -156,9 +171,9 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
     return entries
 }
 
-/** `"@scope/name@^1.0.0"` or `name@1.0.0` to the package name. */
-private fun specName(spec: String): String {
+/** `"@scope/name@^1.0.0"` or `name@1.0.0` to its package name and range. */
+private fun spec(spec: String): Spec {
     val unquoted = spec.trim('"')
     val at = unquoted.indexOf('@', startIndex = 1)
-    return if (at < 0) unquoted else unquoted.substring(0, at)
+    return if (at < 0) Spec(unquoted, "") else Spec(unquoted.substring(0, at), unquoted.substring(at + 1))
 }

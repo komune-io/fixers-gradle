@@ -57,6 +57,33 @@ class YarnResolutionCheckTest {
     }
 
     @Test
+    fun `should accept a resolution on a package only a workspace package depends on`() {
+        // A Kotlin/JS module's package.json is a yarn workspace, not a lock entry: ws@8.20.1 has
+        // no requester in the lock, and the resolution moved it to 8.22.2.
+        val workspaceLock = """
+            # yarn lockfile v1
+
+
+            ws@8.20.1, ws@8.22.2:
+              version "8.22.2"
+        """.trimIndent()
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), workspaceLock)).isEmpty()
+    }
+
+    @Test
+    fun `should reject a resolution whose only lock spec is its own`() {
+        val orphanLock = """
+            # yarn lockfile v1
+
+
+            ws@8.22.2:
+              version "8.22.2"
+        """.trimIndent()
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), orphanLock))
+            .singleElement().asString().isEqualTo("**/ws: no package depends on ws in the lock")
+    }
+
+    @Test
     fun `should reject a resolution whose parent does not depend on the package`() {
         assertThat(yarnResolutionProblems(mapOf("**/karma-webpack/minimatch" to listOf("11.0.5")), lock))
             .singleElement().asString().isEqualTo("**/karma-webpack/minimatch: karma-webpack does not depend on minimatch in the lock")
