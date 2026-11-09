@@ -130,8 +130,13 @@ plugins {
 // - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
 //   -Xjsr305=strict on the JVM target. expect/actual classes (Beta) warn, so they fail: use expect
 //   functions or an interface instead
+// - JS target: es2015, Long as bigint; NON_EXPORTABLE_TYPE and EXPORTING_JS_NAME_CLASH_ES are
+//   errors even with allWarningsAsErrors turned off, and -Xreport-all-warnings keeps the warnings
+//   next to an error
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
+
+An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, mark the member `@JsExport.Ignore`, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `tsGenCheck` catches the same names coming from dependencies.
 
 Every JS test runs in both Chromium and Firefox. Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 

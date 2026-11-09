@@ -123,7 +123,6 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
 
     /**
      * Test that the KotlinMppPlugin correctly compiles Kotlin code for JVM platform.
-     * Note: JS compilation test is skipped due to stdlib resolution issues in test environment.
      */
     @Test
     fun `should compile Kotlin code for JVM platform`() {

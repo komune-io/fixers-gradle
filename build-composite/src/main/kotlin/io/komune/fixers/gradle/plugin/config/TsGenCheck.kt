@@ -30,6 +30,10 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
  * when the output directory differs from them, or when a `.d.mts` declares a name twice. `check`
  * runs it in a build that emits Kotlin/JS.
+ *
+ * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
+ * two declarations of one name that come from dependencies reach the linked declarations
+ * unreported. This check reads the declarations of the whole program.
  */
 internal fun Project.registerTsGenCheck(
     config: Kt2Ts,
