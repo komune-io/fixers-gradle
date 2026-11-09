@@ -5,6 +5,7 @@ Gradle plugins to facilitate the configuration of Kotlin modules. These plugins 
 ## Table of Contents
 - [Installation](#installation)
 - [Plugins](#plugins)
+  - [io.komune.fixers.gradle.settings](#iokomune-fixers-gradle-settings)
   - [io.komune.fixers.gradle.config](#iokomune-fixers-gradle-config)
   - [io.komune.fixers.gradle.kotlin.jvm](#iokomune-fixers-gradle-kotlin-jvm)
   - [io.komune.fixers.gradle.kotlin.mpp](#iokomune-fixers-gradle-kotlin-mpp)
@@ -40,6 +41,29 @@ Replace `x.y.z` with the latest version of the plugins.
 
 ## Plugins
 
+### io.komune.fixers.gradle.settings
+
+A settings plugin, published apart from the others because it carries no Kotlin Gradle plugin: on the settings classpath, that one would make every `kotlin("…") version "…"` request of the build fail.
+
+```kotlin
+// settings.gradle.kts
+plugins {
+    id("io.komune.fixers.gradle.settings") version "x.y.z"
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+```
+
+It:
+- creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version;
+- declares the Node.js and Yarn distributions Kotlin/JS downloads, each as an exclusive repository serving that module only, and clears the Kotlin plugin's download base URLs so it adds no project repository of its own.
+
+It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS`: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins then add none (`fixers { repositories { } }` has no effect), and the Komune CI init script adds its repositories to the settings instead of the projects. It adds no Maven repository itself: Maven Central, snapshots or `mavenLocal()` stay the project's to declare, in the order it chooses.
+
 ### io.komune.fixers.gradle.config
 
 The Config plugin provides a central configuration for all Fixers Gradle plugins. It creates a `fixers` extension that can be used to configure various aspects of your project.
@@ -66,6 +90,10 @@ fixers {
     // Additional configuration options
 }
 ```
+
+Applied to the root project, it also enforces two conventions on every project:
+- **Spring Boot images**: in a module that applies `org.springframework.boot`, `checkBootImage` (run by `check`) and `bootBuildImage` itself fail unless the builder is pinned by digest (`…:<version>@sha256:<digest>`) and the buildpacks include a versioned health checker (`docker.io/paketobuildpacks/health-checker:<version>` or `urn:cnb:registry:paketo-buildpacks/health-checker@<version>`); fixers sets `BP_HEALTH_CHECKER_ENABLED=true`. The versions stay in the project; `test` alone is not affected.
+- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); it fails too when the lock is missing.
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -102,7 +130,10 @@ plugins {
 // - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
 //   -Xjsr305=strict on the JVM target. expect/actual classes (Beta) warn, so they fail: use expect
 //   functions or an interface instead
+// - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
+
+Every JS test runs in both Chromium and Firefox. Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
 ### io.komune.fixers.gradle.publish
 
@@ -346,6 +377,8 @@ This project uses a composite build to facilitate the development and testing of
 - **`build-composite/`**: Contains the source code for all the plugins as "convention plugins". This allows for a better developer experience within this repository, including features like code completion and easy navigation in the IDE.
 
 - **`config/`**, **`plugin/`**: Standard Gradle subprojects that are configured to be published to a Maven repository. They don't contain any source code directly. Instead, the source code is copied from the `build-composite/` directory during the build process.
+
+- **`settings-plugin/`**: The settings plugin, with its own sources: it must stay free of the Kotlin Gradle plugin the convention plugins depend on.
 
 - **`sandbox/`**: Test environment for validating plugins locally.
 
