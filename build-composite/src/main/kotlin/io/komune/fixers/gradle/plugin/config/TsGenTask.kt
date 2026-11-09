@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
+import io.komune.fixers.gradle.config.model.Kt2TsFiles
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -44,12 +45,13 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
                 val source = target.file(inputDir)
                 val output = outputDir
                 val rules = cleaning
+                val committed = config.committedFilesOrDefault
                 inputs.files(target.emittedTree(source)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
                 inputs.property("cleaning", rules.fingerprint())
+                inputs.property("committedFiles", committed)
                 outputs.files(target.packageTree(output))
                 doLast {
-                    output.syncFrom(source)
-                    output.cleanTree(rules)
+                    output.writeContract(source, rules, committed.get())
                 }
             }
 
@@ -58,6 +60,28 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
             if (target == target.rootProject) {
                 registerTsGenCheck(config, jsDistributions, { target.file(inputDir) }, { outputDir }, { cleaning })
             }
+        }
+    }
+}
+
+/** Whether this mode writes the file at [path], relative to the packages directory. */
+private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
+    Kt2TsFiles.ALL -> true
+    Kt2TsFiles.DECLARATIONS ->
+        path.endsWith(DMTS) || path.endsWith(".d.ts") || path.substringAfterLast('/') == PACKAGE_JSON
+}
+
+/**
+ * Makes this directory the contract `tsGen` writes from the Kotlin/JS output under [source]: the
+ * files [committed] keeps, cleaned by [rules], and with [Kt2TsFiles.DECLARATIONS] each
+ * `package.json` at [Kt2TsFiles.CONTRACT_VERSION].
+ */
+internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex, String>>>, committed: Kt2TsFiles) {
+    syncFrom(source) { committed.writes(it) }
+    cleanTree(rules)
+    if (committed == Kt2TsFiles.DECLARATIONS) {
+        packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
+            file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
         }
     }
 }
@@ -95,9 +119,9 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
         DMTS to dmtsCleaning()
             + additionalCleaningMap[DMTS].orEmpty(),
-        "package.json" to listOf(
+        PACKAGE_JSON to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
-        ) + additionalCleaningMap["package.json"].orEmpty()
+        ) + additionalCleaningMap[PACKAGE_JSON].orEmpty()
     )
 
     // Add any additional cleaning patterns not already included
@@ -132,6 +156,8 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
 }
 
 private const val DMTS = ".d.mts"
+
+internal const val PACKAGE_JSON = "package.json"
 
 // What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")

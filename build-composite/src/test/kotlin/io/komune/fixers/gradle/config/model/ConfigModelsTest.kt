@@ -86,6 +86,23 @@ class ConfigModelsTest {
     inner class Kt2TsModelTest {
 
         @Test
+        fun `should commit every file when nothing sets committedFiles`() {
+            val kt2Ts = Kt2Ts(project)
+
+            assertThat(kt2Ts.committedFiles.isPresent).isFalse()
+            assertThat(kt2Ts.committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.ALL)
+        }
+
+        @Test
+        fun `should take committedFiles from the root unless the subproject sets it`() {
+            val root = Kt2Ts(project).apply { committedFiles.set(Kt2TsFiles.DECLARATIONS) }
+
+            assertThat(Kt2Ts(project).mergeFrom(root).committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.DECLARATIONS)
+            val own = Kt2Ts(project).apply { committedFiles.set(Kt2TsFiles.ALL) }
+            assertThat(own.mergeFrom(root).committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.ALL)
+        }
+
+        @Test
         fun `should default output directory and empty additional cleaning`() {
             val kt2Ts = Kt2Ts(project)
 

@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.config.model.Kt2TsFiles
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -24,11 +25,12 @@ class TsGenCheckTest {
     private val input get() = File(dir, "packages")
     private val output get() = File(dir, "out")
 
-    private fun project(): Project {
+    private fun project(committedFiles: Kt2TsFiles? = null): Project {
         val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.kt2Ts.inputDirectory.set(input.absolutePath)
         config.kt2Ts.outputDirectory.set(output.absolutePath)
+        committedFiles?.let { config.kt2Ts.committedFiles.set(it) }
         project.configureKt2Ts(config)
         return project
     }
@@ -51,6 +53,76 @@ class TsGenCheckTest {
         File(output, path).apply { parentFile.mkdirs() }.writeText(content)
 
     private fun committed(path: String) = File(output, path)
+
+    @Nested
+    inner class Declarations {
+
+        private val packageJson = "{\n  \"name\": \"pkg\",\n  \"version\": \"1.2.3-SNAPSHOT\",\n  \"devDependencies\": {}\n}\n"
+
+        private fun emitPackage() {
+            emit("pkg/package.json", packageJson)
+            emit("pkg/kotlin/pkg.d.mts", "export declare function names(): KtList<string>;\n")
+            emit("pkg/kotlin/pkg.mjs", "export function names() {}\n")
+            emit("pkg/kotlin/pkg.mjs.map", "{}\n")
+            emit("pkg/kotlin/legacy.d.ts", "export declare function legacy(): string;\n")
+        }
+
+        @Test
+        fun `tsGen should write only the declarations and the package json`() {
+            emitPackage()
+            commit("pkg/kotlin/old.mjs", "left by the full copy\n")
+
+            project(Kt2TsFiles.DECLARATIONS).run("tsGen")
+
+            val written = File(output, "pkg").walkTopDown().filter { it.isFile }
+                .map { it.relativeTo(output).invariantSeparatorsPath }.toList()
+            assertThat(written)
+                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts", "pkg/kotlin/legacy.d.ts")
+            assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): string[];")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
+        }
+
+        @Test
+        fun `tsGen should keep every file by default`() {
+            emitPackage()
+
+            project().run("tsGen")
+
+            assertThat(committed("pkg/kotlin/pkg.mjs")).exists()
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"1.2.3-SNAPSHOT\"")
+        }
+
+        @Test
+        fun `tsGenCheck should not compare a JavaScript file`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/kotlin/pkg.mjs", "export function names() { return [] }\n")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `tsGenCheck should fail on a changed declaration`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/kotlin/pkg.d.mts", "export declare function other(): string;\n")
+
+            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/pkg.d.mts differs")
+        }
+
+        @Test
+        fun `tsGenCheck should accept a new build version`() {
+            emitPackage()
+            val project = project(Kt2TsFiles.DECLARATIONS)
+            project.run("tsGen")
+            emit("pkg/package.json", packageJson.replace("1.2.3-SNAPSHOT", "1.2.4"))
+
+            project.run("tsGenCheck")
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
+        }
+    }
 
     @Nested
     inner class TsGenOutput {
@@ -316,6 +388,83 @@ class TsGenCheckTest {
             project.run("tsGen")
 
             assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("`Dto`")
+        }
+
+        @Test
+        fun `should name any exported declaration made twice`() {
+            listOf(
+                "export declare function same(): void;\nexport declare function same(): string;\n",
+                "export declare const same: string;\nexport declare let same: number;\n",
+                "export declare enum same {\n}\nexport declare var same: number;\n",
+                "export type same = string;\nexport declare interface same {\n}\n",
+                "export declare const enum same {\n}\nexport declare enum same {\n}\n",
+                "export declare class same {\n}\nexport declare const same: string;\n",
+            ).forEach { declarations ->
+                emit("pkg/kotlin/pkg.d.mts", declarations)
+                val project = project()
+                project.run("tsGen")
+
+                assertThatThrownBy { project.run("tsGenCheck") }
+                    .`as`(declarations)
+                    .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `same` twice")
+            }
+        }
+
+        @Test
+        fun `should accept exported declarations of distinct names`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export declare function one(): void;\nexport declare const two: string;\n" +
+                    "export type three = string;\nexport declare enum four {\n}\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should accept a type and a value of the same name`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export type Status = \"ON\" | \"OFF\";\nexport declare const Status: {\n    readonly ON: Status;\n};\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should read a const enum under its own name`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare const enum One {\n}\nexport declare const enum Two {\n}\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should accept one name exported by two namespaces`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export declare namespace One {\n    export const id: string;\n}\n" +
+                    "export declare namespace Two {\n    export const id: string;\n}\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
+        }
+
+        @Test
+        fun `should accept a dependency's declaration repeated in each package that bundles it`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function shared(): void;\n")
+            emit("other/kotlin/other.d.mts", "export declare function shared(): void;\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("tsGenCheck")
         }
 
         @Test

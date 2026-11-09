@@ -48,6 +48,16 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
         assertThat(result.output).contains("no yarn.lock to check **/ws against")
     }
 
+    @Test
+    fun `should upgrade the lock and check the resolutions in one invocation`() {
+        writeBuild()
+
+        val result = runGradle("kotlinUpgradeYarnLock", "checkYarnResolutions")
+
+        assertThat(result.task(":kotlinUpgradeYarnLock")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":checkYarnResolutions")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+    }
+
     private fun writeBuild(rootExtra: String = "", libExtra: String = "") {
         val repo = publishCatalog()
         settingsFile.writeText(

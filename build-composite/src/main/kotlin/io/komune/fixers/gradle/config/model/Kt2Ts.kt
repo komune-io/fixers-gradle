@@ -6,6 +6,25 @@ import org.gradle.api.Project
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.mapProperty
+import org.gradle.kotlin.dsl.property
+
+/** What `tsGen` writes to the output directory, which the project commits. */
+enum class Kt2TsFiles {
+    /** Every file of the Kotlin/JS packages: a consumer that imports the copy needs the `.mjs` too. */
+    ALL,
+
+    /**
+     * The declarations (`.d.mts`, and the legacy `.d.ts`) and the `package.json` of each package
+     * only, the TypeScript contract a library reviews; each `package.json` carries version
+     * [CONTRACT_VERSION], so a release does not rewrite them.
+     */
+    DECLARATIONS;
+
+    companion object {
+        /** The `package.json` version of a [DECLARATIONS] contract, which does not follow the build's. */
+        const val CONTRACT_VERSION = "0.0.0"
+    }
+}
 
 /**
  * Configuration for Kotlin to TypeScript generation.
@@ -32,6 +51,15 @@ class Kt2Ts(
     )
 
     /**
+     * What the output directory holds: [Kt2TsFiles.ALL] when neither this project nor the root
+     * sets it. No convention, so that a subproject takes the root's value through [mergeFrom].
+     */
+    val committedFiles: Property<Kt2TsFiles> = project.objects.property<Kt2TsFiles>()
+
+    /** [committedFiles], or [Kt2TsFiles.ALL] when it is not set. */
+    val committedFilesOrDefault get() = committedFiles.orElse(Kt2TsFiles.ALL)
+
+    /**
      * Additional regex patterns for cleaning generated TypeScript files.
      * The map keys are file extensions, and the values are lists of regex patterns and their replacements.
      */
@@ -51,6 +79,7 @@ class Kt2Ts(
         outputDirectory.mergeIfNotPresent(source.outputDirectory)
         inputDirectory.mergeIfNotPresent(source.inputDirectory)
         additionalCleaning.mergeIfNotPresent(source.additionalCleaning)
+        committedFiles.mergeIfNotPresent(source.committedFiles)
 
         return this
     }

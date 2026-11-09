@@ -1,9 +1,12 @@
 package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
 class YarnResolutionCheckTest {
 
@@ -56,6 +59,110 @@ class YarnResolutionCheckTest {
             .singleElement().asString().contains("not scoped with **/")
     }
 
+    // A Kotlin/JS module's package.json is a yarn workspace, not a lock entry: ws@8.20.1 has no
+    // requester in the lock, and the resolution moved it to 8.22.2.
+    private val workspaceLock = """
+        # yarn lockfile v1
+
+
+        ws@8.20.1, ws@8.22.2:
+          version "8.22.2"
+    """.trimIndent()
+
+    @Test
+    fun `should accept a resolution on a package only a workspace package depends on`() {
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), workspaceLock, setOf(Spec("ws", "8.20.1"))))
+            .isEmpty()
+    }
+
+    @Test
+    fun `should reject a lock spec that neither a lock entry nor a workspace asks for`() {
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), workspaceLock, setOf(Spec("ktor", "3.6.1"))))
+            .singleElement().asString()
+            .isEqualTo("**/ws: the lock holds ws@8.20.1, which neither a lock entry nor a workspace asks for")
+    }
+
+    @Test
+    fun `should match a package by every spec of its lock entry, npm aliases included`() {
+        val aliasLock = """
+            # yarn lockfile v1
+
+
+            cliui@8.0.1:
+              version "8.0.1"
+              dependencies:
+                string-width "^4.2.0"
+                string-width-cjs "npm:string-width@^4.2.0"
+
+            "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0, string-width@^4.2.0:
+              version "4.2.3"
+        """.trimIndent()
+        assertThat(
+            yarnResolutionProblems(
+                mapOf("**/string-width" to listOf("4.2.3"), "**/cliui/string-width" to listOf("4.2.3")),
+                aliasLock,
+            )
+        ).isEmpty()
+    }
+
+    @Test
+    fun `should read a dependency range that holds spaces`() {
+        val rangeLock = """
+            # yarn lockfile v1
+
+
+            foo@1.0.0:
+              version "1.0.0"
+              dependencies:
+                bar ">=1.0.0 <2.0.0"
+
+            "bar@>=1.0.0 <2.0.0":
+              version "1.5.0"
+        """.trimIndent()
+        assertThat(yarnResolutionProblems(mapOf("**/foo/bar" to listOf("1.5.0")), rangeLock)).isEmpty()
+    }
+
+    @Test
+    fun `should read what the workspaces of the root package json ask for`(@TempDir dir: File) {
+        File(dir, "package.json").writeText("""{"name": "root", "workspaces": ["packages/a", "packages_imported/b/1.0.0"]}""")
+        File(dir, "packages/a").mkdirs()
+        File(dir, "packages/a/package.json").writeText(
+            """{"name": "a", "dependencies": {"ws": "8.20.1"}, "devDependencies": {"cjs": "npm:other@^1.0.0"},""" +
+                """ "peerDependencies": {"peer": "^1.0.0"}}"""
+        )
+        File(dir, "packages_imported/b/1.0.0").mkdirs()
+        File(dir, "packages_imported/b/1.0.0/package.json").writeText("""{"name": "b", "dependencies": {"ws": "8.20.1"}}""")
+
+        assertThat(workspaceDependencies(File(dir, "package.json")))
+            .containsExactlyInAnyOrder(Spec("ws", "8.20.1"), Spec("cjs", "npm:other@^1.0.0"))
+    }
+
+    @Test
+    fun `should refuse workspaces it cannot read`(@TempDir dir: File) {
+        val root = File(dir, "package.json")
+        root.writeText("""{"workspaces": ["packages/*"]}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("workspace pattern `packages/*`")
+        root.writeText("""{"workspaces": ["packages/gone"]}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("workspace `packages/gone` has no")
+        root.writeText("""{"workspaces": {"packages": ["a"]}}""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageContaining("`workspaces` is not a list of paths")
+        root.writeText("""{"workspaces": [""")
+        assertThatThrownBy { workspaceDependencies(root) }.hasMessageStartingWith("$root:")
+    }
+
+    @Test
+    fun `should reject a resolution whose only lock spec is its own`() {
+        val orphanLock = """
+            # yarn lockfile v1
+
+
+            ws@8.22.2:
+              version "8.22.2"
+        """.trimIndent()
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2")), orphanLock))
+            .singleElement().asString().isEqualTo("**/ws: no package depends on ws in the lock")
+    }
+
     @Test
     fun `should reject a resolution whose parent does not depend on the package`() {
         assertThat(yarnResolutionProblems(mapOf("**/karma-webpack/minimatch" to listOf("11.0.5")), lock))
@@ -100,5 +207,8 @@ class YarnResolutionCheckTest {
         val task = root.tasks.getByName(YARN_RESOLUTION_CHECK_TASK) as YarnResolutionCheckTask
         assertThat(root.tasks.getByName("check").taskDependencies.getDependencies(null)).contains(task)
         assertThat(task.lockFile.files.single().path).endsWith("kotlin-js-store/yarn.lock")
+        assertThat(task.taskDependencies.getDependencies(task).map { it.name }).contains("rootPackageJson")
+        assertThat(task.mustRunAfter.getDependencies(task).map { it.name })
+            .contains("kotlinStoreYarnLock", "kotlinUpgradeYarnLock")
     }
 }

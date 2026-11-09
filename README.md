@@ -93,7 +93,7 @@ fixers {
 
 Applied to the root project, it also enforces two conventions on every project:
 - **Spring Boot images**: in a module that applies `org.springframework.boot`, `checkBootImage` (run by `check`) and `bootBuildImage` itself fail unless the builder is pinned by digest (`…:<version>@sha256:<digest>`) and the buildpacks include a versioned health checker (`docker.io/paketobuildpacks/health-checker:<version>` or `urn:cnb:registry:paketo-buildpacks/health-checker@<version>`); fixers sets `BP_HEALTH_CHECKER_ENABLED=true`. The versions stay in the project; `test` alone is not affected.
-- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); it fails too when the lock is missing.
+- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); an unparented `**/pkg` counts as depended on when a lock entry depends on the package, or when a Kotlin/JS module asks for it in its own `package.json` (yarn keeps the modules out of the lock as workspaces; the check reads those listed in the root `package.json`); a spec of the package that neither asks for fails the check with `the lock holds <spec>, which neither a lock entry nor a workspace asks for`; a `peerDependencies` entry is not an ask, and a workspace written as a pattern, missing or unreadable fails the check, and a package is matched by every spec of its lock entry, `npm:` aliases included; it fails too when the lock is missing.
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -136,7 +136,7 @@ plugins {
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
-An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, mark the member `@JsExport.Ignore`, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `tsGenCheck` catches the same names coming from dependencies.
+An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, mark the member `@JsExport.Ignore`, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `tsGenCheck` catches the same names coming from dependencies: it fails when one `.d.mts` of the contract exports a name twice, whatever the two declarations are (class, interface, function, `const`/`let`/`var`, enum or type alias, under their `@JsName` when they have one), except a class or an interface and the namespace of its companion, and one type (interface, type alias) and one value (function, `const`/`let`/`var`) of the same name, which TypeScript keeps apart.
 
 Every JS test runs in both Chromium and Firefox. Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
@@ -265,6 +265,7 @@ fixers {
     kt2Ts {
         outputDirectory = "platform/web/kotlin" // default
         inputDirectory = "build/js/packages"
+        committedFiles = Kt2TsFiles.ALL // default; DECLARATIONS: only the .d.mts and package.json
         additionalCleaning.set(mapOf(
             "fileName" to listOf(
                 Regex("pattern") to "replacement"
@@ -273,6 +274,8 @@ fixers {
     }
 }
 ```
+
+`committedFiles` chooses what `tsGen` writes and `tsGenCheck` compares. `ALL` copies every file of the Kotlin/JS packages, for a front that imports the copy. `DECLARATIONS` keeps the declarations (`.d.mts`, and the legacy `.d.ts`) and each `package.json` only, for a library that commits its TypeScript contract to review it; each `package.json` then carries version `0.0.0` instead of the build's, so a release rewrites none of them. Set on the root project, it applies to every subproject that does not set its own.
 
 The `.d.ts` cleaning expects a single contract package: set `kotlin.js.ir.output.granularity=whole-program` in the project's `gradle.properties`. The plugin leaves it to the project, since it changes the layout of every JS library the project publishes.
 

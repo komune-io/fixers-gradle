@@ -28,8 +28,11 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
 
 /**
  * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
- * when the output directory differs from them, or when a `.d.mts` declares a name twice. `check`
- * runs it in a build that emits Kotlin/JS.
+ * when the output directory differs from them, or when a `.d.mts` exports a name twice: two of its
+ * classes, interfaces, functions, constants, variables, enums or type aliases, as named in
+ * JavaScript, or two namespaces, the one namespace of a companion and the pair of one type
+ * (interface, type alias) and one value (function, constant, variable) being allowed. `check` runs it
+ * in a build that emits Kotlin/JS.
  *
  * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
  * two declarations of one name that come from dependencies reach the linked declarations
@@ -48,6 +51,7 @@ internal fun Project.registerTsGenCheck(
         val output = outputDir()
         val rules = cleaning()
         val shownOutput = config.outputDirectory.get()
+        val committed = config.committedFilesOrDefault
         val stagingDir = staging.get().asFile
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
@@ -57,20 +61,21 @@ internal fun Project.registerTsGenCheck(
         inputs.files(emittedTree(source)).withPropertyName("emitted").withPathSensitivity(PathSensitivity.RELATIVE)
         inputs.files(packageTree(output)).withPropertyName("committed").withPathSensitivity(PathSensitivity.RELATIVE)
         inputs.property("cleaning", rules.fingerprint())
+        inputs.property("committedFiles", committed)
         outputs.dir(stagingDir)
         doLast {
             stagingDir.deleteRecursively()
-            stagingDir.syncFrom(source)
+            stagingDir.writeContract(source, rules, committed.get())
             if (stagingDir.walkTopDown().none { it.isFile }) {
                 throw GradleException("No Kotlin/JS output under $source to compare $shownOutput with.")
             }
-            stagingDir.cleanTree(rules)
             val stale = staleFiles(stagingDir, output).map { "$shownOutput/$it." }
             val duplicated = duplicatedDeclarations(stagingDir).map { "$shownOutput/$it" }
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
                 val fixes = listOfNotNull(
                     "Regenerate it with `./gradlew tsGen` and commit the result.".takeIf { stale.isNotEmpty() },
-                    "Rename one of the two Kotlin declarations; the emitter has no namespaces."
+                    ("Rename one of the two Kotlin declarations, or give one a distinct `@JsName`; " +
+                        "the emitter has no namespaces.")
                         .takeIf { duplicated.isNotEmpty() },
                 )
                 throw GradleException(
@@ -90,29 +95,30 @@ internal fun Project.registerTsGenCheck(
 }
 
 // The build's version, not the contract's. Anchored, so a dependency named `version` still counts.
-private val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
+internal val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
 
 private fun File.comparable(): String {
     val text = readText()
     return when {
-        name == "package.json" -> packageVersion.replace(text, "  \"version\": \"\"")
+        name == PACKAGE_JSON -> packageVersion.replace(text, "  \"version\": \"\"")
         name.endsWith(".mjs") -> canonicalMjs(text)
         else -> text
     }
 }
 
 /** Every file of a package, by relative path, without the dependencies linked under node_modules. */
-private fun File.packageFiles(): Map<String, File> =
+internal fun File.packageFiles(): Map<String, File> =
     walkTopDown().onEnter { it.name != NODE_MODULES }
         .filter { it.isFile }
         .associateBy { it.relativeTo(this).invariantSeparatorsPath }
 
 /**
- * Makes this directory hold what the Kotlin/JS build emitted under [source], its test packages
- * left out: copies every file, deletes those it no longer emits, and leaves node_modules alone.
+ * Makes this directory hold what the Kotlin/JS build emitted under [source] that [keep] accepts,
+ * its test packages left out: copies every such file, deletes the others, and leaves node_modules
+ * alone.
  */
-internal fun File.syncFrom(source: File) {
-    val emitted = source.packageFiles().filterKeys { !it.substringBefore('/').endsWith("-test") }
+internal fun File.syncFrom(source: File, keep: (String) -> Boolean = { true }) {
+    val emitted = source.packageFiles().filterKeys { !it.substringBefore('/').endsWith("-test") && keep(it) }
     (packageFiles().keys - emitted.keys).forEach { resolve(it).delete() }
     emitted.forEach { (path, file) -> file.copyTo(resolve(path), overwrite = true) }
     walkBottomUp().onEnter { it.name != NODE_MODULES }
@@ -138,20 +144,39 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
     }
 }
 
-// TypeScript merges a class and an interface of the same name too; only a namespace of that name is
-// a Kotlin companion. Unanchored, because the emitter writes no trailing newline.
-private val declaredName = Regex("""export declare (?:abstract )?(interface|class|namespace) ([A-Za-z0-9_$]+)""")
+// Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. Anchored
+// at the start of a line, where the emitter writes the top-level declarations: an export nested in a
+// namespace belongs to that namespace. A `const enum` is an enum.
+private val declaredName = Regex(
+    """^export (?:declare )?(?:abstract )?""" +
+        """(interface|class|namespace|function|const enum|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
+    RegexOption.MULTILINE,
+)
+
+/** Declarations that name a type only, and those that name a value only; a class or an enum names both. */
+private val typeOnly = setOf("interface", "type")
+private val valueOnly = setOf("function", "const", "let", "var")
+
+/**
+ * TypeScript keeps one type and one value of a name apart, so a type-only declaration and a
+ * value-only one of the same name are not a duplicate; any other pair is, a class and an
+ * interface included, which TypeScript merges into one type. The namespaces are counted apart:
+ * one namespace of a name is a Kotlin companion.
+ */
+private val isDuplicate: (List<String>) -> Boolean = { kinds ->
+    kinds.size > 1 && !(kinds.size == 2 && kinds.count { it in typeOnly } == 1 && kinds.count { it in valueOnly } == 1)
+}
 
 internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
         declaredName.findAll(file.readText())
-            .map { it.groupValues[1] to it.groupValues[2] }
+            .map { it.groupValues[1].removePrefix("const ") to it.groupValues[2] }
             .groupBy { (kind, name) -> (kind == "namespace") to name }
-            .filterValues { it.size > 1 }
+            .filterValues { declarations -> isDuplicate(declarations.map { it.first }) }
             .map { (key, declarations) ->
                 "$path declares `${key.second}` twice: " +
                     declarations.joinToString(", ") { (kind, name) -> "$kind $name" } +
-                    "; TypeScript merges them into one type."
+                    "; TypeScript merges them into one, or rejects the pair."
             }
     }
 
