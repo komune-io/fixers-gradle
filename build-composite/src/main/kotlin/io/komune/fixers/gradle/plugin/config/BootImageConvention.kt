@@ -31,29 +31,33 @@ private val VERSION_SEPARATORS = setOf(':', '@')
  * plugin on its consumers' classpath.
  */
 internal fun Project.enforceBootImageConvention() {
+    // Boot registers its image task only once `java` is applied, which a build may do before or
+    // after applying Boot.
     pluginManager.withPlugin(SPRING_BOOT_PLUGIN_ID) {
-        val image = tasks.named(BOOT_BUILD_IMAGE_TASK)
-        image.configure {
-            property<MapProperty<String, String>>("getEnvironment").put(HEALTH_CHECKER_ENABLED, "true")
-            doFirst {
-                failOnBootImageProblems(
-                    imageTask = path,
-                    builder = property<Property<String>>("getBuilder").orNull,
-                    buildpacks = property<ListProperty<String>>("getBuildpacks").getOrElse(emptyList()),
-                )
-            }
-        }
-        val check = tasks.register(BOOT_IMAGE_CHECK_TASK, BootImageCheckTask::class.java) {
-            group = "verification"
-            description = "Fails when $BOOT_BUILD_IMAGE_TASK has no builder pinned by digest or no health checker."
-            imageTask.set(image.map { task -> task.path })
-            builder.set(image.flatMap { task -> task.property<Property<String>>("getBuilder") })
-            buildpacks.set(image.flatMap { task -> task.property<ListProperty<String>>("getBuildpacks") })
-        }
-        pluginManager.withPlugin("base") {
-            tasks.named("check") { dependsOn(check) }
+        pluginManager.withPlugin("java") { wireBootImageConvention() }
+    }
+}
+
+private fun Project.wireBootImageConvention() {
+    val image = tasks.named(BOOT_BUILD_IMAGE_TASK)
+    image.configure {
+        property<MapProperty<String, String>>("getEnvironment").put(HEALTH_CHECKER_ENABLED, "true")
+        doFirst {
+            failOnBootImageProblems(
+                imageTask = path,
+                builder = property<Property<String>>("getBuilder").orNull,
+                buildpacks = property<ListProperty<String>>("getBuildpacks").getOrElse(emptyList()),
+            )
         }
     }
+    val check = tasks.register(BOOT_IMAGE_CHECK_TASK, BootImageCheckTask::class.java) {
+        group = "verification"
+        description = "Fails when $BOOT_BUILD_IMAGE_TASK has no builder pinned by digest or no health checker."
+        imageTask.set(image.map { task -> task.path })
+        builder.set(image.flatMap { task -> task.property<Property<String>>("getBuilder") })
+        buildpacks.set(image.flatMap { task -> task.property<ListProperty<String>>("getBuildpacks") })
+    }
+    tasks.named("check") { dependsOn(check) }
 }
 
 /** The convention as a verification, so that `check` and `build` fail before an image is built. */

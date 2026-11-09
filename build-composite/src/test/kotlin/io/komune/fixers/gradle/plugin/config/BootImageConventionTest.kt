@@ -19,10 +19,15 @@ abstract class FakeBootBuildImage : DefaultTask() {
     abstract val environment: MapProperty<String, String>
 }
 
-/** Registered under `org.springframework.boot` by the test resources. */
+/**
+ * Registered under `org.springframework.boot` by the test resources. Like Boot, it registers the
+ * image task only once `java` is applied, whichever comes first.
+ */
 class FakeBootPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        target.tasks.register(BOOT_BUILD_IMAGE_TASK, FakeBootBuildImage::class.java)
+        target.pluginManager.withPlugin("java") {
+            target.tasks.register(BOOT_BUILD_IMAGE_TASK, FakeBootBuildImage::class.java)
+        }
     }
 }
 
@@ -121,13 +126,26 @@ class BootImageConventionTest {
             .hasMessageContaining("no builder")
     }
 
-    private fun bootModule(): Project {
+    @Test
+    fun `should wire the convention whether java comes before or after Spring Boot`() {
+        listOf(true, false).forEach { javaFirst ->
+            val module = bootModule(javaFirst)
+            val image = module.tasks.getByName(BOOT_BUILD_IMAGE_TASK) as FakeBootBuildImage
+
+            assertThat(image.environment.get()).containsEntry(HEALTH_CHECKER_ENABLED, "true")
+            assertThat(module.tasks.getByName("check").taskDependencies.getDependencies(null))
+                .contains(module.tasks.getByName(BOOT_IMAGE_CHECK_TASK))
+        }
+    }
+
+    private fun bootModule(javaFirst: Boolean = false): Project {
         // Every project exists before the root build script runs, as in a real build.
         val root = ProjectBuilder.builder().build()
         val module = ProjectBuilder.builder().withParent(root).withName("app").build()
         root.plugins.apply(ConfigPlugin::class.java)
-        module.plugins.apply("base")
+        if (javaFirst) module.plugins.apply("java")
         module.plugins.apply(SPRING_BOOT_PLUGIN_ID)
+        if (!javaFirst) module.plugins.apply("java")
         return module
     }
 }
