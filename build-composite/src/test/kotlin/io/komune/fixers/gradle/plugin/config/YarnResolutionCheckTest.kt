@@ -192,5 +192,7 @@ class YarnResolutionCheckTest {
         assertThat(root.tasks.getByName("check").taskDependencies.getDependencies(null)).contains(task)
         assertThat(task.lockFile.files.single().path).endsWith("kotlin-js-store/yarn.lock")
         assertThat(task.taskDependencies.getDependencies(task).map { it.name }).contains("rootPackageJson")
+        assertThat(task.mustRunAfter.getDependencies(task).map { it.name })
+            .contains("kotlinStoreYarnLock", "kotlinUpgradeYarnLock")
     }
 }

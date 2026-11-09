@@ -13,8 +13,8 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
+import org.jetbrains.kotlin.gradle.targets.js.npm.LockCopyTask
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.RootPackageJsonTask
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockStoreTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
@@ -81,7 +81,8 @@ internal fun Project.registerYarnResolutionCheck() {
             )
             lockFile.from(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
             rootPackageJson.from(tasks.withType(RootPackageJsonTask::class.java))
-            mustRunAfter(tasks.withType(YarnLockStoreTask::class.java))
+            // Every task that writes a lock: kotlinStoreYarnLock and kotlinUpgradeYarnLock write the one read here.
+            mustRunAfter(tasks.withType(LockCopyTask::class.java))
         }
         tasks.named("check") { dependsOn(check) }
     }
