@@ -40,10 +40,10 @@ class MppJsPlugin : Plugin<Project> {
     // https://kotlinlang.org/docs/js-project-setup.html
     private fun KotlinJsCompilerOptions.configureJsOptions() {
         target.set("es2015")
-        freeCompilerArgs.add("-Xes-long-as-bigint")
         // A type the JS export cannot express turns into `any` in the declarations, and two exports
         // of one name into one merged TypeScript type: errors even where other warnings are allowed.
         freeCompilerArgs.addAll(
+            "-Xes-long-as-bigint",
             "-Xwarning-level=NON_EXPORTABLE_TYPE:error",
             "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error",
             "-Xreport-all-warnings",

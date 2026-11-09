@@ -91,7 +91,9 @@ class MppPluginTest {
             "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error",
             "-Xreport-all-warnings",
         )
-        project.tasks.withType(KotlinJsIrLink::class.java).forEach { link ->
+        val links = project.tasks.withType(KotlinJsIrLink::class.java)
+        assertThat(links).isNotEmpty
+        links.forEach { link ->
             assertThat(link.compilerOptions.freeCompilerArgs.get())
                 .contains("-Xwarning-level=NON_EXPORTABLE_TYPE:error", "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error")
         }
