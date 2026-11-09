@@ -92,6 +92,28 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `tsGen should keep a dangling link under node_modules`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function names(): string;\n")
+            val link = File(output, "pkg/node_modules/gone").toPath()
+            java.nio.file.Files.createDirectories(link.parent)
+            java.nio.file.Files.createSymbolicLink(link, File(dir, "nowhere").toPath())
+            val project = project()
+
+            project.run("tsGen")
+
+            assertThat(java.nio.file.Files.isSymbolicLink(link)).isTrue()
+            assertThat(committed("pkg/kotlin/pkg.d.mts")).exists()
+        }
+
+        @Test
+        fun `tsGen should run after cleanTsGen`() {
+            val project = project()
+            val tsGen = project.tasks.getByName("tsGen")
+
+            assertThat(tsGen.mustRunAfter.getDependencies(tsGen).map { it.name }).contains("cleanTsGen")
+        }
+
+        @Test
         fun `tsGen should not depend on cleanTsGen`() {
             val project = project()
             val tsGen = project.tasks.getByName("tsGen")
@@ -227,7 +249,8 @@ class TsGenCheckTest {
             val project = generate()
             emit("pkg/kotlin/added.d.mts", "export declare function added(): string;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/added.d.mts")
+            assertThatThrownBy { project.run("tsGenCheck") }
+                .hasMessageContaining("pkg/kotlin/added.d.mts is missing from the committed copy")
         }
 
         @Test
@@ -235,7 +258,8 @@ class TsGenCheckTest {
             val project = generate()
             commit("pkg/kotlin/dropped.d.mts", "export declare function gone(): string;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/dropped.d.mts")
+            assertThatThrownBy { project.run("tsGenCheck") }
+                .hasMessageContaining("pkg/kotlin/dropped.d.mts is no longer generated")
         }
 
         @Test
@@ -280,6 +304,26 @@ class TsGenCheckTest {
                 .hasMessageContaining("interface Dto")
                 .hasMessageContaining("Rename")
                 .hasMessageNotContaining("Regenerate")
+        }
+
+        @Test
+        fun `should name a class and an interface of the same name`() {
+            emit(
+                "pkg/kotlin/pkg.d.mts",
+                "export declare class Dto {\n}\nexport declare interface Dto {\n}\n"
+            )
+            val project = project()
+            project.run("tsGen")
+
+            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("`Dto`")
+        }
+
+        @Test
+        fun `should run after tsGen`() {
+            val project = project()
+            val check = project.tasks.getByName("tsGenCheck")
+
+            assertThat(check.mustRunAfter.getDependencies(check).map { it.name }).contains("tsGen")
         }
 
         @Test
