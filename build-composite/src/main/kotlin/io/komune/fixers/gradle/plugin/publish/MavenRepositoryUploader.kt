@@ -118,12 +118,8 @@ object MavenRepositoryUploader {
             val totalFiles = files.size
             logger.lifecycle("Uploading $totalFiles files to $repoName (concurrency: $concurrency)")
 
-            val uploaded = AtomicInteger(0)
-            val skipped = AtomicInteger(0)
-            val failed = AtomicInteger(0)
+            val tally = Tally()
             val completed = AtomicInteger(0)
-            val errors = ConcurrentLinkedQueue<String>()
-
             val semaphore = Semaphore(concurrency)
 
             runBlocking(dispatcher) {
@@ -133,33 +129,13 @@ object MavenRepositoryUploader {
                             val relativePath = file.relativeTo(stagingDir).path
                             val url = "${baseUrl.trimEnd('/')}/$relativePath"
                             val result = putWithRetry(url, authHeader, file, relativePath)
-                            val progress = "${completed.incrementAndGet()}/$totalFiles"
-                            when (result) {
-                                HttpPutResult.Success -> {
-                                    uploaded.incrementAndGet()
-                                    logger.lifecycle("  ✔ [$progress] Uploaded: $relativePath")
-                                }
-                                HttpPutResult.Conflict -> {
-                                    skipped.incrementAndGet()
-                                    logger.lifecycle("  ⚠ [$progress] Already exists, skipping: $relativePath")
-                                }
-                                is HttpPutResult.Error -> {
-                                    failed.incrementAndGet()
-                                    logger.lifecycle("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
-                                    errors.add("$relativePath → ${result.describe()}: ${result.message}")
-                                }
-                            }
+                            tally.record(result, "${completed.incrementAndGet()}/$totalFiles", relativePath)
                         }
                     }
                 }.awaitAll()
             }
 
-            val summary = UploadSummary(
-                uploaded = uploaded.get(),
-                skipped = skipped.get(),
-                failed = failed.get(),
-                errors = errors.toList(),
-            )
+            val summary = tally.summary()
 
             logger.lifecycle(
                 "$repoName upload: ${summary.uploaded} uploaded, " +
@@ -175,6 +151,39 @@ object MavenRepositoryUploader {
 
             return summary
         }
+    }
+
+    /** What the concurrent uploads of one run gave, logged as each one ends. */
+    private class Tally {
+        private val uploaded = AtomicInteger(0)
+        private val skipped = AtomicInteger(0)
+        private val failed = AtomicInteger(0)
+        private val errors = ConcurrentLinkedQueue<String>()
+
+        fun record(result: HttpPutResult, progress: String, relativePath: String) {
+            when (result) {
+                HttpPutResult.Success -> {
+                    uploaded.incrementAndGet()
+                    logger.lifecycle("  ✔ [$progress] Uploaded: $relativePath")
+                }
+                HttpPutResult.Conflict -> {
+                    skipped.incrementAndGet()
+                    logger.lifecycle("  ⚠ [$progress] Already exists, skipping: $relativePath")
+                }
+                is HttpPutResult.Error -> {
+                    failed.incrementAndGet()
+                    logger.lifecycle("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
+                    errors.add("$relativePath → ${result.describe()}: ${result.message}")
+                }
+            }
+        }
+
+        fun summary() = UploadSummary(
+            uploaded = uploaded.get(),
+            skipped = skipped.get(),
+            failed = failed.get(),
+            errors = errors.toList(),
+        )
     }
 
     data class UploadSummary(

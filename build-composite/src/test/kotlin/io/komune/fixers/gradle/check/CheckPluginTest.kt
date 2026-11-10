@@ -51,7 +51,6 @@ class CheckPluginTest {
             assertThat(sonar.githubSummaryComment.get()).isEqualTo("true")
             assertThat(sonar.sources.get()).isEqualTo(".")
             assertThat(sonar.inclusions.get()).isEqualTo("**/src/*main*/kotlin/**/*.kt")
-            assertThat(sonar.detektConfigPath.get()).isEqualTo("detekt.yml")
         }
 
         @Test

@@ -127,7 +127,7 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
     if (workspaces != null && (workspaces !is List<*> || workspaces.any { it !is String })) {
         refuse(rootPackageJson, "`workspaces` is not a list of paths: $workspaces")
     }
-    return workspaces.orEmpty().filterIsInstance<String>().map { workspace ->
+    return workspaces.orEmpty().filterIsInstance<String>().asSequence().map { workspace ->
         if ('*' in workspace) {
             refuse(rootPackageJson, "workspace pattern `$workspace` is not read; list the paths")
         }
@@ -139,8 +139,7 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
             val json = readJson(file)
             DEPENDENCY_FIELDS.flatMap { field ->
                 (json[field] as? Map<*, *>).orEmpty().map { (name, range) ->
-                    // JSON object keys are strings.
-                    Spec(name as String, range?.toString() ?: "null")
+                    Spec(name.toString(), range.toString())
                 }
             }
         }
@@ -184,6 +183,7 @@ internal fun yarnResolutionProblems(
             resolutions.mapNotNull { (path, versions) ->
                 val pinned = fixersPins[path]
                 val pkg = packageNames(path.removePrefix(ANY_DEPTH)).last()
+                val version = versions.singleOrNull()?.takeIf { EXACT_VERSION.matches(it) }
                 when {
                     pinned != null && path in declared ->
                         "$path: fixers already forces $pkg to $pinned; remove this resolution"
@@ -191,25 +191,13 @@ internal fun yarnResolutionProblems(
                     // lock holds it only at the spec yarn adds for the resolution.
                     pinned != null && entries.filter { it.isOf(pkg) }.flatMap { it.specs }
                         .all { !it.isOf(pkg) || it == Spec(pkg, pinned) } -> null
-                    else -> resolutionProblem(path, versions, entries, requested)
+                    !path.startsWith(ANY_DEPTH) ->
+                        "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
+                    version == null -> "$path: forces ${versions.joinToString(" ")}, not one exact version"
+                    else -> lockProblem(path, version, entries, requested)
                 }
             }
         }
-    }
-}
-
-private fun resolutionProblem(
-    path: String,
-    versions: List<String>,
-    entries: List<LockEntry>,
-    requested: Set<Spec>,
-): String? {
-    val version = versions.singleOrNull()?.takeIf { EXACT_VERSION.matches(it) }
-    return when {
-        !path.startsWith(ANY_DEPTH) ->
-            "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
-        version == null -> "$path: forces ${versions.joinToString(" ")}, not one exact version"
-        else -> lockProblem(path, version, entries, requested)
     }
 }
 

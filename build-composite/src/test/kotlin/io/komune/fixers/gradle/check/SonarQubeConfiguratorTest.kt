@@ -219,19 +219,6 @@ class SonarQubeConfiguratorTest {
 
             assertThat(properties["sonar.token"]).isEqualTo("token-from-custom")
         }
-
-        @Test
-        fun `should include detekt config path`() {
-            val sonar = Sonar(project).apply {
-                detektConfigPath.set("custom-detekt.yml")
-            }
-
-            val properties = configurator.buildSonarProperties(sonar, null)
-
-            assertThat(properties["detekt.sonar.kotlin.config.path"])
-                .asString()
-                .endsWith("custom-detekt.yml")
-        }
     }
 
     @Nested

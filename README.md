@@ -288,7 +288,6 @@ fixers {
         exclusions = "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java" // default
         jacoco = "**/build/reports/jacoco/**/jacocoTestReport.xml" // default
         detekt = "build/reports/detekt/merge.xml"         // default
-        detektConfigPath = "detekt.yml"                   // default
         verbose = true                                    // default
         githubSummaryComment = "true"                     // default
         properties {

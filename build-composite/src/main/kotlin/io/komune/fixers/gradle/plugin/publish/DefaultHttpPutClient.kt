@@ -28,7 +28,7 @@ class DefaultHttpPutClient : HttpPutClient {
                 HttpPutResult.Conflict
             }
             else -> {
-                val body = connection.errorStream?.run { bufferedReader().readText() }.orEmpty()
+                val body = connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
                 HttpPutResult.Error(responseCode, body)
             }
         }

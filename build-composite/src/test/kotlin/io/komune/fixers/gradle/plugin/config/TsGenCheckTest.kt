@@ -94,6 +94,16 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `tsGen should drop the main entry the declarations do not ship`() {
+            emitPackage()
+            emit("pkg/package.json", packageJson.replace("\"version\"", "\"main\": \"kotlin/pkg.mjs\",\n  \"version\""))
+
+            project().run("tsGen")
+
+            assertThat(committed("pkg/package.json").readText()).doesNotContain("\"main\"")
+        }
+
+        @Test
         fun `tsGen should write every file at the contract version with ALL`() {
             emitPackage()
 

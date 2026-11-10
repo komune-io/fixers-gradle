@@ -5,6 +5,7 @@ import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.extensions.FailOnSeverity
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
+import io.komune.fixers.gradle.config.model.Detekt as FixersDetekt
 import java.io.File
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -29,9 +30,8 @@ private const val CHECK_TASK = "check"
 // JVM module's in nothing.
 private val MPP_TYPED_DETEKT_TASK = Regex("detekt(Main|Test)[A-Z][A-Za-z0-9]*(?<!SourceSet)")
 
-fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
-    return rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
-}
+fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> =
+    rootProject.layout.buildDirectory.file("reports/detekt/merge.xml")
 
 /**
  * All Detekt reports of this project with the given extension, excluding the merged report itself
@@ -41,14 +41,13 @@ fun Project.getDetektReportMergeXmlFile(): Provider<RegularFile> {
  * per compilation - so the merge tasks must collect every report, not only the one produced by the
  * default `detekt` task.
  */
-internal fun Project.detektReportsWithExtension(extension: String): Provider<FileTree> {
-    return layout.buildDirectory.dir("reports/detekt").map { reportsDir ->
+internal fun Project.detektReportsWithExtension(extension: String): Provider<FileTree> =
+    layout.buildDirectory.dir("reports/detekt").map { reportsDir ->
         reportsDir.asFileTree.matching {
             include("*.$extension")
             exclude("merge.$extension")
         }
     }
-}
 
 /**
  * Every Detekt rule, the configuration fixers ships ([fixersDetektConfig]) and no baseline, held
@@ -102,29 +101,7 @@ fun Project.configureDetekt() {
                 val task = this
                 doFirst { task.failOnWeakenedRules(fixersConfig) }
 
-                val checkstyleEnabled = fixersDetekt?.checkstyleReport?.get() ?: true
-                val htmlEnabled = fixersDetekt?.htmlReport?.get() ?: true
-                val sarifEnabled = fixersDetekt?.sarifReport?.get() ?: true
-                val markdownEnabled = fixersDetekt?.markdownReport?.get() ?: true
-
-                // Reports are named after the task: a project may run several Detekt tasks
-                // (Kotlin Multiplatform registers one per source set / compilation) and a shared
-                // output location makes them overwrite each other's report.
-                val detektXmlPath = layout.buildDirectory.file("reports/detekt/$name.xml")
-                val detektSarifPath = layout.buildDirectory.file("reports/detekt/$name.sarif")
-
-                reports {
-                    checkstyle.required.set(checkstyleEnabled)
-                    if (checkstyleEnabled) {
-                        checkstyle.outputLocation.set(file(detektXmlPath))
-                    }
-                    html.required.set(htmlEnabled)
-                    sarif.required.set(sarifEnabled)
-                    if (sarifEnabled) {
-                        sarif.outputLocation.set(file(detektSarifPath))
-                    }
-                    markdown.required.set(markdownEnabled)
-                }
+                configureReports(fixersDetekt)
 
                 finalizedBy(detektReportMergeXml, detektReportMergeSarif)
             }
@@ -139,6 +116,29 @@ fun Project.configureDetekt() {
                 input.from(detektReportsWithExtension("xml"))
             }
         }
+    }
+}
+
+/**
+ * Reports are named after the task: a project may run several Detekt tasks (Kotlin Multiplatform
+ * registers one per source set and compilation), and a shared location makes them overwrite each other.
+ */
+private fun Detekt.configureReports(chosen: FixersDetekt?) {
+    val isCheckstyleEnabled = chosen == null || chosen.checkstyleReport.get()
+    val isSarifEnabled = chosen == null || chosen.sarifReport.get()
+    val checkstyleFile = project.layout.buildDirectory.file("reports/detekt/$name.xml")
+    val sarifFile = project.layout.buildDirectory.file("reports/detekt/$name.sarif")
+    reports {
+        checkstyle.required.set(isCheckstyleEnabled)
+        if (isCheckstyleEnabled) {
+            checkstyle.outputLocation.set(checkstyleFile)
+        }
+        html.required.set(chosen == null || chosen.htmlReport.get())
+        sarif.required.set(isSarifEnabled)
+        if (isSarifEnabled) {
+            sarif.outputLocation.set(sarifFile)
+        }
+        markdown.required.set(chosen == null || chosen.markdownReport.get())
     }
 }
 
@@ -185,11 +185,12 @@ private fun Project.configureTypedDetekt() {
 
 /** The Detekt task of each source set that only non-JVM compilations compile. */
 private fun KotlinMultiplatformExtension.nonJvmSourceSetTasks(): Set<String> {
-    val compilations = targets.flatMap { target -> target.compilations.map { target.platformType to it } }
+    val compilations = targets.asSequence().flatMap { target -> target.compilations.map { target.platformType to it } }
     val jvm = compilations.filter { (platform, _) -> platform in JVM_PLATFORMS }
         .flatMapTo(mutableSetOf()) { (_, compilation) -> compilation.allKotlinSourceSets.map { it.name } }
     return compilations.filter { (platform, _) -> platform != KotlinPlatformType.common && platform !in JVM_PLATFORMS }
         .flatMap { (_, compilation) -> compilation.allKotlinSourceSets.map { it.name } }
         .filter { it !in jvm }
-        .mapTo(mutableSetOf()) { "detekt${it.replaceFirstChar(Char::uppercase)}SourceSet" }
+        .map { "detekt${it.replaceFirstChar(Char::uppercase)}SourceSet" }
+        .toSet()
 }

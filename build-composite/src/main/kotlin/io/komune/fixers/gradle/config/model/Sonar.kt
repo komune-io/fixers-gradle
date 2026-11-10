@@ -123,15 +123,6 @@ class Sonar(
     )
 
     /**
-     * The path to the Detekt configuration file for Sonar Kotlin plugin.
-     */
-    val detektConfigPath: Property<String> = project.property(
-        envKey = "FIXERS_SONAR_DETEKT_CONFIG_PATH",
-        projectKey = "fixers.sonar.detektConfigPath",
-        defaultValue = "detekt.yml"
-    )
-
-    /**
      * Authentication token for SonarQube/SonarCloud.
      * Bridged to `sonar.token` via the sonarqube extension DSL in
      * `SonarQubeConfigurator.buildSonarProperties()`.
@@ -195,7 +186,6 @@ class Sonar(
         githubSummaryComment.mergeIfNotPresent(source.githubSummaryComment)
         sources.mergeIfNotPresent(source.sources)
         verbose.mergeIfNotPresent(source.verbose)
-        detektConfigPath.mergeIfNotPresent(source.detektConfigPath)
         token.mergeIfNotPresent(source.token)
 
         // Merge custom properties (source properties are added only if not already present)

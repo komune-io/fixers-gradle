@@ -60,7 +60,7 @@ class NpmPlugin : Plugin<Project> {
         // Cleans the package the assemble task wrote, before it is packed or published.
         val npmTsGen = tasks.register("npmTsGen", NpmTsGenTask::class.java) {
             group = "build"
-            this.buildDir = projectBuildDir
+            packageDir = projectBuildDir
             cleaning = cleaningRegex
             dependsOn(tasks.withType(NpmAssembleTask::class.java))
             onlyIf { npm.clean.get() }

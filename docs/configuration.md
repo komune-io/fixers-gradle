@@ -116,7 +116,6 @@ fixers {
     sources.set(".")
     inclusions.set("**/src/*main*/kotlin/**/*.kt")
     verbose.set(true)
-    detektConfigPath.set("detekt.yml")
   }
 
   detekt {
@@ -359,7 +358,6 @@ The `Sonar` class contains configuration for Sonar analysis.
 | sources | FIXERS_SONAR_SOURCES | fixers.sonar.sources | "." | The sources pattern |
 | inclusions | FIXERS_SONAR_INCLUSIONS | fixers.sonar.inclusions | "**/src/*main*/kotlin/**/*.kt" | The inclusions pattern |
 | verbose | FIXERS_SONAR_VERBOSE | fixers.sonar.verbose | true | Whether to enable verbose output |
-| detektConfigPath | FIXERS_SONAR_DETEKT_CONFIG_PATH | fixers.sonar.detektConfigPath | "detekt.yml" | The path to the Detekt configuration file |
 
 #### Sonar token bridge
 

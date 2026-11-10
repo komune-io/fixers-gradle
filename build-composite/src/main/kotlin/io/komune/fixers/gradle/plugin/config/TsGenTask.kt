@@ -65,15 +65,19 @@ private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
 
 /**
  * Makes this directory the contract `tsGen` writes from the Kotlin/JS output under [source]: the
- * files [committed] keeps, cleaned by [rules], each `package.json` at [Kt2TsFiles.CONTRACT_VERSION].
+ * files [committed] keeps, cleaned by [rules], each `package.json` at [Kt2TsFiles.CONTRACT_VERSION],
+ * and without its `main` entry under [Kt2TsFiles.DECLARATIONS]: they ship no module for it to name.
  */
 internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex, String>>>, committed: Kt2TsFiles) {
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
     packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
-        file.writeText(packageVersion.replace(file.readText(), """  "version": "${Kt2TsFiles.CONTRACT_VERSION}""""))
+        val versioned = packageVersion.replace(file.readText(), """  "version": "${Kt2TsFiles.CONTRACT_VERSION}"""")
+        file.writeText(if (committed == Kt2TsFiles.DECLARATIONS) packageMain.replace(versioned, "") else versioned)
     }
 }
+
+private val packageMain = Regex("""^  "main": "[^"]*",\n""", RegexOption.MULTILINE)
 
 fun cleanProjectDir(folder: String, cleaning: Map<String, List<Pair<Regex, String>>>) {
     File(folder).listFiles()?.forEach { file ->

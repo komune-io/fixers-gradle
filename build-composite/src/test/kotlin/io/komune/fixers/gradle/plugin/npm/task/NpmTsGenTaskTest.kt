@@ -21,7 +21,7 @@ class NpmTsGenTaskTest {
         file.writeText("value: kotlin.Long;")
         val project = ProjectBuilder.builder().buildFixersRoot()
         val task = project.tasks.register("npmTsGen", NpmTsGenTask::class.java).get()
-        task.buildDir = buildDir.absolutePath
+        task.packageDir = buildDir.absolutePath
         task.cleaning = mapOf(".d.ts" to listOf(Regex("""kotlin\.Long""") to "number"))
 
         task.doAction()
@@ -35,7 +35,7 @@ class NpmTsGenTaskTest {
         file.writeText("value: kotlin.Long;")
         val project = ProjectBuilder.builder().buildFixersRoot()
         val task = project.tasks.register("npmTsGen", NpmTsGenTask::class.java).get()
-        task.buildDir = buildDir.absolutePath
+        task.packageDir = buildDir.absolutePath
 
         task.doAction()
 
