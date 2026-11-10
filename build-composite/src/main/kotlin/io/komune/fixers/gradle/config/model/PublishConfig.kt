@@ -2,10 +2,8 @@ package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
 import io.komune.fixers.gradle.config.utils.property
-import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 
 /**
  * Configuration for publishing artifacts.
@@ -192,15 +190,6 @@ open class PublishConfig(
         projectKey = "fixers.publish.github.packages.url",
         defaultValue = "https://maven.pkg.github.com/komune-io/${project.rootProject.name}"
     )
-
-    /**
-     * The CI's `VERSION` environment variable, else the VERSION file, else the project's version.
-     *
-     * @return A provider that resolves to the version string
-     */
-    val version: Provider<String> = project.provider {
-        project.resolveVersion() ?: project.version.toString()
-    }
 
     /**
      * Gets the staging repository path.

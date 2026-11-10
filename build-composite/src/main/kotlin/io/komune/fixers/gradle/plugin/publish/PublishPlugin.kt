@@ -221,7 +221,8 @@ class PublishPlugin : Plugin<Project> {
             "${it.path}:publishAllPublicationsToStagingRepository"
         }
 
-        val version = fixersConfig.publish.version.get()
+        // The version every publication carries: the VERSION file's, unless a build script set another.
+        val version = root.version.toString()
         val isSnapshot = version.endsWith("-SNAPSHOT")
 
         // Resolve all Project-dependent values at configuration time

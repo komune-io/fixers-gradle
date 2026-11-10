@@ -400,22 +400,6 @@ class CheckPluginTest {
 
             assertThat(target.publish.gradlePortalKey.get()).isEqualTo("existing-key")
         }
-
-        @Test
-        fun `version should fall back to project version when no VERSION file`() {
-            project.version = "2.0.0"
-            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
-            assertThat(config.publish.version.get()).isEqualTo("2.0.0")
-        }
-
-        @Test
-        fun `version should read from VERSION file when present`(@TempDir tempDir: File) {
-            val rootProject = ProjectBuilder.builder().withProjectDir(tempDir).buildFixersRoot()
-            File(tempDir, "VERSION").writeText("3.5.0\n")
-            rootProject.version = "fallback"
-            val config = rootProject.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, rootProject)
-            assertThat(config.publish.version.get()).isEqualTo("3.5.0")
-        }
     }
 
     @Nested

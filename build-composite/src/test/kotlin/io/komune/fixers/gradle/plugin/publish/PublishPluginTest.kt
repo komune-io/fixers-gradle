@@ -3,6 +3,8 @@ package io.komune.fixers.gradle.plugin.publish
 import io.komune.fixers.gradle.buildFixersRoot
 import groovy.util.Node
 import io.komune.fixers.gradle.config.ConfigExtension
+import java.io.File
+import org.junit.jupiter.api.io.TempDir
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -169,6 +171,23 @@ class PublishPluginTest {
 
             val promote = root.tasks.getByName("promote")
             assertThat(promote.description).contains("SNAPSHOT")
+        }
+
+        @Test
+        fun `should route promote on the version the publications carry, not on the VERSION file`(
+            @TempDir dir: File,
+        ) {
+            File(dir, "VERSION").writeText("2.0.0-SNAPSHOT\n")
+            val root = ProjectBuilder.builder().withProjectDir(dir).buildFixersRoot()
+            root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
+            root.version = "2.0.0"
+            val child = childOf(root)
+            child.pluginManager.apply("io.komune.fixers.gradle.publish")
+            root.plugins.apply(PublishPlugin::class.java)
+            (child as ProjectInternal).evaluate()
+            fireProjectsEvaluated(root)
+
+            assertThat(root.tasks.getByName("promote").description).contains("Central Portal")
         }
 
         @Test
