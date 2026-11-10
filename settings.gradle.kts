@@ -1,6 +1,9 @@
 rootProject.name = "fixers-gradle"
 
-includeBuild("build-composite")
+pluginManagement {
+	// The convention plugins this build applies to itself.
+	includeBuild("build-composite")
+}
 
 // This build publishes the fixers settings plugin, so it cannot apply it: it declares what the
 // plugin would, every repository in the settings, and sets the marker the project plugins require.
