@@ -177,8 +177,8 @@ The `Bundle` class contains configuration for project metadata.
 | developerName | FIXERS_BUNDLE_DEVELOPER_NAME | fixers.bundle.developer.name | "Komune Team" | The name of the developer |
 | developerOrganization | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION | fixers.bundle.developer.organization | "Komune" | The organization of the developer |
 | developerOrganizationUrl | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION_URL | fixers.bundle.developer.organizationUrl | "https://komune.io" | The URL of the developer's organization |
-| scmConnection | FIXERS_BUNDLE_SCM_CONNECTION | fixers.bundle.scm.connection | "scm:git:git://github.com/komune-io/fixers-gradle.git" | The connection URL for SCM |
-| scmDeveloperConnection | FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION | fixers.bundle.scm.developerConnection | "scm:git:ssh://github.com/komune-io/fixers-gradle.git" | The developer connection URL for SCM |
+| scmConnection | FIXERS_BUNDLE_SCM_CONNECTION | fixers.bundle.scm.connection | "scm:git:git://github.com/komune-io/<root project name>.git" | The connection URL for SCM |
+| scmDeveloperConnection | FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION | fixers.bundle.scm.developerConnection | "scm:git:ssh://github.com/komune-io/<root project name>.git" | The developer connection URL for SCM |
 
 #### Example
 

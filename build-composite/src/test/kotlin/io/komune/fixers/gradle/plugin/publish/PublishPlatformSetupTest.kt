@@ -34,6 +34,27 @@ class PublishPlatformSetupTest {
     }
 
     @Test
+    fun `should publish the platform's constraints, one license, one developer and the project's scm`() {
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(io.komune.fixers.gradle.plugin.config.ConfigPlugin::class.java)
+        val project = ProjectBuilder.builder().withParent(root).withName("platform-lib").build()
+        project.plugins.apply("java-platform")
+        project.plugins.apply(PublishPlugin::class.java)
+        project.dependencies.constraints.add("api", "org.example:probe:1.0.0")
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+        (root.gradle as org.gradle.api.internal.GradleInternal).let { it.buildListenerBroadcaster.projectsEvaluated(it) }
+
+        val generate = project.tasks.getByName("generatePomFileForMavenPublication")
+        generate.actions.forEach { it.execute(generate) }
+
+        val pom = project.layout.buildDirectory.file("publications/maven/pom-default.xml").get().asFile.readText()
+        assertThat(pom).contains("<dependencyManagement>", "<artifactId>probe</artifactId>")
+        assertThat(Regex("<license>").findAll(pom).count()).isEqualTo(1)
+        assertThat(Regex("<developer>").findAll(pom).count()).isEqualTo(1)
+        assertThat(pom).contains("<connection>scm:git:git://github.com/komune-io/${root.name}.git</connection>")
+    }
+
+    @Test
     fun `should not create publication when java-platform plugin is missing`() {
         val (project, config) = projectWithConfig()
         project.plugins.apply("maven-publish")

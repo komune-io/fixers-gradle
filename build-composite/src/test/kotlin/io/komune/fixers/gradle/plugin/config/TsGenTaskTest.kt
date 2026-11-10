@@ -398,6 +398,27 @@ class TsGenTaskTest {
         }
 
         @Test
+        fun `should type a Kotlin Any as unknown, outside comments and string literals`() {
+            val file = File(dir, "any.d.mts")
+            file.writeText(
+                "declare function KtSingleton<T>(): T & (abstract new() => any);\n" +
+                    "/** valid in any module */\n" +
+                    "export declare function f(other?: any): any;\n" +
+                    "export declare interface WithId<ID extends any> {\n    get name(): \"any\";\n}\n"
+            )
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
+
+            cleanProjectDir(dir.absolutePath, cleaning)
+
+            assertThat(file.readText()).isEqualTo(
+                "declare function KtSingleton<T>(): T & (abstract new() => unknown);\n" +
+                    "/** valid in any module */\n" +
+                    "export declare function f(other?: unknown): unknown;\n" +
+                    "export declare interface WithId<ID extends unknown> {\n    get name(): \"any\";\n}\n"
+            )
+        }
+
+        @Test
         fun `should fail on a type the export left as any`() {
             listOf("left.d.mts", "left.d.ts").forEach { name ->
                 val file = File(dir, name)

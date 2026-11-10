@@ -8,6 +8,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
+import org.gradle.api.plugins.JavaPlatformPlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -135,8 +136,11 @@ class PublishPlugin : Plugin<Project> {
                     fromResolutionResult()
                 }
             }
+            // A platform's dependencyManagement is what it publishes.
             pom.withXml {
-                inlineDependencyVersions(asNode(), resolvedVersions)
+                if (!currentProject.plugins.hasPlugin(JavaPlatformPlugin::class.java)) {
+                    inlineDependencyVersions(asNode(), resolvedVersions)
+                }
             }
         }
     }

@@ -128,7 +128,7 @@ class Bundle(
     val scmConnection: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_SCM_CONNECTION",
         projectKey = "fixers.bundle.scm.connection",
-        defaultValue = "scm:git:git://github.com/komune-io/fixers-gradle.git"
+        defaultValue = "scm:git:git://github.com/komune-io/${project.rootProject.name}.git"
     )
 
     /**
@@ -137,7 +137,7 @@ class Bundle(
     val scmDeveloperConnection: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION",
         projectKey = "fixers.bundle.scm.developerConnection",
-        defaultValue = "scm:git:ssh://github.com/komune-io/fixers-gradle.git"
+        defaultValue = "scm:git:ssh://github.com/komune-io/${project.rootProject.name}.git"
     )
 
     override fun toString(): String = """

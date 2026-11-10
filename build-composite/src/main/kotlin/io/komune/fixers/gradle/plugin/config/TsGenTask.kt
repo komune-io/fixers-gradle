@@ -133,11 +133,13 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
         if (name.endsWith(suffix)) {
             val content = readText()
 
-            val newContent = changes.fold(content) { acc, (old, new) ->
+            val cleaned = changes.fold(content) { acc, (old, new) ->
                 acc.replace(old, new)
             }
+            val isDeclarations = suffix == DMTS || suffix == DTS
+            val newContent = if (isDeclarations) cleaned.withUnknownForAny() else cleaned
 
-            if (suffix == DMTS || suffix == DTS) {
+            if (isDeclarations) {
                 checkDeclarationsCleaned(newContent)
             }
             if (newContent != content) {
@@ -157,7 +159,17 @@ internal const val PACKAGE_JSON = "package.json"
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
 
 // A type the export cannot express, typed `any` with its Kotlin name in a comment.
-private val UNTYPED = Regex("""\bany/\*[^*]*\*/""")
+private val UNTYPED = Regex("""(?<!")\bany\b(?!")""")
+
+// A Kotlin `Any`, or a type the emitter types `any` (KtSingleton, a ktor hook), outside a comment
+// and a string literal type: what the export cannot express is followed by its Kotlin name.
+private val ANY = Regex("""(?<!")\bany\b(?!"|/\*)""")
+
+/** `any` lets every value through: a Kotlin `Any` is typed `unknown`, which TypeScript makes callers narrow. */
+private fun String.withUnknownForAny(): String {
+    val comments = COMMENT.findAll(this).map { it.range }.toList()
+    return ANY.replace(this) { match -> if (comments.any { match.range.first in it }) match.value else "unknown" }
+}
 private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
 /**
@@ -178,8 +190,10 @@ private fun File.checkDeclarationsCleaned(content: String) {
                 + leftovers.joinToString("\n")
         )
     }
-    val untyped = content.lineSequence().withIndex()
-        .mapNotNull { (index, line) -> UNTYPED.find(line)?.let { "$path:${index + 1}: ${it.value}" } }
+    val lines = content.lines()
+    val untyped = code.lineSequence().withIndex()
+        .filter { (_, line) -> UNTYPED.containsMatchIn(line) }
+        .map { (index, _) -> "$path:${index + 1}: ${lines[index].trim()}" }
         .toList()
     if (untyped.isNotEmpty()) {
         throw GradleException(

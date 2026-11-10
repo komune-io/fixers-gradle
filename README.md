@@ -237,8 +237,8 @@ fixers {
         developerName = "Komune Team"                               // default
         developerOrganization = "Komune"                            // default
         developerOrganizationUrl = "https://komune.io"              // default
-        scmConnection = "scm:git:git://github.com/komune-io/fixers-gradle.git"    // default
-        scmDeveloperConnection = "scm:git:ssh://github.com/komune-io/fixers-gradle.git" // default
+        scmConnection = "scm:git:git://github.com/komune-io/<root project>.git"    // default
+        scmDeveloperConnection = "scm:git:ssh://github.com/komune-io/<root project>.git" // default
     }
 }
 ```

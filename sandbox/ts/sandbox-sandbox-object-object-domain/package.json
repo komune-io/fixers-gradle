@@ -1,7 +1,6 @@
 {
   "name": "sandbox-sandbox-object-object-domain",
   "version": "0.0.0",
-  "main": "kotlin/sandbox-sandbox-object-object-domain.mjs",
   "types": "kotlin/sandbox-sandbox-object-object-domain.d.mts",
   "devDependencies": {},
   "dependencies": {},
