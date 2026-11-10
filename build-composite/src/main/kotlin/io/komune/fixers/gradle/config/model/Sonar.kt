@@ -10,7 +10,7 @@ import org.gradle.api.provider.Property
  * Configuration for SonarQube/SonarCloud analysis.
  */
 class Sonar(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The URL of the SonarQube/SonarCloud server.

@@ -11,7 +11,7 @@ import org.gradle.kotlin.dsl.property
  * Configuration for Maven publication.
  */
 class Publication(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The action to configure the Maven POM.

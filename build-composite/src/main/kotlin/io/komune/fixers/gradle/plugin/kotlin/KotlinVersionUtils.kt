@@ -9,4 +9,6 @@ import org.gradle.api.Project
  * falling back to [Jdk.VERSION_DEFAULT] when unset.
  */
 internal fun Project.fixersJdkVersion(): Int =
-    rootProject.extensions.fixers?.jdk?.version?.orNull ?: Jdk.VERSION_DEFAULT
+    rootProject.extensions.fixers
+        ?.run { jdk.version.orNull }
+        ?: Jdk.VERSION_DEFAULT

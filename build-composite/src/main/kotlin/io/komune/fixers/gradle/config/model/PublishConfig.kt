@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
+import io.komune.fixers.gradle.config.utils.orNullText
 import io.komune.fixers.gradle.config.utils.property
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -9,37 +10,8 @@ import org.gradle.api.provider.Property
  * Configuration for publishing artifacts.
  */
 open class PublishConfig(
-    private val project: Project
+    project: Project
 ) {
-    companion object {
-        private const val USERNAME_PREVIEW_LENGTH = 3
-
-        /** 10 minutes: generous enough for Central Portal validation, short enough to not stall CI. */
-        private const val DEFAULT_STATUS_POLL_TIMEOUT_SECONDS = 600
-    }
-
-    override fun toString(): String {
-        return """
-            PublishConfig(
-                mavenCentralUrl=${mavenCentralUrl.orNull},
-                mavenSnapshotsUrl=${mavenSnapshotsUrl.orNull},
-                mavenCentralPublishingType=${mavenCentralPublishingType.orNull},
-                mavenCentralStatusPollTimeoutSeconds=${mavenCentralStatusPollTimeoutSeconds.orNull},
-                mavenCentralUsername=${mavenCentralUsername.orNull?.take(USERNAME_PREVIEW_LENGTH)}***,
-                pkgGithubUsername=${pkgGithubUsername.orNull},
-                pkgGithubToken=******,
-                signingGpgKey=******,
-                signingGpgKeyPassword=******,
-                npmjsToken=******,
-                npmGithubToken=******,
-                gradlePluginPortalEnabled=${gradlePluginPortalEnabled.orNull},
-                gradlePortalKey=******,
-                gradlePortalSecret=******,
-                stagingDirectory=${stagingDirectory.orNull},
-                githubPackagesUrl=${githubPackagesUrl.orNull}
-            )
-        """.trimIndent()
-    }
     /**
      * Maven Central URL for publishing.
      */
@@ -227,5 +199,33 @@ open class PublishConfig(
         gradlePluginPortalEnabled.mergeIfNotPresent(source.gradlePluginPortalEnabled)
         gradlePortalKey.mergeIfNotPresent(source.gradlePortalKey)
         gradlePortalSecret.mergeIfNotPresent(source.gradlePortalSecret)
+    }
+
+    override fun toString(): String = """
+        PublishConfig(
+            mavenCentralUrl=${mavenCentralUrl.orNullText()},
+            mavenSnapshotsUrl=${mavenSnapshotsUrl.orNullText()},
+            mavenCentralPublishingType=${mavenCentralPublishingType.orNullText()},
+            mavenCentralStatusPollTimeoutSeconds=${mavenCentralStatusPollTimeoutSeconds.orNullText()},
+            mavenCentralUsername=${mavenCentralUsername.map { it.take(USERNAME_PREVIEW_LENGTH) }.orNullText()}***,
+            pkgGithubUsername=${pkgGithubUsername.orNullText()},
+            pkgGithubToken=******,
+            signingGpgKey=******,
+            signingGpgKeyPassword=******,
+            npmjsToken=******,
+            npmGithubToken=******,
+            gradlePluginPortalEnabled=${gradlePluginPortalEnabled.orNullText()},
+            gradlePortalKey=******,
+            gradlePortalSecret=******,
+            stagingDirectory=${stagingDirectory.orNullText()},
+            githubPackagesUrl=${githubPackagesUrl.orNullText()}
+        )
+    """.trimIndent()
+
+    companion object {
+        private const val USERNAME_PREVIEW_LENGTH = 3
+
+        /** 10 minutes: generous enough for Central Portal validation, short enough to not stall CI. */
+        private const val DEFAULT_STATUS_POLL_TIMEOUT_SECONDS = 600
     }
 }

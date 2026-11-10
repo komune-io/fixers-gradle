@@ -4,6 +4,7 @@ import io.komune.fixers.gradle.integration.BaseIntegrationTest
 import java.io.File
 import java.nio.file.Path
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -111,7 +112,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     /**
      * Verifies that Maven publishing is correctly configured.
      */
-    private fun verifyMavenPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
+    private fun verifyMavenPublishingConfig(result: BuildResult) {
         assertThat(result.task(":lib:verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
         assertThat(result.output).contains("Has publications:")
@@ -210,7 +211,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     /**
      * Verifies that MPP publishing is correctly configured.
      */
-    private fun verifyMppPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
+    private fun verifyMppPublishingConfig(result: BuildResult) {
         assertThat(result.task(":lib:verifyMppPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
         assertThat(result.output).contains("Has kotlinMultiplatform publication: true")
@@ -309,7 +310,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     /**
      * Verifies that Gradle plugin publishing is correctly configured.
      */
-    private fun verifyGradlePluginPublishingConfig(result: org.gradle.testkit.runner.BuildResult) {
+    private fun verifyGradlePluginPublishingConfig(result: BuildResult) {
         assertThat(result.task(":verifyGradlePluginPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
         assertThat(result.output).contains("Has gradle-plugin-publish plugin: true")

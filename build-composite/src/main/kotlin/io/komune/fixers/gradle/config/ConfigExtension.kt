@@ -27,26 +27,23 @@ val ExtensionContainer.fixers: ConfigExtension?
 /**
  * Configures the [fixers][io.komune.fixers.gradle.config.ConfigExtension.NAME] extension.
  */
-fun Project.fixers(configure: Action<ConfigExtension>): Unit =
+fun Project.fixers(configure: Action<ConfigExtension>) {
     this.rootProject.extensions.configure(ConfigExtension.NAME, configure)
+}
 
 fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io.komune.fixers.gradle.${module}")
 
 /**
  * Main configuration extension for the Fixers Gradle plugins.
- * 
+ *
  * This class is marked as abstract to allow Gradle to create a dynamic subclass at runtime
  * for property convention mapping and extension instantiation. This is a common pattern
  * in Gradle plugin development, even when the class doesn't have explicit abstract members.
  */
-@Suppress("UnnecessaryAbstractClass")
+@Suppress("UnnecessaryAbstractClass", "AbstractClassCanBeConcreteClass") // Gradle subclasses it, see above
 abstract class ConfigExtension(
     val project: Project
 ) {
-    companion object {
-        const val NAME: String = "fixers"
-    }
-
     var bundle: Bundle = Bundle(
         project = project,
         name = project.name
@@ -108,18 +105,20 @@ abstract class ConfigExtension(
         configure.execute(publish)
     }
 
-    override fun toString(): String {
-        return """
-            ConfigExtension(
-            bundle=$bundle,
-            kt2Ts=$kt2Ts,
-            jdk=$jdk,
-            publication=$pom,
-            npm=$npm,
-            detekt=$detekt,
-            jacoco=$jacoco,
-            sonar=$sonar,
-            publish=$publish)
-            """.trimIndent()
+    override fun toString(): String = """
+        ConfigExtension(
+        bundle=$bundle,
+        kt2Ts=$kt2Ts,
+        jdk=$jdk,
+        publication=$pom,
+        npm=$npm,
+        detekt=$detekt,
+        jacoco=$jacoco,
+        sonar=$sonar,
+        publish=$publish)
+    """.trimIndent()
+
+    companion object {
+        const val NAME: String = "fixers"
     }
 }

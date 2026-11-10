@@ -28,9 +28,8 @@ fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
 /**
  * Returns this property's value if present, otherwise falls back to the other property's value.
  */
-private fun <T : Any> Property<T>.orFallback(other: Property<T>?): T? {
-    return if (this.isPresent) this.get() else other?.orNull
-}
+private fun <T : Any> Property<T>.orFallback(other: Property<T>?): T? =
+    if (this.isPresent) this.get() else other?.orNull
 
 private fun MavenPom.developers(bundle: Bundle, rootBundle: Bundle?) {
     developers {
@@ -57,9 +56,9 @@ private fun MavenPom.licenses(bundle: Bundle, rootBundle: Bundle?) {
 
 private fun MavenPom.scm(bundle: Bundle, rootBundle: Bundle?) {
     scm {
-        bundle.url.orFallback(rootBundle?.url)?.let { url.set(it) }
-        bundle.scmConnection.orFallback(rootBundle?.scmConnection)?.let { connection.set(it) }
+        bundle.url.orFallback(rootBundle?.url)?.let { value -> url.set(value) }
+        bundle.scmConnection.orFallback(rootBundle?.scmConnection)?.let { value -> connection.set(value) }
         bundle.scmDeveloperConnection.orFallback(rootBundle?.scmDeveloperConnection)
-            ?.let { developerConnection.set(it) }
+            ?.let { value -> developerConnection.set(value) }
     }
 }

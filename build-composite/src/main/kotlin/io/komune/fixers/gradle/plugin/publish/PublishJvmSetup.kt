@@ -27,12 +27,13 @@ object PublishJvmSetup {
         val variantName = name
         configure<PublishingExtension> {
             publications.configureEach {
-                (this as? MavenPublication)?.let { mavenPublication ->
+                val mavenPublication = this
+                if (mavenPublication is MavenPublication) {
                     mavenPublication.artifactId = pluginMarkerArtifactId(variantName, name)
                     val publication = project.pom(config.bundle)
                     mavenPublication.pom(publication)
-                    tasks.findByName("javadocJar")?.let { mavenPublication.artifact(it) }
-                    tasks.findByName("sourcesJar")?.let { mavenPublication.artifact(it) }
+                    tasks.findByName("javadocJar")?.let { task -> mavenPublication.artifact(task) }
+                    tasks.findByName("sourcesJar")?.let { task -> mavenPublication.artifact(task) }
                 }
             }
         }
@@ -47,7 +48,7 @@ object PublishJvmSetup {
     }
 
     private fun Project.setupPublication(config: ConfigExtension) {
-        extensions.findByType(JavaPluginExtension::class.java)?.let {
+        if (extensions.findByType(JavaPluginExtension::class.java) != null) {
             createMavenPublicationIfAbsent("kotlin", config)
         }
     }

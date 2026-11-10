@@ -52,10 +52,11 @@ private fun checkCatalogVersion(settings: Settings, version: String) {
     val catalog = settings.settingsDir.resolve(SettingsPlugin.LOCAL_CATALOG)
     if (!catalog.exists()) return
     val declared = catalog.readLines()
+        .asSequence()
         .dropWhile { it.trim() != VERSIONS_SECTION }
         .drop(1)
         .takeWhile { !it.trim().startsWith("[") }
-        .firstNotNullOfOrNull { FIXERS_VERSION.find(it)?.groupValues?.get(1) }
+        .firstNotNullOfOrNull { FIXERS_VERSION.find(it)?.run { groupValues[1] } }
     if (declared != null && declared != version) {
         throw GradleException(
             "${SettingsPlugin.LOCAL_CATALOG} declares fixers = \"$declared\", but the fixers settings plugin is " +

@@ -3,7 +3,9 @@ package io.komune.fixers.gradle.plugin.publish
 import java.io.File
 import java.io.IOException
 import java.util.Base64
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -12,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.gradle.api.GradleException
+import org.gradle.api.logging.Logging
 
 /**
  * Fluent builder for uploading artifacts from a local staging directory
@@ -21,6 +24,8 @@ import org.gradle.api.GradleException
 object MavenRepositoryUploader {
 
     private const val MAX_CONCURRENT_UPLOADS = 10
+
+    private val logger = Logging.getLogger(MavenRepositoryUploader::class.java)
 
     private const val DEFAULT_MAX_ATTEMPTS = 3
     private const val DEFAULT_INITIAL_BACKOFF_MS = 1_000L
@@ -45,20 +50,23 @@ object MavenRepositoryUploader {
     private fun HttpPutResult.Error.describe(): String =
         if (code == NO_HTTP_RESPONSE) "I/O error" else "HTTP $code"
 
-    fun to(repoName: String): Builder = Builder(repoName)
+    fun toRepository(repoName: String): Builder = Builder(repoName)
 
-    class Builder(private val repoName: String) {
-        private lateinit var stagingDir: File
-        private lateinit var baseUrl: String
-        private lateinit var username: String
-        private lateinit var token: String
+    class Builder(
+        private val repoName: String,
+        private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ) {
+        private var stagingDir: File? = null
+        private var baseUrl: String? = null
+        private var username: String? = null
+        private var token: String? = null
         private var httpClient: HttpPutClient = DefaultHttpPutClient()
         private var concurrency: Int = MAX_CONCURRENT_UPLOADS
         private var maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         private var initialBackoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS
 
         fun from(dir: File) = apply { stagingDir = dir }
-        fun at(url: String) = apply { baseUrl = url }
+        fun atUrl(url: String) = apply { baseUrl = url }
         fun withCredentials(user: String, tok: String) = apply { username = user; token = tok }
         fun withHttpClient(client: HttpPutClient) = apply { httpClient = client }
         fun withConcurrency(n: Int) = apply { concurrency = n }
@@ -83,8 +91,10 @@ object MavenRepositoryUploader {
                 if (result !is HttpPutResult.Error || !result.isTransient() || attempt >= maxAttempts) {
                     return result
                 }
-                println("  ↻ [$label] ${result.describe()}, retrying in ${backoff}ms " +
-                    "(attempt ${attempt + 1}/$maxAttempts)")
+                logger.lifecycle(
+                    "  ↻ [$label] ${result.describe()}, retrying in ${backoff}ms " +
+                        "(attempt ${attempt + 1}/$maxAttempts)"
+                )
                 delay(backoff)
                 backoff *= BACKOFF_FACTOR
                 attempt++
@@ -92,8 +102,12 @@ object MavenRepositoryUploader {
         }
 
         fun upload(): UploadSummary {
+            val stagingDir = checkNotNull(stagingDir) { "from() was not called" }
+            val baseUrl = checkNotNull(baseUrl) { "atUrl() was not called" }
+            val username = checkNotNull(username) { "withCredentials() was not called" }
+            val token = checkNotNull(token) { "withCredentials() was not called" }
             if (!stagingDir.exists() || stagingDir.listFiles()?.isEmpty() != false) {
-                println("No artifacts found in staging directory: $stagingDir")
+                logger.lifecycle("No artifacts found in staging directory: $stagingDir")
                 return UploadSummary(uploaded = 0, skipped = 0, failed = 0, errors = emptyList())
             }
 
@@ -102,17 +116,17 @@ object MavenRepositoryUploader {
 
             val files = stagingDir.walkTopDown().filter { it.isFile }.toList()
             val totalFiles = files.size
-            println("Uploading $totalFiles files to $repoName (concurrency: $concurrency)")
+            logger.lifecycle("Uploading $totalFiles files to $repoName (concurrency: $concurrency)")
 
             val uploaded = AtomicInteger(0)
             val skipped = AtomicInteger(0)
             val failed = AtomicInteger(0)
             val completed = AtomicInteger(0)
-            val errors = java.util.concurrent.ConcurrentLinkedQueue<String>()
+            val errors = ConcurrentLinkedQueue<String>()
 
             val semaphore = Semaphore(concurrency)
 
-            runBlocking(Dispatchers.IO) {
+            runBlocking(dispatcher) {
                 files.map { file ->
                     async {
                         semaphore.withPermit {
@@ -123,15 +137,15 @@ object MavenRepositoryUploader {
                             when (result) {
                                 HttpPutResult.Success -> {
                                     uploaded.incrementAndGet()
-                                    println("  ✔ [$progress] Uploaded: $relativePath")
+                                    logger.lifecycle("  ✔ [$progress] Uploaded: $relativePath")
                                 }
                                 HttpPutResult.Conflict -> {
                                     skipped.incrementAndGet()
-                                    println("  ⚠ [$progress] Already exists, skipping: $relativePath")
+                                    logger.lifecycle("  ⚠ [$progress] Already exists, skipping: $relativePath")
                                 }
                                 is HttpPutResult.Error -> {
                                     failed.incrementAndGet()
-                                    println("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
+                                    logger.lifecycle("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
                                     errors.add("$relativePath → ${result.describe()}: ${result.message}")
                                 }
                             }
@@ -147,8 +161,10 @@ object MavenRepositoryUploader {
                 errors = errors.toList(),
             )
 
-            println("$repoName upload: ${summary.uploaded} uploaded, " +
-                "${summary.skipped} already existed, ${summary.failed} failed")
+            logger.lifecycle(
+                "$repoName upload: ${summary.uploaded} uploaded, " +
+                    "${summary.skipped} already existed, ${summary.failed} failed"
+            )
 
             if (summary.errors.isNotEmpty()) {
                 throw GradleException(

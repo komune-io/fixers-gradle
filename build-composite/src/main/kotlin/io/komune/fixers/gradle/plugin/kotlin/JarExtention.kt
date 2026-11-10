@@ -5,7 +5,6 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.attributes
 import org.gradle.kotlin.dsl.withType
 
-
 fun Project.setupJarInfo() {
     tasks.withType<Jar>().configureEach {
         manifest {

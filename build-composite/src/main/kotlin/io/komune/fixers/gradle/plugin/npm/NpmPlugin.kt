@@ -41,7 +41,8 @@ class NpmPlugin : Plugin<Project> {
         // Use afterEvaluate instead of projectsEvaluated because NpmPublishPlugin
         // internally uses afterEvaluate which would fail if project is already evaluated
         target.afterEvaluate {
-            target.rootProject.extensions.fixers?.takeIf { it.npm.publish.get() }?.let { config ->
+            val config = target.rootProject.extensions.fixers
+            if (config != null && config.npm.publish.get()) {
                 target.logger.info("Apply NpmPlugin to ${target.name} - ${target.version}")
                 target.configureNpmPublishPlugin(config)
                 target.configurePackTsCleaning(config.npm)
@@ -52,12 +53,14 @@ class NpmPlugin : Plugin<Project> {
     private fun Project.configurePackTsCleaning(npm: Npm) {
         // Resolve values at configuration time for configuration cache compatibility
         val projectBuildDir = "${layout.buildDirectory.asFile.get().absolutePath}/packages/js"
-        val cleaningRegex = rootProject.extensions.fixers?.kt2Ts?.buildCleaningRegex().orEmpty()
+        val cleaningRegex = rootProject.extensions.fixers
+            ?.run { kt2Ts.buildCleaningRegex() }
+            .orEmpty()
 
         // Cleans the package the assemble task wrote, before it is packed or published.
         val npmTsGen = tasks.register("npmTsGen", NpmTsGenTask::class.java) {
             group = "build"
-            buildDir = projectBuildDir
+            this.buildDir = projectBuildDir
             cleaning = cleaningRegex
             dependsOn(tasks.withType(NpmAssembleTask::class.java))
             onlyIf { npm.clean.get() }

@@ -14,75 +14,6 @@ import org.junit.jupiter.api.Test
 class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
     /**
-     * Creates a simple Kotlin source file for JVM projects.
-     */
-    private fun createJvmSourceFile() {
-        val sourceDir = testProjectDir.resolve("src/main/kotlin/com/example").toFile()
-        sourceDir.mkdirs()
-        File(sourceDir, "Sample.kt").writeText("""
-            package com.example
-
-            class Sample {
-                fun hello(name: String): String = "Hello, ${'$'}name!"
-            }
-        """.trimIndent())
-    }
-
-    /**
-     * Creates a simple Kotlin test file for JVM projects.
-     */
-    private fun createJvmTestFile() {
-        val testDir = testProjectDir.resolve("src/test/kotlin/com/example").toFile()
-        testDir.mkdirs()
-        File(testDir, "SampleTest.kt").writeText("""
-            package com.example
-
-            import org.junit.jupiter.api.Test
-            import org.junit.jupiter.api.Assertions.assertEquals
-
-            class SampleTest {
-                @Test
-                fun `hello returns greeting`() {
-                    val sample = Sample()
-                    assertEquals("Hello, World!", sample.hello("World"))
-                }
-            }
-        """.trimIndent())
-    }
-
-    /**
-     * Creates source files for Kotlin Multiplatform JVM target.
-     */
-    private fun createMppJvmSourceFiles() {
-        val jvmMainDir = testProjectDir.resolve("src/jvmMain/kotlin/com/example").toFile()
-        jvmMainDir.mkdirs()
-        File(jvmMainDir, "Sample.kt").writeText("""
-            package com.example
-
-            class Sample {
-                fun hello(): String = "Hello from JVM!"
-            }
-        """.trimIndent())
-
-        val jvmTestDir = testProjectDir.resolve("src/jvmTest/kotlin/com/example").toFile()
-        jvmTestDir.mkdirs()
-        File(jvmTestDir, "SampleTest.kt").writeText("""
-            package com.example
-
-            import kotlin.test.Test
-            import kotlin.test.assertEquals
-
-            class SampleTest {
-                @Test
-                fun helloReturnsGreeting() {
-                    val sample = Sample()
-                    assertEquals("Hello from JVM!", sample.hello())
-                }
-            }
-        """.trimIndent())
-    }
-
-    /**
      * Test that the CheckPlugin applies correctly and Detekt runs successfully.
      */
     @Test
@@ -121,7 +52,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
     /**
      * Test that the SonarQube plugin is applied and configured correctly.
-     * 
+     *
      * Note: This test only verifies that the SonarQube plugin is applied,
      * without actually running the analysis, to avoid issues with SonarQube
      * scanner dependencies.

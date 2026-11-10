@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * Configuration for JDK version.
  */
 class Jdk(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The JDK version to use.

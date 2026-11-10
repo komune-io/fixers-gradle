@@ -44,9 +44,8 @@ object PublishMppSetup {
         }
     }
 
-    private fun mppTargetArtifactId(projectName: String, publicationName: String): String {
-        return "${projectName}${"-$publicationName".takeUnless { "kotlinMultiplatform" in publicationName }.orEmpty()}"
-    }
+    private fun mppTargetArtifactId(projectName: String, publicationName: String): String =
+        "${projectName}${"-$publicationName".takeUnless { "kotlinMultiplatform" in publicationName }.orEmpty()}"
 
     private fun Project.setupMppPublishJar() {
         tasks.register("javadocJar", Jar::class.java) {

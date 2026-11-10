@@ -33,7 +33,8 @@ class ConfigPlugin : Plugin<Project> {
         }
         if (target != root && !root.plugins.hasPlugin(ConfigPlugin::class.java)) {
             throw GradleException(
-                "${target.path} applies $CONFIG_PLUGIN_ID, the root project does not: apply it in the root build.gradle.kts."
+                "${target.path} applies $CONFIG_PLUGIN_ID, the root project does not: " +
+                    "apply it in the root build.gradle.kts."
             )
         }
         target.pluginManager.apply("base")

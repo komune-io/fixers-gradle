@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * Configuration for NPM package publishing.
  */
 class Npm(
-    private val project: Project
+    project: Project
 ) {
     /**
      * Whether to publish NPM packages.

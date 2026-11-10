@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * Configuration for JaCoCo code coverage.
  */
 class Jacoco(
-    private val project: Project
+    project: Project
 ) {
     /**
      * Whether to enable JaCoCo code coverage.

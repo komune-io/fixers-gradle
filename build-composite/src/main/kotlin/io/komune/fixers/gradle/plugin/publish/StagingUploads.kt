@@ -54,9 +54,9 @@ private fun uploadTo(
     username: String,
     password: String,
 ) {
-    MavenRepositoryUploader.to(repositoryName)
+    MavenRepositoryUploader.toRepository(repositoryName)
         .from(stagingDir)
-        .at(url)
+        .atUrl(url)
         .withCredentials(username, password)
         .upload()
 }

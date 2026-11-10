@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * The reports Detekt writes. The rules are fixers' own: see `configureDetekt`.
  */
 class Detekt(
-    private val project: Project
+    project: Project
 ) {
     /**
      * Whether to enable the checkstyle (XML) report.

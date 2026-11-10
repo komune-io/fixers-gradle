@@ -7,7 +7,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 private val STRICT_ARGS = listOf("-Wextra", "-Xreturn-value-checker=full", "-Xreport-all-warnings")
 
-private val SILENCING_ARGS = Regex("""-nowarn|-Xsuppress-warning=.*|-Xsuppress-version-warnings|-Xwarning-level=.*:(?!error${'$'}).*""")
+private val SILENCING_ARGS = Regex(
+    """-nowarn|-Xsuppress-warning=.*|-Xsuppress-version-warnings|""" +
+        """-Xwarning-level=.*:(?!error${'$'}).*"""
+)
 
 /**
  * Every warning an error, the extra checkers on and every warning reported next to an error. The
@@ -25,10 +28,12 @@ internal fun Project.compileStrictly(options: KotlinCommonCompilerOptions) {
         val args = compilerOptions.freeCompilerArgs
         val task = path
         doFirst {
-            val silencing = args.get().filter { SILENCING_ARGS.matches(it) } +
+            val silencing = args.get().filter(SILENCING_ARGS::matches) +
                 listOfNotNull("allWarningsAsErrors = false".takeUnless { warningsAsErrors.get() })
             if (silencing.isNotEmpty()) {
-                throw GradleException("$task silences warnings, which fixers makes errors: remove ${silencing.joinToString()}.")
+                throw GradleException(
+                    "$task silences warnings, which fixers makes errors: remove ${silencing.joinToString()}."
+                )
             }
         }
     }

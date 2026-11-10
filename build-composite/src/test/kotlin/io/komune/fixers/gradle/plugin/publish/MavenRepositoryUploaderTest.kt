@@ -39,9 +39,9 @@ class MavenRepositoryUploaderTest {
         createFile("io/komune/test/1.0/test-1.0.pom")
         createFile("io/komune/test/1.0/test-1.0.module")
 
-        MavenRepositoryUploader.to("Test Repo")
+        MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com/releases")
+            .atUrl("https://repo.example.com/releases")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()
@@ -55,9 +55,9 @@ class MavenRepositoryUploaderTest {
         createFile("artifact-1.jar")
         createFile("artifact-2.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()
@@ -75,9 +75,9 @@ class MavenRepositoryUploaderTest {
         }
         createFile("artifact.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()
@@ -95,9 +95,9 @@ class MavenRepositoryUploaderTest {
         createFile("artifact.jar")
 
         assertThatThrownBy {
-            MavenRepositoryUploader.to("Test Repo")
+            MavenRepositoryUploader.toRepository("Test Repo")
                 .from(stagingDir)
-                .at("https://repo.example.com")
+                .atUrl("https://repo.example.com")
                 .withCredentials("user", "token")
                 .withHttpClient(fake)
                 .withRetry(attempts = 1, backoffMillis = 0)
@@ -131,9 +131,9 @@ class MavenRepositoryUploaderTest {
         )
         createFile("artifact.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .withRetry(attempts = 3, backoffMillis = 1)
@@ -151,9 +151,9 @@ class MavenRepositoryUploaderTest {
         )
         createFile("artifact.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .withRetry(attempts = 3, backoffMillis = 1)
@@ -169,9 +169,9 @@ class MavenRepositoryUploaderTest {
         createFile("artifact.jar")
 
         assertThatThrownBy {
-            MavenRepositoryUploader.to("Test Repo")
+            MavenRepositoryUploader.toRepository("Test Repo")
                 .from(stagingDir)
-                .at("https://repo.example.com")
+                .atUrl("https://repo.example.com")
                 .withCredentials("user", "token")
                 .withHttpClient(fake)
                 .withRetry(attempts = 3, backoffMillis = 1)
@@ -186,9 +186,9 @@ class MavenRepositoryUploaderTest {
         val fake = ScriptedHttpPutClient(listOf(HttpPutResult.Conflict))
         createFile("artifact.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .withRetry(attempts = 3, backoffMillis = 1)
@@ -204,9 +204,9 @@ class MavenRepositoryUploaderTest {
         createFile("artifact.jar")
 
         assertThatThrownBy {
-            MavenRepositoryUploader.to("Test Repo")
+            MavenRepositoryUploader.toRepository("Test Repo")
                 .from(stagingDir)
-                .at("https://repo.example.com")
+                .atUrl("https://repo.example.com")
                 .withCredentials("user", "token")
                 .withHttpClient(fake)
                 .withRetry(attempts = 4, backoffMillis = 1)
@@ -242,9 +242,9 @@ class MavenRepositoryUploaderTest {
         val fake = TimingOutHttpPutClient(times = 1)
         createFile("artifact.jar")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .withRetry(attempts = 3, backoffMillis = 1)
@@ -261,9 +261,9 @@ class MavenRepositoryUploaderTest {
         repeat(20) { i -> createFile("artifact-$i.jar") }
 
         assertThatThrownBy {
-            MavenRepositoryUploader.to("Test Repo")
+            MavenRepositoryUploader.toRepository("Test Repo")
                 .from(stagingDir)
-                .at("https://repo.example.com")
+                .atUrl("https://repo.example.com")
                 .withCredentials("user", "token")
                 .withHttpClient(fake)
                 .withConcurrency(2)
@@ -283,9 +283,9 @@ class MavenRepositoryUploaderTest {
     fun `no-op when staging directory is empty`() {
         val fake = FakeHttpPutClient()
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()
@@ -301,9 +301,9 @@ class MavenRepositoryUploaderTest {
         val fake = FakeHttpPutClient()
         val nonExistentDir = File(stagingDir, "does-not-exist")
 
-        val summary = MavenRepositoryUploader.to("Test Repo")
+        val summary = MavenRepositoryUploader.toRepository("Test Repo")
             .from(nonExistentDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()
@@ -320,9 +320,9 @@ class MavenRepositoryUploaderTest {
             createFile("artifact-$i.jar")
         }
 
-        MavenRepositoryUploader.to("Test Repo")
+        MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com")
+            .atUrl("https://repo.example.com")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .withConcurrency(3)
@@ -337,9 +337,9 @@ class MavenRepositoryUploaderTest {
         val fake = FakeHttpPutClient()
         createFile("io/komune/test/1.0/test-1.0.jar")
 
-        MavenRepositoryUploader.to("Test Repo")
+        MavenRepositoryUploader.toRepository("Test Repo")
             .from(stagingDir)
-            .at("https://repo.example.com/releases/")
+            .atUrl("https://repo.example.com/releases/")
             .withCredentials("user", "token")
             .withHttpClient(fake)
             .upload()

@@ -103,7 +103,8 @@ internal fun Project.registerYarnResolutionCheck() {
             description = "Fails on a yarn resolution that is not scoped with **/ or does not reach the lock."
             resolutions.set(
                 yarn.resolutionsProperty.map { list ->
-                    list.groupBy({ it.path }, { it.includedVersions.toList() }).mapValues { (_, versions) -> versions.flatten() }
+                    list.groupBy({ it.path }, { it.includedVersions.toList() })
+                        .mapValues { (_, versions) -> versions.flatten() }
                 }
             )
             fixersPins.set(FIXERS_YARN_PINS)
@@ -126,18 +127,21 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
     if (workspaces != null && (workspaces !is List<*> || workspaces.any { it !is String })) {
         refuse(rootPackageJson, "`workspaces` is not a list of paths: $workspaces")
     }
-    return workspaces.orEmpty().map { workspace ->
-        if ('*' in workspace.toString()) {
+    return workspaces.orEmpty().filterIsInstance<String>().map { workspace ->
+        if ('*' in workspace) {
             refuse(rootPackageJson, "workspace pattern `$workspace` is not read; list the paths")
         }
-        rootPackageJson.resolveSibling(workspace.toString()).resolve(PACKAGE_JSON).also {
+        rootPackageJson.resolveSibling(workspace).resolve(PACKAGE_JSON).also {
             if (!it.exists()) refuse(rootPackageJson, "workspace `$workspace` has no $it")
         }
     }
         .flatMapTo(mutableSetOf()) { file ->
             val json = readJson(file)
             DEPENDENCY_FIELDS.flatMap { field ->
-                (json[field] as? Map<*, *>).orEmpty().map { (name, range) -> Spec(name.toString(), range.toString()) }
+                (json[field] as? Map<*, *>).orEmpty().map { (name, range) ->
+                    // JSON object keys are strings.
+                    Spec(name as String, range?.toString() ?: "null")
+                }
             }
         }
 }
@@ -168,8 +172,12 @@ internal fun yarnResolutionProblems(
 ): List<String> {
     val declared = resolutions.filter { (path, versions) -> versions != listOfNotNull(fixersPins[path]) }
     return when {
-        resolutions.isEmpty() -> emptyList()
-        lock == null -> listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
+        resolutions.isEmpty() -> {
+            emptyList()
+        }
+        lock == null -> {
+            listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
+        }
         else -> {
             val entries = parseYarnLock(lock)
             val requested = entries.flatMapTo(mutableSetOf()) { it.dependencies } + workspaces
@@ -177,7 +185,8 @@ internal fun yarnResolutionProblems(
                 val pinned = fixersPins[path]
                 val pkg = packageNames(path.removePrefix(ANY_DEPTH)).last()
                 when {
-                    pinned != null && path in declared -> "$path: fixers already forces $pkg to $pinned; remove this resolution"
+                    pinned != null && path in declared ->
+                        "$path: fixers already forces $pkg to $pinned; remove this resolution"
                     // A pin of fixers holds for every build: in one that does not need the package, the
                     // lock holds it only at the spec yarn adds for the resolution.
                     pinned != null && entries.filter { it.isOf(pkg) }.flatMap { it.specs }
@@ -208,16 +217,16 @@ private fun lockProblem(path: String, version: String, entries: List<LockEntry>,
     val names = packageNames(path.removePrefix(ANY_DEPTH))
     val pkg = names.last()
     val parent = names.getOrNull(names.size - 2)
-    val dependedOn = if (parent == null) {
+    val isDependedOn = if (parent == null) {
         requested.any { it.isOf(pkg) }
     } else {
         entries.any { entry -> entry.isOf(parent) && entry.dependencies.any { it.isOf(pkg) } }
     }
-    val atVersion = entries.any { it.isOf(pkg) && it.version == version }
+    val isAtVersion = entries.any { it.isOf(pkg) && it.version == version }
     return when {
-        !dependedOn && parent == null -> unrequestedProblem(path, pkg, version, entries, requested)
-        !dependedOn -> "$path: $parent does not depend on $pkg in the lock"
-        !atVersion -> "$path: the lock does not hold $pkg at $version"
+        !isDependedOn && parent == null -> unrequestedProblem(path, pkg, version, entries, requested)
+        !isDependedOn -> "$path: ${parent.orEmpty()} does not depend on $pkg in the lock"
+        !isAtVersion -> "$path: the lock does not hold $pkg at $version"
         else -> null
     }
 }
@@ -230,8 +239,9 @@ private fun unrequestedProblem(
     entries: List<LockEntry>,
     requested: Set<Spec>,
 ): String {
-    val unrequested = entries.filter { it.isOf(pkg) }.flatMap { it.specs }
+    val unrequested = entries.asSequence().filter { it.isOf(pkg) }.flatMap { it.specs }
         .filter { it.isOf(pkg) && it !in requested && it != Spec(pkg, version) }
+        .toList()
     return if (unrequested.isEmpty()) {
         "$path: no package depends on $pkg in the lock"
     } else {
@@ -241,13 +251,13 @@ private fun unrequestedProblem(
 }
 
 /** A package as a dependency asks for it: its name there, and its range, `npm:` alias included. */
-internal data class Spec(val name: String, val range: String) {
-    /** The package installed: the alias target for `npm:other@range`, else [name]. */
-    private val target: String
-        get() = if (range.startsWith(NPM_ALIAS)) spec(range.removePrefix(NPM_ALIAS)).name else name
+internal data class Spec(val name: String, val range: String)
 
-    fun isOf(pkg: String) = name == pkg || target == pkg
-}
+/** The package installed: the alias target for `npm:other@range`, else [Spec.name]. */
+private val Spec.target: String
+    get() = if (range.startsWith(NPM_ALIAS)) spec(range.removePrefix(NPM_ALIAS)).name else name
+
+private fun Spec.isOf(pkg: String) = name == pkg || target == pkg
 
 /** One block of the lock: every spec its header lists, the version they resolve to, its dependencies. */
 private class LockEntry(val specs: Set<Spec>, val version: String?, val dependencies: Set<Spec>) {
@@ -270,27 +280,29 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
     var specs = emptySet<Spec>()
     var version: String? = null
     val dependencies = mutableSetOf<Spec>()
-    var inDependencies = false
+    var isInDependencies = false
     fun flush() {
         if (specs.isNotEmpty()) entries += LockEntry(specs, version, dependencies.toSet())
     }
     lock.lineSequence().forEach { line ->
         when {
-            line.isBlank() || line.startsWith("#") -> Unit
+            line.isBlank() || line.startsWith("#") -> {
+                // Blank lines and comments carry nothing.
+            }
             !line.startsWith(" ") -> {
                 flush()
                 specs = line.trim().removeSuffix(":").split(",").mapTo(mutableSetOf()) { spec(it.trim()) }
                 version = null
                 dependencies.clear()
-                inDependencies = false
+                isInDependencies = false
             }
-            line.startsWith("    ") && inDependencies -> {
+            line.startsWith("    ") && isInDependencies -> {
                 val field = line.trim()
                 dependencies += Spec(field.substringBefore(" ").trim('"'), field.substringAfter(" ").trim('"'))
             }
             else -> {
                 val field = line.trim()
-                inDependencies = field == "dependencies:" || field == "optionalDependencies:"
+                isInDependencies = field == "dependencies:" || field == "optionalDependencies:"
                 if (field.startsWith("version ")) version = field.removePrefix("version ").trim('"')
             }
         }

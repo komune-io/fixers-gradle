@@ -5,10 +5,12 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
+import java.net.URL
 import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import org.gradle.api.GradleException
+import org.gradle.api.logging.Logging
 
 /**
  * Uploads a staging directory to Maven Central via the Central Portal Publisher API.
@@ -43,14 +45,20 @@ object CentralPortalUploader {
 
     private const val DEPLOYMENTS_URL = "https://central.sonatype.com/publishing/deployments"
 
+    private const val CRLF = "\r\n"
+
+    private val logger = Logging.getLogger(CentralPortalUploader::class.java)
+
     private val DEPLOYMENT_STATE_REGEX = """"deploymentState"\s*:\s*"([A-Z_]+)"""".toRegex()
 
     /**
      * Tunables for a single deployment. Grouped so that [upload] keeps a readable signature
      * and so that tests can poll on a millisecond scale instead of the production interval.
      *
-     * @param publishingType `AUTOMATIC` publishes as soon as validation passes; `USER_MANAGED`
+     * @property publishingType `AUTOMATIC` publishes as soon as validation passes; `USER_MANAGED`
      * stops at `VALIDATED` and waits for a manual release from the Central Portal UI.
+     * @property statusPollIntervalMillis The wait between two status checks.
+     * @property statusPollTimeoutMillis How long to poll the status; zero disables polling.
      */
     data class Options(
         val publishingType: String = PUBLISHING_TYPE_AUTOMATIC,
@@ -67,25 +75,25 @@ object CentralPortalUploader {
         options: Options = Options(),
     ) {
         if (!stagingDir.exists() || stagingDir.listFiles()?.isEmpty() != false) {
-            println("No artifacts found in staging directory: $stagingDir")
+            logger.lifecycle("No artifacts found in staging directory: $stagingDir")
             return
         }
 
-        println("Creating bundle from staging directory: $stagingDir")
+        logger.lifecycle("Creating bundle from staging directory: $stagingDir")
         val zipBytes = createZipBundle(stagingDir)
-        println("Bundle '$bundleName' size: ${zipBytes.size / BYTES_PER_KB} KB")
+        logger.lifecycle("Bundle '$bundleName' size: ${zipBytes.size / BYTES_PER_KB} KB")
 
         val token = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
         val filename = "$bundleName.zip"
         val deploymentId = uploadBundle(baseUrl, token, zipBytes, filename, options.publishingType)
-        println("Deployment initiated: $deploymentId (publishingType=${options.publishingType})")
+        logger.lifecycle("Deployment initiated: $deploymentId (publishingType=${options.publishingType})")
 
         require(options.statusPollTimeoutMillis >= 0) {
             "statusPollTimeoutSeconds must be zero (polling disabled) or positive, " +
                 "got ${options.statusPollTimeoutMillis / MILLIS_PER_SECOND}"
         }
         if (options.statusPollTimeoutMillis == 0L) {
-            println("Status polling disabled — check the deployment at $DEPLOYMENTS_URL")
+            logger.lifecycle("Status polling disabled — check the deployment at $DEPLOYMENTS_URL")
             return
         }
         awaitTerminalState(baseUrl, token, deploymentId, options)
@@ -121,7 +129,7 @@ object CentralPortalUploader {
 
         val responseCode = connection.responseCode
         if (responseCode !in HTTP_SUCCESS) {
-            val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: ""
+            val errorBody = connection.errorStream?.run { bufferedReader().readText() }.orEmpty()
             throw GradleException("Central Portal upload failed (HTTP $responseCode): $errorBody")
         }
 
@@ -151,16 +159,18 @@ object CentralPortalUploader {
             val readTimeoutMillis = minOf(remainingMillis, STATUS_READ_TIMEOUT_MS.toLong()).toInt()
             val state = fetchDeploymentState(baseUrl, token, deploymentId, readTimeoutMillis)
             if (state != null && state != lastState) {
-                println("  Deployment $deploymentId state: $state")
+                logger.lifecycle("  Deployment $deploymentId state: $state")
                 lastState = state
             }
             when (state) {
-                STATE_FAILED -> throw GradleException(
-                    "Central Portal deployment '$deploymentId' FAILED validation. " +
-                        "Inspect the errors at $DEPLOYMENTS_URL"
-                )
+                STATE_FAILED -> {
+                    throw GradleException(
+                        "Central Portal deployment '$deploymentId' FAILED validation. " +
+                            "Inspect the errors at $DEPLOYMENTS_URL"
+                    )
+                }
                 successState -> {
-                    println("Central Portal deployment '$deploymentId' reached $successState.")
+                    logger.lifecycle("Central Portal deployment '$deploymentId' reached $successState.")
                     return
                 }
                 else -> {
@@ -173,7 +183,7 @@ object CentralPortalUploader {
             }
         }
 
-        println(
+        logger.warn(
             "WARNING: Central Portal deployment '$deploymentId' did not reach $successState within " +
                 "${options.statusPollTimeoutMillis / MILLIS_PER_SECOND}s " +
                 "(last known state: ${lastState ?: "unknown"}). " +
@@ -196,17 +206,17 @@ object CentralPortalUploader {
             val connection = openPostConnection(url, token, readTimeoutMillis)
             val responseCode = connection.responseCode
             if (responseCode !in HTTP_SUCCESS) {
-                println("  Central Portal status check returned HTTP $responseCode, retrying")
+                logger.lifecycle("  Central Portal status check returned HTTP $responseCode, retrying")
                 return null
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val state = DEPLOYMENT_STATE_REGEX.find(body)?.groupValues?.get(1)
+            val state = DEPLOYMENT_STATE_REGEX.find(body)?.run { groupValues[1] }
             if (state == null) {
-                println("  Central Portal status response had no deploymentState, retrying")
+                logger.lifecycle("  Central Portal status response had no deploymentState, retrying")
             }
             state
         } catch (e: IOException) {
-            println("  Central Portal status check failed (${e.message}), retrying")
+            logger.lifecycle("  Central Portal status check failed (${e.message ?: e::class.java.name}), retrying")
             null
         }
     }
@@ -218,17 +228,17 @@ object CentralPortalUploader {
         filename: String
     ) {
         connection.outputStream.use { os ->
-            os.write("--$boundary\r\n".toByteArray())
-            os.write("Content-Disposition: form-data; name=\"bundle\"; filename=\"$filename\"\r\n".toByteArray())
-            os.write("Content-Type: application/octet-stream\r\n".toByteArray())
-            os.write("\r\n".toByteArray())
+            os.write("--$boundary$CRLF".toByteArray())
+            os.write("""Content-Disposition: form-data; name="bundle"; filename="$filename"$CRLF""".toByteArray())
+            os.write("Content-Type: application/octet-stream$CRLF".toByteArray())
+            os.write(CRLF.toByteArray())
             os.write(zipBytes)
-            os.write("\r\n".toByteArray())
-            os.write("--$boundary--\r\n".toByteArray())
+            os.write(CRLF.toByteArray())
+            os.write("--$boundary--$CRLF".toByteArray())
         }
     }
 
-    private fun openPostConnection(url: java.net.URL, token: String, readTimeoutMillis: Int): HttpURLConnection {
+    private fun openPostConnection(url: URL, token: String, readTimeoutMillis: Int): HttpURLConnection {
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
         connection.setRequestProperty("Authorization", "Bearer $token")
@@ -236,5 +246,4 @@ object CentralPortalUploader {
         connection.readTimeout = readTimeoutMillis
         return connection
     }
-
 }

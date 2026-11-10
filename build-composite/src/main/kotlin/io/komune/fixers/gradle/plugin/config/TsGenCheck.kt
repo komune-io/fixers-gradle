@@ -87,8 +87,8 @@ internal fun Project.registerTsGenCheck(
         }
     }
     // Only a build that emits Kotlin/JS has a contract.
-    val emitsJs = allprojects.any { project -> project.tasks.names.any { it.endsWith(JS_DISTRIBUTION_SUFFIX) } }
-    if (emitsJs) {
+    val isJsEmitted = allprojects.any { project -> project.tasks.names.any { it.endsWith(JS_DISTRIBUTION_SUFFIX) } }
+    if (isJsEmitted) {
         tasks.matching { it.name == "check" }.configureEach { dependsOn(checkTsGen) }
     }
     return checkTsGen
@@ -96,10 +96,11 @@ internal fun Project.registerTsGenCheck(
 
 // The package's own version, which `tsGen` writes at the contract's. Anchored: a dependency named
 // `version` is not it.
-internal val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
+internal val packageVersion = Regex("""^  "version": "[^"]*"""", RegexOption.MULTILINE)
 
 // Only [Kt2TsFiles.ALL] writes a module.
-private fun File.comparable(): String = readText().let { text -> if (name.endsWith(".mjs")) canonicalMjs(text) else text }
+private fun File.comparable(): String =
+    readText().let { text -> if (name.endsWith(".mjs")) canonicalMjs(text) else text }
 
 /** Every file of a package, by relative path, without the dependencies linked under node_modules. */
 internal fun File.packageFiles(): Map<String, File> =
@@ -184,29 +185,32 @@ private val reorderedRegions = setOf("//region block: pre-declaration", "//regio
  * outside the regions and in the pre- and post-declaration ones; elsewhere a reorder is a change.
  */
 internal fun canonicalMjs(text: String): String {
-    class Block(val sorted: Boolean) {
+    data class Block(val isSorted: Boolean) {
         val declarations = mutableListOf<StringBuilder>()
     }
-    val blocks = mutableListOf(Block(sorted = true))
+    val blocks = mutableListOf(Block(isSorted = true))
     text.lineSequence().forEach { line ->
         val declarations = blocks.last().declarations
         when {
             line.startsWith("//region") -> {
-                blocks.add(Block(sorted = false).apply { declarations.add(StringBuilder(line)) })
-                blocks.add(Block(sorted = line in reorderedRegions))
+                blocks.add(Block(isSorted = false).apply { declarations.add(StringBuilder(line)) })
+                blocks.add(Block(isSorted = line in reorderedRegions))
             }
             line.startsWith("//endregion") -> {
-                blocks.add(Block(sorted = false).apply { declarations.add(StringBuilder(line)) })
-                blocks.add(Block(sorted = true))
+                blocks.add(Block(isSorted = false).apply { declarations.add(StringBuilder(line)) })
+                blocks.add(Block(isSorted = true))
             }
-            declarations.isEmpty() || (line.isNotEmpty() && !line[0].isWhitespace() && line[0] !in "})]") ->
+            declarations.isEmpty() || line.isNotEmpty() && !line[0].isWhitespace() && line[0] !in "})]" -> {
                 declarations.add(StringBuilder(line))
-            else -> declarations.last().append('\n').append(line)
+            }
+            else -> {
+                declarations.last().append('\n').append(line)
+            }
         }
     }
     return blocks.joinToString("\n") { block ->
         val declarations = block.declarations.map { it.toString() }
-        if (!block.sorted) {
+        if (!block.isSorted) {
             declarations.joinToString("\n")
         } else {
             declarations.map { declaration ->

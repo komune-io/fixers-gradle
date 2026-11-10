@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
+import io.komune.fixers.gradle.config.utils.orNullText
 import io.komune.fixers.gradle.config.utils.property
 import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Project
@@ -139,26 +140,24 @@ class Bundle(
         defaultValue = "scm:git:ssh://github.com/komune-io/fixers-gradle.git"
     )
 
-    override fun toString(): String {
-        return """
-            Bundle(
-                name='${name.orNull}',
-                group=${group.orNull},
-                description=${description.orNull}, 
-                version=${version.orNull}, 
-                url=${url.orNull},
-                licenseName=${licenseName.orNull}, 
-                licenseUrl=${licenseUrl.orNull}, 
-                licenseDistribution=${licenseDistribution.orNull}, 
-                developerId=${developerId.orNull}, 
-                developerName=${developerName.orNull}, 
-                developerOrganization=${developerOrganization.orNull}, 
-                developerOrganizationUrl=${developerOrganizationUrl.orNull}, 
-                scmConnection=${scmConnection.orNull}, 
-                scmDeveloperConnection=${scmDeveloperConnection.orNull}
-            )
-        """.trimIndent()
-    }
+    override fun toString(): String = """
+        Bundle(
+            name='${name.orNullText()}',
+            group=${group.orNullText()},
+            description=${description.orNullText()}, 
+            version=${version.orNullText()}, 
+            url=${url.orNullText()},
+            licenseName=${licenseName.orNullText()}, 
+            licenseUrl=${licenseUrl.orNullText()}, 
+            licenseDistribution=${licenseDistribution.orNullText()}, 
+            developerId=${developerId.orNullText()}, 
+            developerName=${developerName.orNullText()}, 
+            developerOrganization=${developerOrganization.orNullText()}, 
+            developerOrganizationUrl=${developerOrganizationUrl.orNullText()}, 
+            scmConnection=${scmConnection.orNullText()}, 
+            scmDeveloperConnection=${scmDeveloperConnection.orNullText()}
+        )
+    """.trimIndent()
 
     /**
      * Merges properties from the source Bundle into this Bundle.

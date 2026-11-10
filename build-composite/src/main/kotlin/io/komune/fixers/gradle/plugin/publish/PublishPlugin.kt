@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import groovy.util.Node
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.PublishConfig
@@ -14,16 +15,11 @@ import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
+import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
 
 class PublishPlugin : Plugin<Project> {
-
-    companion object {
-        const val PLUGIN_ID = "io.komune.fixers.gradle.publish"
-        const val GRADLE_PLUGIN_PUBLISH_ID = "com.gradle.plugin-publish"
-        private const val MILLIS_PER_SECOND = 1000L
-    }
 
     override fun apply(project: Project) {
         if (project == project.rootProject) {
@@ -35,13 +31,15 @@ class PublishPlugin : Plugin<Project> {
 
     private fun applyToRoot(root: Project) {
         root.gradle.projectsEvaluated {
-            val fixersConfig = root.extensions.fixers ?: return@projectsEvaluated
-            bridgeGradlePortalCredentials(fixersConfig.publish)
-            val publishSubprojects = root.subprojects.filter {
-                it.pluginManager.hasPlugin(PLUGIN_ID)
-            }
-            if (publishSubprojects.isNotEmpty()) {
-                registerPublishTasks(root, fixersConfig, publishSubprojects)
+            val fixersConfig = root.extensions.fixers
+            if (fixersConfig != null) {
+                bridgeGradlePortalCredentials(fixersConfig.publish)
+                val publishSubprojects = root.subprojects.filter { subproject ->
+                    subproject.pluginManager.hasPlugin(PLUGIN_ID)
+                }
+                if (publishSubprojects.isNotEmpty()) {
+                    registerPublishTasks(root, fixersConfig, publishSubprojects)
+                }
             }
         }
     }
@@ -83,10 +81,10 @@ class PublishPlugin : Plugin<Project> {
             val fixersConfig = rootProject.extensions.fixers
             if (fixersConfig == null) {
                 logger.warn("No fixers config found on root project, skipping publish configuration")
-                return@afterEvaluate
+            } else {
+                setupPublishing(fixersConfig)
+                setupSign(fixersConfig)
             }
-            setupPublishing(fixersConfig)
-            setupSign(fixersConfig)
         }
     }
 
@@ -109,8 +107,8 @@ class PublishPlugin : Plugin<Project> {
                 name = "githubPackages"
                 url = project.uri(fixersConfig.publish.githubPackagesUrl.get())
                 credentials {
-                    username = fixersConfig.publish.pkgGithubUsername.orNull ?: ""
-                    password = fixersConfig.publish.pkgGithubToken.orNull ?: ""
+                    username = fixersConfig.publish.pkgGithubUsername.orNull.orEmpty()
+                    password = fixersConfig.publish.pkgGithubToken.orNull.orEmpty()
                 }
             }
         }
@@ -170,15 +168,16 @@ class PublishPlugin : Plugin<Project> {
                 )
             } else {
                 val pub = extensions.getByType<PublishingExtension>()
-                pub.publications.findByName("mavenJava")?.let {
-                    sign(it)
+                val mavenJava = pub.publications.findByName("mavenJava")
+                if (mavenJava != null) {
+                    sign(mavenJava)
                 }
             }
         }
     }
 
     private fun Project.disableSigningTasks() {
-        tasks.withType(org.gradle.plugins.signing.Sign::class.java).configureEach {
+        tasks.withType(Sign::class.java).configureEach {
             enabled = false
         }
     }
@@ -189,7 +188,7 @@ class PublishPlugin : Plugin<Project> {
         publishSubprojects: List<Project>
     ): TaskProvider<Task> {
         val cleanStagingTask = root.tasks.register("cleanStaging") {
-            group = "publishing"
+            group = PUBLISHING_GROUP
             description = "Cleans the staging directory before publishing"
             doLast {
                 stagingDirProvider.get().asFile.deleteRecursively()
@@ -240,7 +239,7 @@ class PublishPlugin : Plugin<Project> {
         // Stage: publish to staging directory, then upload to GitHub Packages
         // Uses custom uploader to handle 409 Conflict (already-published artifacts) gracefully.
         root.tasks.register("stage") {
-            group = "publishing"
+            group = PUBLISHING_GROUP
             description = "Publishes all artifacts to GitHub Packages"
             dependsOn(cleanStagingTask)
             dependsOn(allPublishToStagingTasks)
@@ -251,7 +250,7 @@ class PublishPlugin : Plugin<Project> {
 
         // Promote: route based on version type
         root.tasks.register("promote") {
-            group = "publishing"
+            group = PUBLISHING_GROUP
             dependsOn(cleanStagingTask)
             dependsOn(allPublishToStagingTasks)
             if (isSnapshot) {
@@ -266,8 +265,8 @@ class PublishPlugin : Plugin<Project> {
                 if (fixersConfig.publish.gradlePluginPortalEnabled.getOrElse(true)) {
                     dependsOn(
                         publishSubprojects
-                            .filter { it.plugins.hasPlugin(GRADLE_PLUGIN_PUBLISH_ID) }
-                            .map { "${it.path}:publishPlugins" }
+                            .filter { subproject -> subproject.plugins.hasPlugin(GRADLE_PLUGIN_PUBLISH_ID) }
+                            .map { subproject -> "${subproject.path}:publishPlugins" }
                     )
                 }
 
@@ -286,7 +285,15 @@ class PublishPlugin : Plugin<Project> {
         }
     }
 
+    companion object {
+        const val PLUGIN_ID = "io.komune.fixers.gradle.publish"
+        const val GRADLE_PLUGIN_PUBLISH_ID = "com.gradle.plugin-publish"
+        private const val MILLIS_PER_SECOND = 1000L
+        private const val PUBLISHING_GROUP = "publishing"
+    }
 }
+
+private const val VERSION_TAG = "version"
 
 /**
  * Collects resolved dependency versions from all resolvable configurations,
@@ -299,11 +306,10 @@ private fun collectResolvedVersions(project: Project): Map<String, String> {
     val versions = mutableMapOf<String, String>()
     project.configurations.filter { it.isCanBeResolved }.forEach { config ->
         try {
-            config.incoming.resolutionResult.allComponents.forEach { component ->
-                val id = component.moduleVersion ?: return@forEach
-                if (id.group.isEmpty()) return@forEach
-                addVersionWithPlatformStripping(versions, id.group, id.name, id.version)
-            }
+            config.incoming.resolutionResult.allComponents
+                .mapNotNull { component -> component.moduleVersion }
+                .filter { id -> id.group.isNotEmpty() }
+                .forEach { id -> addVersionWithPlatformStripping(versions, id.group, id.name, id.version) }
         } catch (_: Exception) {
             // Skip configurations that cannot be resolved
         }
@@ -333,7 +339,7 @@ private fun addVersionWithPlatformStripping(
  */
 @Suppress("CyclomaticComplexMethod", "ReturnCount")
 internal fun inlineDependencyVersions(
-    root: groovy.util.Node,
+    root: Node,
     resolvedVersions: Map<String, String> = emptyMap()
 ) {
     // POM dependencyManagement versions take precedence over resolved versions
@@ -349,7 +355,7 @@ internal fun inlineDependencyVersions(
     }
 }
 
-private fun extractVersionMap(root: groovy.util.Node): Map<String, String> {
+private fun extractVersionMap(root: Node): Map<String, String> {
     val depMgmt = findChildNode(root, "dependencyManagement")
     val mgmtDeps = depMgmt?.let { findChildNode(it, "dependencies") }
 
@@ -359,7 +365,7 @@ private fun extractVersionMap(root: groovy.util.Node): Map<String, String> {
             .mapNotNull { dep ->
                 val groupId = nodeChildText(dep, "groupId")
                 val artifactId = nodeChildText(dep, "artifactId")
-                val version = nodeChildText(dep, "version")
+                val version = nodeChildText(dep, VERSION_TAG)
                 if (groupId != null && artifactId != null && version != null) {
                     "$groupId:$artifactId" to version
                 } else {
@@ -367,49 +373,45 @@ private fun extractVersionMap(root: groovy.util.Node): Map<String, String> {
                 }
             }
             .toMap()
-    } ?: emptyMap()
+    }.orEmpty()
 }
 
-private fun applyVersionsToDependencies(root: groovy.util.Node, versionMap: Map<String, String>) {
+private fun applyVersionsToDependencies(root: Node, versionMap: Map<String, String>) {
     val depsNode = findChildNode(root, "dependencies") ?: return
 
     dependencyNodes(depsNode)
-        .filter { findChildNode(it, "version") == null }
+        .filter { findChildNode(it, VERSION_TAG) == null }
         .forEach { dep ->
             val groupId = nodeChildText(dep, "groupId")
             val artifactId = nodeChildText(dep, "artifactId")
-            val key = "$groupId:$artifactId"
-            val version = versionMap[key]
+            val version = if (groupId != null && artifactId != null) versionMap["$groupId:$artifactId"] else null
             if (version != null) {
-                dep.appendNode("version", version)
+                dep.appendNode(VERSION_TAG, version)
             }
         }
 }
 
-private fun dependencyNodes(depsNode: groovy.util.Node): List<groovy.util.Node> {
-    return childNodes(depsNode).filter { nodeLocalName(it) == "dependency" }
-}
+private fun dependencyNodes(depsNode: Node): List<Node> =
+    childNodes(depsNode).filter { nodeLocalName(it) == "dependency" }
 
-private fun isBomImport(dep: groovy.util.Node): Boolean {
+private fun isBomImport(dep: Node): Boolean {
     val scope = nodeChildText(dep, "scope")
     return scope?.equals("import", ignoreCase = true) == true
 }
 
-private fun findChildNode(parent: groovy.util.Node, localName: String): groovy.util.Node? {
-    return childNodes(parent).firstOrNull { nodeLocalName(it) == localName }
-}
+private fun findChildNode(parent: Node, localName: String): Node? =
+    childNodes(parent).firstOrNull { nodeLocalName(it) == localName }
 
-private fun childNodes(node: groovy.util.Node): List<groovy.util.Node> {
-    return node.children().filterIsInstance<groovy.util.Node>()
-}
+private fun childNodes(node: Node): List<Node> =
+    node.children().filterIsInstance<Node>()
 
-private fun nodeLocalName(node: groovy.util.Node): String {
+private fun nodeLocalName(node: Node): String {
     val name = node.name()
     val str = name.toString()
     return if (str.startsWith("{")) str.substringAfter("}") else str
 }
 
-private fun nodeChildText(parent: groovy.util.Node, localName: String): String? {
+private fun nodeChildText(parent: Node, localName: String): String? {
     val child = findChildNode(parent, localName) ?: return null
     return child.text()?.takeIf { it.isNotBlank() }
 }

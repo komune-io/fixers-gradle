@@ -3,6 +3,7 @@ package io.komune.fixers.gradle.integration.npm
 import io.komune.fixers.gradle.integration.BaseIntegrationTest
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
@@ -94,7 +95,7 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
     /**
      * Verifies that NPM integration is correctly configured.
      */
-    private fun verifyNpmIntegration(result: org.gradle.testkit.runner.BuildResult) {
+    private fun verifyNpmIntegration(result: BuildResult) {
         assertThat(result.task(":verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("NPM package.json:")
         assertThat(result.output).contains("Has npmInstall task:")
@@ -195,7 +196,7 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
     /**
      * Verifies that NPM dependencies are correctly configured.
      */
-    private fun verifyNpmDependencies(result: org.gradle.testkit.runner.BuildResult) {
+    private fun verifyNpmDependencies(result: BuildResult) {
         assertThat(result.task(":verifyNpmDependencies")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has lodash dependency: true")
         assertThat(result.output).contains("Has webpack devDependency: true")

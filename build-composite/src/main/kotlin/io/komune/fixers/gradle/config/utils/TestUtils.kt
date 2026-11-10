@@ -20,19 +20,19 @@ fun Project.configureJUnitPlatform(testCompilation: String = "test") {
     val runtimeClasspath = "${testCompilation}RuntimeClasspath"
     configurations.matching { it.name == "${testCompilation}RuntimeOnly" }.configureEach {
         withDependencies {
-            val declared = configurations.findByName(runtimeClasspath)?.allDependencies ?: return@withDependencies
+            val declared = configurations.findByName(runtimeClasspath)?.allDependencies
             // Versionless: the version comes from the JUnit BOM the JUnit artifacts declare. Without
             // JUnit on the classpath nothing provides it, and the resolution would fail.
-            if (declared.any(Dependency::isJUnit) && declared.none(Dependency::isLauncher)) {
+            if (declared != null && declared.any(Dependency::isJUnit) && declared.none(Dependency::isLauncher)) {
                 add(project.dependencies.create(JUNIT_PLATFORM_LAUNCHER))
             }
         }
     }
 }
 
-private fun Dependency.isLauncher() = "$group:$name" == JUNIT_PLATFORM_LAUNCHER
+private fun Dependency.isLauncher() = "${group.orEmpty()}:$name" == JUNIT_PLATFORM_LAUNCHER
 
 private fun Dependency.isJUnit() =
     group?.startsWith("org.junit") == true ||
-        (group == "org.jetbrains.kotlin" && name in setOf("kotlin-test", "kotlin-test-junit5")) ||
-        (group == "org.springframework.boot" && name == "spring-boot-starter-test")
+        group == "org.jetbrains.kotlin" && name in setOf("kotlin-test", "kotlin-test-junit5") ||
+        group == "org.springframework.boot" && name == "spring-boot-starter-test"

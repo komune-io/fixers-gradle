@@ -12,13 +12,11 @@ import org.gradle.kotlin.dsl.create
  * with that name exists yet, applying the standard fixers POM from the bundle config.
  */
 internal fun Project.createMavenPublicationIfAbsent(componentName: String, config: ConfigExtension) {
-    extensions.findByType(PublishingExtension::class.java)?.let { publishing ->
-        publishing.publications {
-            if (findByName("maven") == null) {
-                create<MavenPublication>("maven") {
-                    from(components.findByName(componentName))
-                    pom(project.pom(config.bundle))
-                }
+    extensions.findByType(PublishingExtension::class.java)?.publications {
+        if (findByName("maven") == null) {
+            create<MavenPublication>("maven") {
+                from(components.findByName(componentName))
+                pom(project.pom(config.bundle))
             }
         }
     }

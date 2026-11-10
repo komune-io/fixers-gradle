@@ -56,7 +56,7 @@ class Kt2Ts(
      * Additional regex patterns for cleaning generated TypeScript files.
      * The map keys are file extensions, and the values are lists of regex patterns and their replacements.
      */
-    val additionalCleaning: MapProperty<String, List<Pair<Regex, String>>> = 
+    val additionalCleaning: MapProperty<String, List<Pair<Regex, String>>> =
         project.objects.mapProperty<String, List<Pair<Regex, String>>>().apply {
             convention(emptyMap())
         }

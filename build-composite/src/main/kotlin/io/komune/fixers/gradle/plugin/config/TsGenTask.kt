@@ -11,59 +11,56 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
 
-
 /**
  * Registers on the root project `tsGen`, which writes the TypeScript contract of the build from its
  * Kotlin/JS output, `cleanTsGen`, and `checkTsGen` (see [registerTsGenCheck]).
  */
 internal fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
     val target = rootProject
-    mainConfig?.kt2Ts?.let { config ->
-        // Kotlin/JS writes build/js/packages while it assembles a library distribution.
-        val jsDistributions = target.allprojects.map { project ->
-            project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
-        }
-        // Resolved when a task is realized, not when the plugin is applied.
-        val source by lazy {
-            target.file(
-                config.inputDirectory.orNull ?: "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/"
-            )
-        }
-        val output by lazy { target.file(config.outputDirectory.get()) }
-        val cleaning by lazy { config.buildCleaningRegex() }
-        target.tasks {
-            register<Delete>("cleanTsGen") {
-                mustRunAfter(jsDistributions)
-                delete(config.outputDirectory.get())
-            }
-
-            // Not a Copy or a Sync: either tracks its whole destination, and with it the links a JS package
-            // manager makes under node_modules — a dangling one fails the task, each install makes it stale.
-            register("tsGen") {
-                dependsOn(jsDistributions)
-                mustRunAfter("cleanTsGen")
-                val from = source
-                val into = output
-                val rules = cleaning
-                val committed = config.committedFiles
-                inputs.files(target.emittedTree(from)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
-                inputs.property("cleaning", rules.fingerprint())
-                inputs.property("committedFiles", committed)
-                outputs.files(target.packageTree(into))
-                doLast {
-                    into.writeContract(from, rules, committed.get())
-                }
-            }
-        }
-        target.registerTsGenCheck(config, jsDistributions) { Triple(source, output, cleaning) }
+    val config = mainConfig?.kt2Ts ?: return
+    // Kotlin/JS writes build/js/packages while it assembles a library distribution.
+    val jsDistributions = target.allprojects.map { project ->
+        project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
     }
+    // Resolved when a task is realized, not when the plugin is applied.
+    val source by lazy {
+        val buildDirectory = target.layout.buildDirectory.asFile.get()
+        target.file(config.inputDirectory.orNull ?: "${buildDirectory.absolutePath}/js/packages/")
+    }
+    val output by lazy { target.file(config.outputDirectory.get()) }
+    val cleaning by lazy { config.buildCleaningRegex() }
+    target.tasks {
+        register<Delete>("cleanTsGen") {
+            mustRunAfter(jsDistributions)
+            delete(config.outputDirectory.get())
+        }
+
+        // Not a Copy or a Sync: either tracks its whole destination, and with it the links a JS package
+        // manager makes under node_modules — a dangling one fails the task, each install makes it stale.
+        register("tsGen") {
+            dependsOn(jsDistributions)
+            mustRunAfter("cleanTsGen")
+            val from = source
+            val into = output
+            val rules = cleaning
+            val committed = config.committedFiles
+            inputs.files(target.emittedTree(from)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
+            inputs.property("cleaning", rules.fingerprint())
+            inputs.property("committedFiles", committed)
+            outputs.files(target.packageTree(into))
+            doLast {
+                into.writeContract(from, rules, committed.get())
+            }
+        }
+    }
+    target.registerTsGenCheck(config, jsDistributions) { Triple(source, output, cleaning) }
 }
 
 /** Whether this mode writes the file at [path], relative to the packages directory. */
 private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
     Kt2TsFiles.ALL -> true
     Kt2TsFiles.DECLARATIONS ->
-        path.endsWith(DMTS) || path.endsWith(".d.ts") || path.substringAfterLast('/') == PACKAGE_JSON
+        path.endsWith(DMTS) || path.endsWith(DTS) || path.substringAfterLast('/') == PACKAGE_JSON
 }
 
 /**
@@ -74,7 +71,7 @@ internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
     packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
-        file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
+        file.writeText(packageVersion.replace(file.readText(), """  "version": "${Kt2TsFiles.CONTRACT_VERSION}""""))
     }
 }
 
@@ -87,7 +84,7 @@ fun cleanProjectDir(folder: String, cleaning: Map<String, List<Pair<Regex, Strin
 fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     val additionalCleaningMap = additionalCleaning.get()
     val cleaning = mutableMapOf(
-        ".d.ts" to listOf(
+        DTS to listOf(
             Regex("""(?m).*__doNotImplementIt.*\n""") to "",
             Regex(""".*readonly __doNotUseOrImplementIt.*;\n""") to "",
             Regex(""".*__doNotUseOrImplementIt:*[\s\S].*\n.*\n.*;""") to "",
@@ -104,7 +101,7 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
             Regex("""static get Companion(.*\n)*?(\s)*}( &.*)?;""") to "",
             Regex("""abstract class (\w+)(?: implements [\w.]*?)? \{[\s\S]*?(?:\1)"""
                     + """;[\s]*get name\(\): ((?:\"\w+\" \| )*\"(\w+)\")[\s\S]*?\}""") to "type $1 = $2;",
-        ) + additionalCleaningMap[".d.ts"].orEmpty(),
+        ) + additionalCleaningMap[DTS].orEmpty(),
         // Modern Kotlin/JS ESM exporter output (KtList / KtMap / bigint), emitted as `.d.mts`.
         // The `.d.ts` block above targets the legacy exporter names and never matches these files
         // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.

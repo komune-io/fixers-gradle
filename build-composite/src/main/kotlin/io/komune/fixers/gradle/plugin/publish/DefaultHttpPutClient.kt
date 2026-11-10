@@ -6,17 +6,6 @@ import java.net.URI
 
 class DefaultHttpPutClient : HttpPutClient {
 
-    private companion object {
-        const val HTTP_OK = 200
-        const val HTTP_LAST_SUCCESS = 299
-        const val HTTP_CONFLICT = 409
-        val HTTP_SUCCESS = HTTP_OK..HTTP_LAST_SUCCESS
-
-        // Without these, an unresponsive repository endpoint hangs the build forever.
-        const val CONNECT_TIMEOUT_MS = 30_000
-        const val READ_TIMEOUT_MS = 120_000
-    }
-
     override fun put(url: String, authHeader: String, file: File): HttpPutResult {
         val connection = URI(url).toURL().openConnection() as HttpURLConnection
         connection.requestMethod = "PUT"
@@ -32,12 +21,27 @@ class DefaultHttpPutClient : HttpPutClient {
 
         val responseCode = connection.responseCode
         return when {
-            responseCode in HTTP_SUCCESS -> HttpPutResult.Success
-            responseCode == HTTP_CONFLICT -> HttpPutResult.Conflict
+            responseCode in HTTP_SUCCESS -> {
+                HttpPutResult.Success
+            }
+            responseCode == HTTP_CONFLICT -> {
+                HttpPutResult.Conflict
+            }
             else -> {
-                val body = connection.errorStream?.bufferedReader()?.readText() ?: ""
+                val body = connection.errorStream?.run { bufferedReader().readText() }.orEmpty()
                 HttpPutResult.Error(responseCode, body)
             }
         }
+    }
+
+    private companion object {
+        const val HTTP_OK = 200
+        const val HTTP_LAST_SUCCESS = 299
+        const val HTTP_CONFLICT = 409
+        val HTTP_SUCCESS = HTTP_OK..HTTP_LAST_SUCCESS
+
+        // Without these, an unresponsive repository endpoint hangs the build forever.
+        const val CONNECT_TIMEOUT_MS = 30_000
+        const val READ_TIMEOUT_MS = 120_000
     }
 }
