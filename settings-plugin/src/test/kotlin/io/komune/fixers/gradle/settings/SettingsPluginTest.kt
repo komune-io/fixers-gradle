@@ -27,11 +27,11 @@ class SettingsPluginTest {
         writeSettings()
         File(projectDir, "build.gradle.kts").writeText(
             """
-            val library = extensions.getByType<VersionCatalogsExtension>().named("catalogue")
-                .findLibrary("probe").get().get().toString()
-            tasks.register("printCatalog") {
-                doLast { println("catalogue probe=" + library) }
-            }
+                val library = extensions.getByType<VersionCatalogsExtension>().named("catalogue")
+                    .findLibrary("probe").get().get().toString()
+                tasks.register("printCatalog") {
+                    doLast { println("catalogue probe=" + library) }
+                }
             """.trimIndent()
         )
 
@@ -41,7 +41,7 @@ class SettingsPluginTest {
     }
 
     @Test
-    fun `should add only the Node and Yarn repositories and keep the project's own in order`() {
+    fun `should add Maven Central and the Komune snapshots after the project's own repositories`() {
         publishCatalog()
         writeSettings(
             repositories = """
@@ -49,14 +49,15 @@ class SettingsPluginTest {
                 maven { name = "Probe"; url = uri("${repoDir.toURI()}") }
             """.trimIndent(),
             after = """
-                val names = dependencyResolutionManagement.repositories.map { it.name }
-                println("repositories=" + names.joinToString())
+                gradle.settingsEvaluated {
+                    println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
+                }
             """.trimIndent(),
         )
 
         val result = run("help")
 
-        assertThat(result.output).contains("repositories=Node.js, Yarn, MavenLocal, Probe")
+        assertThat(result.output).contains("repositories=Node.js, Yarn, MavenLocal, Probe, MavenRepo, KomuneSnapshots")
     }
 
     @Test
@@ -64,7 +65,12 @@ class SettingsPluginTest {
         publishCatalog()
         writeSettings()
         File(projectDir, "gradle").mkdirs()
-        File(projectDir, "gradle/libs.versions.toml").writeText("[versions]\nfixers = \"0.0.1\"\n")
+        File(projectDir, "gradle/libs.versions.toml").writeText(
+            """
+                [versions]
+                fixers = "0.0.1"
+            """.trimIndent()
+        )
 
         val result = runner("help").buildAndFail()
 
@@ -79,7 +85,13 @@ class SettingsPluginTest {
         writeSettings()
         File(projectDir, "gradle").mkdirs()
         File(projectDir, "gradle/libs.versions.toml").writeText(
-            "[libraries]\nfixers = \"io.komune:other:0.0.1\"\n\n[versions]\nfixers = \"$version\"\n"
+            """
+                [libraries]
+                fixers = "io.komune:other:0.0.1"
+
+                [versions]
+                fixers = "$version"
+            """.trimIndent()
         )
 
         run("help")
@@ -98,6 +110,66 @@ class SettingsPluginTest {
     }
 
     @Test
+    fun `should keep the project repositories forbidden`() {
+        publishCatalog()
+        writeSettings(after = "dependencyResolutionManagement.repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)")
+
+        val result = runner("help").buildAndFail()
+
+        assertThat(result.output)
+            .contains("keeps repositoriesMode at FAIL_ON_PROJECT_REPOS: remove repositoriesMode.set")
+    }
+
+    @Test
+    fun `should refuse a catalogue the build creates itself`() {
+        publishCatalog()
+        writeSettings(after = OWN_CATALOGUE)
+        writeOwnCatalogue()
+
+        val result = runner("help").buildAndFail()
+
+        assertThat(result.output).contains("""remove versionCatalogs.create("catalogue")""")
+    }
+
+    @Test
+    fun `should leave the catalogue to the build that produces it`() {
+        writeSettings(after = OWN_CATALOGUE)
+        writeOwnCatalogue()
+        File(projectDir, "gradle.properties").writeText("io.komune.fixers.settings.catalogue=false\n")
+        File(projectDir, "build.gradle.kts").writeText(
+            """
+                val library = extensions.getByType<VersionCatalogsExtension>().named("catalogue")
+                    .findLibrary("own").get().get().toString()
+                println("catalogue own=" + library)
+            """.trimIndent()
+        )
+
+        assertThat(run("help").output).contains("catalogue own=io.komune.own:own:1.0.0")
+    }
+
+    private fun writeOwnCatalogue() {
+        File(projectDir, "gradle").mkdirs()
+        File(projectDir, "gradle/own.toml").writeText(
+            """
+                [libraries]
+                own = "io.komune.own:own:1.0.0"
+
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun `should mark the build for the fixers project plugins`() {
+        publishCatalog()
+        writeSettings()
+        File(projectDir, "build.gradle.kts").writeText(
+            """println("marker=" + gradle.extensions.extraProperties.has("io.komune.fixers.gradle.settings"))"""
+        )
+
+        assertThat(run("help").output).contains("marker=true")
+    }
+
+    @Test
     fun `should build under the Komune CI init script`() {
         publishCatalog()
         writeSettings(
@@ -112,24 +184,25 @@ class SettingsPluginTest {
 
         val result = runner("help", "--init-script", initScript.path).build()
 
-        assertThat(result.output).contains("repositories=Node.js, Yarn, Probe, MavenRepo, FixersGitHubPackages")
+        assertThat(result.output)
+            .contains("repositories=Node.js, Yarn, Probe, MavenRepo, KomuneSnapshots, FixersGitHubPackages")
     }
 
     @Test
     fun `should give a build that prefers settings repositories the CI repositories in its settings`() {
         File(projectDir, "settings.gradle.kts").writeText(
             """
-            dependencyResolutionManagement {
-                repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-                repositories { maven { name = "Probe"; url = uri("${repoDir.toURI()}") } }
-            }
-            rootProject.name = "probe"
-            gradle.settingsEvaluated {
-                println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
-            }
+                dependencyResolutionManagement {
+                    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+                    repositories { maven { name = "Probe"; url = uri("${repoDir.toURI()}") } }
+                }
+                rootProject.name = "probe"
+                gradle.settingsEvaluated {
+                    println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
+                }
             """.trimIndent()
         )
-        File(projectDir, "build.gradle.kts").writeText("println(\"projectRepositories=\" + repositories.size)\n")
+        File(projectDir, "build.gradle.kts").writeText("""println("projectRepositories=" + repositories.size)""")
 
         val result = runner("help", "--init-script", File(CI_INIT_SCRIPT).absoluteFile.path).build()
 
@@ -143,7 +216,12 @@ class SettingsPluginTest {
         publishCatalog()
         writeSettings()
         File(projectDir, "gradle").mkdirs()
-        File(projectDir, "gradle/libs.versions.toml").writeText("[versions]\nfixers = \"$version\"\n")
+        File(projectDir, "gradle/libs.versions.toml").writeText(
+            """
+                [versions]
+                fixers = "$version"
+            """.trimIndent()
+        )
 
         run("help")
     }
@@ -162,21 +240,21 @@ class SettingsPluginTest {
         File(projectDir, "js").mkdirs()
         File(projectDir, "js/build.gradle.kts").writeText(
             """
-            import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
-            import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
+                import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
+                import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec
 
-            plugins { kotlin("multiplatform") version "$KOTLIN_VERSION" }
-            kotlin { js { browser() } }
+                plugins { kotlin("multiplatform") version "$KOTLIN_VERSION" }
+                kotlin { js { browser() } }
 
-            gradle.projectsEvaluated {
-                val specs = listOf(project, rootProject).flatMap { p ->
-                    listOfNotNull(
-                        p.extensions.findByType(NodeJsEnvSpec::class.java)?.let { "node=" + it.downloadBaseUrl.orNull },
-                        p.extensions.findByType(YarnRootEnvSpec::class.java)?.let { "yarn=" + it.downloadBaseUrl.orNull },
-                    )
+                gradle.projectsEvaluated {
+                    val specs = listOf(project, rootProject).flatMap { p ->
+                        listOfNotNull(
+                            p.extensions.findByType(NodeJsEnvSpec::class.java)?.let { "node=" + it.downloadBaseUrl.orNull },
+                            p.extensions.findByType(YarnRootEnvSpec::class.java)?.let { "yarn=" + it.downloadBaseUrl.orNull },
+                        )
+                    }
+                    println("downloadBaseUrls=" + specs.sorted())
                 }
-                println("downloadBaseUrls=" + specs.sorted())
-            }
             """.trimIndent()
         )
 
@@ -193,56 +271,61 @@ class SettingsPluginTest {
     ) {
         File(projectDir, "settings.gradle.kts").writeText(
             """
-            pluginManagement {
-                repositories {
-                    $pluginRepositories
+                pluginManagement {
+                    repositories {
+                        $pluginRepositories
+                    }
                 }
-            }
-            plugins {
-                id("io.komune.fixers.gradle.settings")
-            }
-            dependencyResolutionManagement {
-                repositories {
-                    $repositories
+                plugins {
+                    id("io.komune.fixers.gradle.settings")
                 }
-            }
-            rootProject.name = "probe"
-            $after
+                dependencyResolutionManagement {
+                    repositories {
+                        $repositories
+                    }
+                }
+                rootProject.name = "probe"
+                $after
             """.trimIndent()
         )
     }
 
-    /** Lays out `io.komune.f2:f2-gradle-catalog:<version>` with one library, `probe`. */
+    // Lays out `io.komune.f2:f2-gradle-catalog:<version>` with one library, `probe`.
     private fun publishCatalog() {
         val dir = File(repoDir, "io/komune/f2/f2-gradle-catalog/$version").apply { mkdirs() }
         val base = "f2-gradle-catalog-$version"
-        File(dir, "$base.toml").writeText("[libraries]\nprobe = \"io.komune.probe:probe:1.2.3\"\n")
+        File(dir, "$base.toml").writeText(
+            """
+                [libraries]
+                probe = "io.komune.probe:probe:1.2.3"
+            """.trimIndent()
+        )
         File(dir, "$base.pom").writeText(
             """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <project xmlns="http://maven.apache.org/POM/4.0.0">
-              <!-- do_not_remove: published-with-gradle-metadata -->
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>io.komune.f2</groupId>
-              <artifactId>f2-gradle-catalog</artifactId>
-              <version>$version</version>
-              <packaging>toml</packaging>
-            </project>
+                <?xml version="1.0" encoding="UTF-8"?>
+                <project xmlns="http://maven.apache.org/POM/4.0.0">
+                  <!-- do_not_remove: published-with-gradle-metadata -->
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>io.komune.f2</groupId>
+                  <artifactId>f2-gradle-catalog</artifactId>
+                  <version>$version</version>
+                  <packaging>toml</packaging>
+                </project>
             """.trimIndent()
         )
         File(dir, "$base.module").writeText(
             """
-            {
-              "formatVersion": "1.1",
-              "component": { "group": "io.komune.f2", "module": "f2-gradle-catalog", "version": "$version" },
-              "variants": [
                 {
-                  "name": "versionCatalogElements",
-                  "attributes": { "org.gradle.category": "platform", "org.gradle.usage": "version-catalog" },
-                  "files": [ { "name": "$base.toml", "url": "$base.toml" } ]
+                  "formatVersion": "1.1",
+                  "component": { "group": "io.komune.f2", "module": "f2-gradle-catalog", "version": "$version" },
+                  "variants": [
+                    {
+                      "name": "versionCatalogElements",
+                      "attributes": { "org.gradle.category": "platform", "org.gradle.usage": "version-catalog" },
+                      "files": [ { "name": "$base.toml", "url": "$base.toml" } ]
+                    }
+                  ]
                 }
-              ]
-            }
             """.trimIndent()
         )
     }
@@ -257,6 +340,9 @@ class SettingsPluginTest {
 
     private companion object {
         const val KOTLIN_VERSION = "2.4.21"
+
+        const val OWN_CATALOGUE = """dependencyResolutionManagement.versionCatalogs.create("catalogue") """ +
+            """{ from(files("gradle/own.toml")) }"""
 
         /** The init script the Komune CI action writes to `~/.gradle`, from the module directory. */
         const val CI_INIT_SCRIPT = "../.github/actions/setup-gradle-github-pkg/init.gradle.kts"

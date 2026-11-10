@@ -1,52 +1,49 @@
 package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.config.fixers
-import io.komune.fixers.gradle.config.model.Repositories
 import io.komune.fixers.gradle.config.utils.resolveVersion
-import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 
 /**
- * Plugin that applies and configures the ConfigExtension for a project.
- * 
- * This plugin:
- * 1. Creates a ConfigExtension for the target project if it doesn't exist
- * 2. Logs configuration information
- * 3. Propagates configuration from the root project to subprojects
- * 4. Configures Kotlin to TypeScript generation if enabled
- * 5. From the root, forces a patched BouncyCastle on KGP's PGP helper configuration
- *    in every project (see [alignBouncyCastle])
- */
-/**
- * Set on `gradle` by the fixers settings plugin, which declares every repository in the settings
- * and forbids project repositories: this plugin then adds none.
+ * Set on `gradle` by the fixers settings plugin, which declares every repository of the build.
  */
 internal const val SETTINGS_PLUGIN_MARKER = "io.komune.fixers.gradle.settings"
 
+internal const val CONFIG_PLUGIN_ID = "io.komune.fixers.gradle.config"
+
+/**
+ * Creates the `fixers` extension, sets the version of every project from the `VERSION` file and
+ * merges the root's configuration into the subprojects. From the root, it forces a patched
+ * BouncyCastle on KGP's PGP helper configuration, enforces the Spring Boot image convention and
+ * the yarn resolutions on every project, and registers the TypeScript contract tasks.
+ *
+ * It fails in a build without the fixers settings plugin, and in a module whose root project
+ * does not apply it: the conventions above would then be left out without a word.
+ */
 class ConfigPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        // Apply base plugin to get lifecycle tasks (assemble, build, check) if not already present
-        if (!target.plugins.hasPlugin("base")) {
-            target.plugins.apply("base")
+        val root: Project = target.rootProject
+        if (!target.gradle.extensions.extraProperties.has(SETTINGS_PLUGIN_MARKER)) {
+            throw GradleException(
+                "$CONFIG_PLUGIN_ID needs the fixers settings plugin: " +
+                    "apply the $SETTINGS_PLUGIN_MARKER plugin in settings.gradle.kts."
+            )
         }
+        if (target != root && !root.plugins.hasPlugin(ConfigPlugin::class.java)) {
+            throw GradleException(
+                "${target.path} applies $CONFIG_PLUGIN_ID, the root project does not: " +
+                    "apply it in the root build.gradle.kts."
+            )
+        }
+        target.pluginManager.apply("base")
 
         val extension = target.config()
-        val root: Project = target.rootProject
-        // Once per build: every module applies this plugin, and a later pass would overwrite
-        // a version a build script set in between.
-        val extra = root.extensions.extraProperties
-        if (!extra.has(VERSION_SET)) {
-            extra.set(VERSION_SET, true)
-            root.setVersion()
-        }
-
-        // From the root, across every project: Kotlin subprojects do not all apply a fixers
-        // plugin (MPP modules skip ConfigPlugin, some apply plain `kotlin("jvm")`), yet KGP
-        // creates the configuration in each of them.
         if (target == root) {
+            root.setVersion()
+            // Kotlin subprojects do not all apply a fixers plugin (MPP modules skip this one, some
+            // apply plain `kotlin("jvm")`), yet KGP creates the configuration in each of them.
             root.allprojects {
                 alignBouncyCastle()
                 enforceBootImageConvention()
@@ -70,15 +67,7 @@ class ConfigPlugin : Plugin<Project> {
                         subproject.group = bundleGroup
                     }
                 }
-                if (!root.gradle.extensions.extraProperties.has(SETTINGS_PLUGIN_MARKER)) {
-                    root.allprojects.forEach { proj ->
-                        proj.configureRepositories(extension.repositories)
-                    }
-                }
-            }
-
-            root.extensions.fixers?.let { config ->
-                target.configureKt2Ts(config)
+                root.configureKt2Ts(extension)
             }
         }
     }
@@ -111,35 +100,9 @@ class ConfigPlugin : Plugin<Project> {
         subprojectConfig.detekt.mergeFrom(rootConfig.detekt)
         subprojectConfig.jacoco.mergeFrom(rootConfig.jacoco)
         subprojectConfig.jdk.mergeFrom(rootConfig.jdk)
-        subprojectConfig.kt2Ts.mergeFrom(rootConfig.kt2Ts)
         subprojectConfig.npm.mergeFrom(rootConfig.npm)
         subprojectConfig.pom.mergeFrom(rootConfig.pom)
-        subprojectConfig.repositories.mergeFrom(rootConfig.repositories)
         subprojectConfig.sonar.mergeFrom(rootConfig.sonar)
-    }
-
-    private fun Project.configureRepositories(repos: Repositories) {
-        val handler = repositories
-        if (repos.mavenLocal.get()) {
-            handler.mavenLocal()
-        }
-        if (repos.mavenCentral.get()) {
-            handler.mavenCentral()
-        }
-        if (repos.sonatypeSnapshots.get()) {
-            handler.maven(Action<MavenArtifactRepository> {
-                url = java.net.URI("https://central.sonatype.com/repository/maven-snapshots")
-            })
-        }
-        repos.mavenUrls.get().forEach { repoUrl ->
-            handler.maven(Action<MavenArtifactRepository> {
-                url = java.net.URI(repoUrl)
-            })
-        }
-    }
-
-    private companion object {
-        const val VERSION_SET = "io.komune.fixers.gradle.config.versionSet"
     }
 }
 

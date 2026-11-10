@@ -10,7 +10,7 @@ import org.gradle.api.provider.Property
  * Configuration for SonarQube/SonarCloud analysis.
  */
 class Sonar(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The URL of the SonarQube/SonarCloud server.
@@ -123,15 +123,6 @@ class Sonar(
     )
 
     /**
-     * The path to the Detekt configuration file for Sonar Kotlin plugin.
-     */
-    val detektConfigPath: Property<String> = project.property(
-        envKey = "FIXERS_SONAR_DETEKT_CONFIG_PATH",
-        projectKey = "fixers.sonar.detektConfigPath",
-        defaultValue = "detekt.yml"
-    )
-
-    /**
      * Authentication token for SonarQube/SonarCloud.
      * Bridged to `sonar.token` via the sonarqube extension DSL in
      * `SonarQubeConfigurator.buildSonarProperties()`.
@@ -182,9 +173,8 @@ class Sonar(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Sonar to merge from
-     * @return This Sonar after merging
      */
-    fun mergeFrom(source: Sonar): Sonar {
+    fun mergeFrom(source: Sonar) {
         url.mergeIfNotPresent(source.url)
         organization.mergeIfNotPresent(source.organization)
         projectKey.mergeIfNotPresent(source.projectKey)
@@ -196,15 +186,12 @@ class Sonar(
         githubSummaryComment.mergeIfNotPresent(source.githubSummaryComment)
         sources.mergeIfNotPresent(source.sources)
         verbose.mergeIfNotPresent(source.verbose)
-        detektConfigPath.mergeIfNotPresent(source.detektConfigPath)
         token.mergeIfNotPresent(source.token)
 
         // Merge custom properties (source properties are added only if not already present)
         source.customProperties.forEach { (key, value) ->
             customProperties.putIfAbsent(key, value)
         }
-
-        return this
     }
 
     companion object

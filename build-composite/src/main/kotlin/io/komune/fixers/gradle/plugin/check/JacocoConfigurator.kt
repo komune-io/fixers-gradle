@@ -11,6 +11,8 @@ import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
+private const val JVM_TEST = "jvmTest"
+
 /**
  * Configurator for JaCoCo code coverage settings.
  * Extracted from CheckPlugin to enable unit testing.
@@ -40,7 +42,7 @@ class JacocoConfigurator(
         // Configure JaCoCo for Kotlin Multiplatform projects (JVM target)
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
             applyJacocoPlugin(jacocoConfig)
-            configureJacocoForMultiplatform(jacocoConfig)
+            configureMppJacoco(jacocoConfig)
         }
     }
 
@@ -75,12 +77,12 @@ class JacocoConfigurator(
     /**
      * Configures JaCoCo for Kotlin Multiplatform projects.
      */
-    fun configureJacocoForMultiplatform(jacocoConfig: Jacoco?) {
+    fun configureMppJacoco(jacocoConfig: Jacoco?) {
         val kmpExtension = project.extensions.findByType(KotlinMultiplatformExtension::class.java) ?: return
         val jvmTarget = kmpExtension.targets.findByName("jvm") ?: return
 
         // Configure JaCoCo for jvmTest task
-        project.tasks.matching { it.name == "jvmTest" }.configureEach {
+        project.tasks.matching { it.name == JVM_TEST }.configureEach {
             if (this is Test) {
                 extensions.configure(JacocoTaskExtension::class.java) {
                     isEnabled = isEnabled(jacocoConfig)
@@ -91,7 +93,7 @@ class JacocoConfigurator(
         // Register JaCoCo report task for JVM tests.
         // Note: findByName is safe here because this runs inside CheckPlugin's projectsEvaluated callback,
         // meaning all project configuration (including KMP task registration) has already completed.
-        (project.tasks.findByName("jvmTest") as? Test)?.let { jvmTestTask ->
+        (project.tasks.findByName(JVM_TEST) as? Test)?.let { jvmTestTask ->
             project.tasks.register<JacocoReport>("jacocoJvmTestReport") {
                 dependsOn(jvmTestTask)
                 isEnabled = isEnabled(jacocoConfig)
@@ -117,7 +119,7 @@ class JacocoConfigurator(
             }
 
             // Finalize jvmTest with JaCoCo report
-            project.tasks.matching { it.name == "jvmTest" }.configureEach {
+            project.tasks.matching { it.name == JVM_TEST }.configureEach {
                 finalizedBy(project.tasks.named("jacocoJvmTestReport"))
             }
         }
@@ -129,9 +131,8 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if JaCoCo should be enabled
      */
-    internal fun isEnabled(jacocoConfig: Jacoco?): Boolean {
-        return jacocoConfig?.enabled?.getOrElse(true) ?: true
-    }
+    internal fun isEnabled(jacocoConfig: Jacoco?): Boolean =
+        jacocoConfig?.run { enabled.getOrElse(true) } != false
 
     /**
      * Checks if HTML reports should be generated.
@@ -139,9 +140,8 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if HTML reports should be generated
      */
-    internal fun isHtmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
-        return jacocoConfig?.htmlReport?.getOrElse(true) ?: true
-    }
+    internal fun isHtmlReportEnabled(jacocoConfig: Jacoco?): Boolean =
+        jacocoConfig?.run { htmlReport.getOrElse(true) } != false
 
     /**
      * Checks if XML reports should be generated.
@@ -149,9 +149,8 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return true if XML reports should be generated
      */
-    internal fun isXmlReportEnabled(jacocoConfig: Jacoco?): Boolean {
-        return jacocoConfig?.xmlReport?.getOrElse(true) ?: true
-    }
+    internal fun isXmlReportEnabled(jacocoConfig: Jacoco?): Boolean =
+        jacocoConfig?.run { xmlReport.getOrElse(true) } != false
 
     /**
      * Gets the XML report filename.
@@ -159,8 +158,7 @@ class JacocoConfigurator(
      * @param jacocoConfig The JaCoCo configuration
      * @return The XML report filename
      */
-    internal fun getXmlReportFilename(jacocoConfig: Jacoco?): String {
-        return jacocoConfig?.xmlReportFilename?.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME)
+    internal fun getXmlReportFilename(jacocoConfig: Jacoco?): String =
+        jacocoConfig?.run { xmlReportFilename.getOrElse(Jacoco.DEFAULT_XML_REPORT_FILENAME) }
             ?: Jacoco.DEFAULT_XML_REPORT_FILENAME
-    }
 }

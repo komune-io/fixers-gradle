@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.utils
 
+import io.komune.fixers.gradle.buildFixersRoot
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test
 class PropertyUtilsTest {
 
     private fun projectWithProperties(vararg pairs: Pair<String, Any>): Project {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         pairs.forEach { (key, value) -> project.extensions.extraProperties.set(key, value) }
         return project
     }

@@ -35,17 +35,11 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `should fail the yarn resolution check when there is no lock`() {
-        writeBuild(
-            rootExtra = """
-                plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
-                    the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().resolution("**/ws", "8.22.2")
-                }
-            """.trimIndent(),
-        )
+        writeBuild()
 
         val result = runGradleAndFail("checkYarnResolutions")
 
-        assertThat(result.output).contains("no yarn.lock to check **/ws against")
+        assertThat(result.output).contains("no yarn.lock to check **/ws, **/ajv against")
     }
 
     @Test
@@ -62,66 +56,71 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
         val repo = publishCatalog()
         settingsFile.writeText(
             """
-            pluginManagement { repositories { gradlePluginPortal() } }
-            plugins { id("io.komune.fixers.gradle.settings") }
-            dependencyResolutionManagement {
-                repositories {
-                    mavenCentral()
-                    maven { name = "Catalog"; url = uri("${repo.toURI()}") }
+                pluginManagement { repositories { gradlePluginPortal() } }
+                plugins { id("io.komune.fixers.gradle.settings") }
+                dependencyResolutionManagement {
+                    repositories {
+                        mavenCentral()
+                        maven { name = "Catalog"; url = uri("${repo.toURI()}") }
+                    }
                 }
-            }
-            rootProject.name = "settings-and-config"
-            include("lib")
+                rootProject.name = "settings-and-config"
+                include("lib")
             """.trimIndent()
         )
         writeBuildFile(
             """
-            plugins { id("io.komune.fixers.gradle.config") }
-            fixers { bundle { name = "settings-and-config" } }
-            $rootExtra
+                plugins { id("io.komune.fixers.gradle.config") }
+                fixers { bundle { name = "settings-and-config" } }
+                $rootExtra
             """.trimIndent()
         )
         createFile(
-            "lib/build.gradle.kts",
-            """
-            plugins { id("io.komune.fixers.gradle.kotlin.mpp") }
-            $libExtra
+            relativePath = "lib/build.gradle.kts",
+            content = """
+                plugins { id("io.komune.fixers.gradle.kotlin.mpp") }
+                $libExtra
             """.trimIndent()
         )
     }
 
-    /** Lays out `io.komune.f2:f2-gradle-catalog:<version>`, published the way Gradle publishes a catalog. */
+    // Lays out `io.komune.f2:f2-gradle-catalog:<version>`, published the way Gradle publishes a catalog.
     private fun publishCatalog(): File {
         val repo = testProjectDir.resolve("catalog-repo").toFile()
         val dir = File(repo, "io/komune/f2/f2-gradle-catalog/$version").apply { mkdirs() }
         val base = "f2-gradle-catalog-$version"
-        File(dir, "$base.toml").writeText("[libraries]\nprobe = \"io.komune.probe:probe:1.2.3\"\n")
+        File(dir, "$base.toml").writeText(
+            """
+                [libraries]
+                probe = "io.komune.probe:probe:1.2.3"
+            """.trimIndent()
+        )
         File(dir, "$base.pom").writeText(
             """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <project xmlns="http://maven.apache.org/POM/4.0.0">
-              <!-- do_not_remove: published-with-gradle-metadata -->
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>io.komune.f2</groupId>
-              <artifactId>f2-gradle-catalog</artifactId>
-              <version>$version</version>
-              <packaging>toml</packaging>
-            </project>
+                <?xml version="1.0" encoding="UTF-8"?>
+                <project xmlns="http://maven.apache.org/POM/4.0.0">
+                  <!-- do_not_remove: published-with-gradle-metadata -->
+                  <modelVersion>4.0.0</modelVersion>
+                  <groupId>io.komune.f2</groupId>
+                  <artifactId>f2-gradle-catalog</artifactId>
+                  <version>$version</version>
+                  <packaging>toml</packaging>
+                </project>
             """.trimIndent()
         )
         File(dir, "$base.module").writeText(
             """
-            {
-              "formatVersion": "1.1",
-              "component": { "group": "io.komune.f2", "module": "f2-gradle-catalog", "version": "$version" },
-              "variants": [
                 {
-                  "name": "versionCatalogElements",
-                  "attributes": { "org.gradle.category": "platform", "org.gradle.usage": "version-catalog" },
-                  "files": [ { "name": "$base.toml", "url": "$base.toml" } ]
+                  "formatVersion": "1.1",
+                  "component": { "group": "io.komune.f2", "module": "f2-gradle-catalog", "version": "$version" },
+                  "variants": [
+                    {
+                      "name": "versionCatalogElements",
+                      "attributes": { "org.gradle.category": "platform", "org.gradle.usage": "version-catalog" },
+                      "files": [ { "name": "$base.toml", "url": "$base.toml" } ]
+                    }
+                  ]
                 }
-              ]
-            }
             """.trimIndent()
         )
         return repo

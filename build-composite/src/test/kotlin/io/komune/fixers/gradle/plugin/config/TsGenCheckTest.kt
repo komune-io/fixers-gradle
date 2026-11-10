@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2TsFiles
 import java.io.File
@@ -15,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir
 
 /**
  * The output directory of `tsGen` is often a committed package that a JS package manager has
- * linked into (`node_modules`), and `tsGenCheck` tells whether that committed copy is stale.
+ * linked into (`node_modules`), and `checkTsGen` tells whether that committed copy is stale.
  */
 class TsGenCheckTest {
 
@@ -26,7 +27,7 @@ class TsGenCheckTest {
     private val output get() = File(dir, "out")
 
     private fun project(committedFiles: Kt2TsFiles? = null): Project {
-        val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
+        val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.kt2Ts.inputDirectory.set(input.absolutePath)
         config.kt2Ts.outputDirectory.set(output.absolutePath)
@@ -83,43 +84,63 @@ class TsGenCheckTest {
         }
 
         @Test
-        fun `tsGen should keep every file by default`() {
+        fun `tsGen should write only the declarations by default`() {
             emitPackage()
 
             project().run("tsGen")
 
-            assertThat(committed("pkg/kotlin/pkg.mjs")).exists()
-            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"1.2.3-SNAPSHOT\"")
+            assertThat(committed("pkg/kotlin/pkg.mjs")).doesNotExist()
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
         }
 
         @Test
-        fun `tsGenCheck should not compare a JavaScript file`() {
+        fun `tsGen should drop the main entry the declarations do not ship`() {
+            emitPackage()
+            emit("pkg/package.json", packageJson.replace("\"version\"", "\"main\": \"kotlin/pkg.mjs\",\n  \"version\""))
+
+            project().run("tsGen")
+
+            assertThat(committed("pkg/package.json").readText()).doesNotContain("\"main\"")
+        }
+
+        @Test
+        fun `tsGen should write every file at the contract version with ALL`() {
+            emitPackage()
+
+            project(Kt2TsFiles.ALL).run("tsGen")
+
+            assertThat(committed("pkg/kotlin/pkg.mjs")).exists()
+            assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
+        }
+
+        @Test
+        fun `checkTsGen should not compare a JavaScript file`() {
             emitPackage()
             val project = project(Kt2TsFiles.DECLARATIONS)
             project.run("tsGen")
             emit("pkg/kotlin/pkg.mjs", "export function names() { return [] }\n")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
-        fun `tsGenCheck should fail on a changed declaration`() {
+        fun `checkTsGen should fail on a changed declaration`() {
             emitPackage()
             val project = project(Kt2TsFiles.DECLARATIONS)
             project.run("tsGen")
             emit("pkg/kotlin/pkg.d.mts", "export declare function other(): string;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/pkg.d.mts differs")
+            assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("pkg/kotlin/pkg.d.mts differs")
         }
 
         @Test
-        fun `tsGenCheck should accept a new build version`() {
+        fun `checkTsGen should accept a new build version`() {
             emitPackage()
             val project = project(Kt2TsFiles.DECLARATIONS)
             project.run("tsGen")
             emit("pkg/package.json", packageJson.replace("1.2.3-SNAPSHOT", "1.2.4"))
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
             assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
         }
     }
@@ -202,30 +223,29 @@ class TsGenCheckTest {
             emit("pkg/kotlin/pkg.mjs", "export function names() { return []; }\n")
             emit("pkg/kotlin/pkg.mjs.map", "{\"sources\":[\"/home/ci/src/Names.kt\"]}\n")
             emit("pkg/package.json", "{\n  \"name\": \"pkg\",\n  \"version\": \"1.0.0\",\n  \"devDependencies\": {\"x\": \"1\"},\n}\n")
-            val project = project()
+            val project = project(Kt2TsFiles.ALL)
             project.run("tsGen")
             return project
         }
 
         @Test
         fun `should be registered with tsGen`() {
-            assertThat(project().tasks.findByName("tsGenCheck")).isNotNull
+            assertThat(project().tasks.findByName("checkTsGen")).isNotNull
         }
 
         @Test
         fun `should be registered on the root project only`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val module = ProjectBuilder.builder().withName("module").withParent(root).build()
             val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
 
             module.configureKt2Ts(config)
 
-            assertThat(module.tasks.findByName("tsGen")).isNotNull
-            assertThat(module.tasks.findByName("tsGenCheck")).isNull()
+            assertThat(module.tasks.names).doesNotContain("tsGen", "cleanTsGen", "checkTsGen")
         }
 
         private fun projectEmittingJs(): Project {
-            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
+            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).buildFixersRoot()
             project.pluginManager.apply("base")
             project.tasks.register("jsBrowserProductionLibraryDistribution")
             return project
@@ -243,29 +263,29 @@ class TsGenCheckTest {
 
             project.configureKt2Ts(config)
 
-            assertThat(project.checkDependencies()).contains("tsGenCheck")
+            assertThat(project.checkDependencies()).contains("checkTsGen")
         }
 
         @Test
         fun `should stay out of check when the build emits no Kotlin JS`() {
-            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).build()
+            val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).buildFixersRoot()
             project.pluginManager.apply("base")
             val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
             project.configureKt2Ts(config)
 
-            assertThat(project.checkDependencies()).doesNotContain("tsGenCheck")
+            assertThat(project.checkDependencies()).doesNotContain("checkTsGen")
         }
 
         @Test
         fun `should wait for the Kotlin JS library distribution of every project`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val module = ProjectBuilder.builder().withName("module").withParent(root).build()
             val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
             root.configureKt2Ts(config)
             val distribution = module.tasks.register("jsBrowserProductionLibraryDistribution").get()
 
-            val check = root.tasks.getByName("tsGenCheck")
+            val check = root.tasks.getByName("checkTsGen")
             assertThat(check.taskDependencies.getDependencies(check)).contains(distribution)
         }
 
@@ -274,7 +294,7 @@ class TsGenCheckTest {
             commit("pkg/kotlin/pkg.d.mts", "export declare function names(): string[];\n")
             val project = project()
 
-            assertThatThrownBy { project.run("tsGenCheck") }
+            assertThatThrownBy { project.run("checkTsGen") }
                 .isInstanceOf(GradleException::class.java)
                 .hasMessageContaining(input.absolutePath)
         }
@@ -283,7 +303,7 @@ class TsGenCheckTest {
         fun `should pass on the copy tsGen wrote`() {
             val project = generate()
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -291,7 +311,7 @@ class TsGenCheckTest {
             val project = generate()
             val before = committed("pkg/kotlin/pkg.d.mts").readText()
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
 
             assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent(before)
             assertThat(File(input, "pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): KtList<string>;")
@@ -302,7 +322,7 @@ class TsGenCheckTest {
             val project = generate()
             emit("pkg/kotlin/pkg.d.mts", "export declare function names(): KtList<number>;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }
+            assertThatThrownBy { project.run("checkTsGen") }
                 .isInstanceOf(GradleException::class.java)
                 .hasMessageContaining("pkg/kotlin/pkg.d.mts")
                 .hasMessageContaining("tsGen")
@@ -313,7 +333,7 @@ class TsGenCheckTest {
             val project = generate()
             emit("pkg/kotlin/pkg.mjs", "export function names() { return ['a']; }\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/kotlin/pkg.mjs")
+            assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("pkg/kotlin/pkg.mjs")
         }
 
         @Test
@@ -321,7 +341,7 @@ class TsGenCheckTest {
             val project = generate()
             emit("pkg/kotlin/added.d.mts", "export declare function added(): string;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }
+            assertThatThrownBy { project.run("checkTsGen") }
                 .hasMessageContaining("pkg/kotlin/added.d.mts is missing from the committed copy")
         }
 
@@ -330,7 +350,7 @@ class TsGenCheckTest {
             val project = generate()
             commit("pkg/kotlin/dropped.d.mts", "export declare function gone(): string;\n")
 
-            assertThatThrownBy { project.run("tsGenCheck") }
+            assertThatThrownBy { project.run("checkTsGen") }
                 .hasMessageContaining("pkg/kotlin/dropped.d.mts is no longer generated")
         }
 
@@ -341,7 +361,7 @@ class TsGenCheckTest {
             emit("pkg/kotlin/pkg.mjs.map", "{\"sources\":[\"/Users/dev/src/Names.kt\"]}\n")
             emit("pkg/package.json", "{\n  \"name\": \"pkg\",\n  \"version\": \"2.0.0-SNAPSHOT\",\n  \"devDependencies\": {\"x\": \"1\"},\n}\n")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -359,7 +379,7 @@ class TsGenCheckTest {
                     + "initMetadataForClass(Channel, 'Channel', VOID, VOID, [Send, Receive], [1, 0]);\n//endregion\n"
             )
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -371,7 +391,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            assertThatThrownBy { project.run("tsGenCheck") }
+            assertThatThrownBy { project.run("checkTsGen") }
                 .hasMessageContaining("out/pkg/kotlin/pkg.d.mts")
                 .hasMessageContaining("interface Dto")
                 .hasMessageContaining("Rename")
@@ -387,7 +407,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("`Dto`")
+            assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("`Dto`")
         }
 
         @Test
@@ -404,7 +424,7 @@ class TsGenCheckTest {
                 val project = project()
                 project.run("tsGen")
 
-                assertThatThrownBy { project.run("tsGenCheck") }
+                assertThatThrownBy { project.run("checkTsGen") }
                     .`as`(declarations)
                     .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `same` twice")
             }
@@ -420,7 +440,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -432,7 +452,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -441,7 +461,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -454,7 +474,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -464,13 +484,13 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
         fun `should run after tsGen`() {
             val project = project()
-            val check = project.tasks.getByName("tsGenCheck")
+            val check = project.tasks.getByName("checkTsGen")
 
             assertThat(check.mustRunAfter.getDependencies(check).map { it.name }).contains("tsGen")
         }
@@ -484,7 +504,7 @@ class TsGenCheckTest {
             val project = project()
             project.run("tsGen")
 
-            project.run("tsGenCheck")
+            project.run("checkTsGen")
         }
 
         @Test
@@ -495,7 +515,7 @@ class TsGenCheckTest {
                 "{\n  \"name\": \"pkg\",\n  \"version\": \"1.0.0\",\n  \"dependencies\": {\n    \"version\": \"2\"\n  },\n}\n"
             )
 
-            assertThatThrownBy { project.run("tsGenCheck") }.hasMessageContaining("pkg/package.json")
+            assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("pkg/package.json")
         }
     }
 }

@@ -180,9 +180,6 @@ jobs:
           # new code against the target branch during pull request analysis.
           fetch-depth: 0
 
-      - name: Add Firefox to Run Kotlin test
-        uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795 # v1.7.2
-
       - name: Initialize Java and Gradle Environment
         uses: komune-io/fixers-gradle/.github/actions/jvm@main
         with:

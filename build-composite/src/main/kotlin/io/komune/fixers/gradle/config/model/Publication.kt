@@ -11,7 +11,7 @@ import org.gradle.kotlin.dsl.property
  * Configuration for Maven publication.
  */
 class Publication(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The action to configure the Maven POM.
@@ -23,11 +23,8 @@ class Publication(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Publication to merge from
-     * @return This Publication after merging
      */
-    fun mergeFrom(source: Publication): Publication {
+    fun mergeFrom(source: Publication) {
         configure.mergeIfNotPresent(source.configure)
-
-        return this
     }
 }

@@ -14,7 +14,7 @@ class CompositePluginsTest {
 
     @Test
     fun `composite config should apply check and config plugins`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
 
         project.plugins.apply("composite.config")
 
@@ -24,7 +24,7 @@ class CompositePluginsTest {
 
     @Test
     fun `composite publishing should apply publish plugin`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val child = ProjectBuilder.builder().withParent(root).build()
 
         child.plugins.apply("composite.publishing")

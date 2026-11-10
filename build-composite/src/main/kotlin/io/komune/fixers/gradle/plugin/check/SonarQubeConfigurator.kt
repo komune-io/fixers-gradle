@@ -23,7 +23,7 @@ class SonarQubeConfigurator(
     fun configure(sonar: Sonar?, bundle: Bundle?) {
         project.plugins.apply("org.sonarqube")
         configureSonarExtension(sonar, bundle)
-        registerGenerateSonarPropertiesTask(sonar)
+        registerSonarPropertiesTask(sonar)
     }
 
     /**
@@ -47,7 +47,7 @@ class SonarQubeConfigurator(
     /**
      * Registers the GenerateSonarPropertiesTask.
      */
-    fun registerGenerateSonarPropertiesTask(sonar: Sonar?) {
+    fun registerSonarPropertiesTask(sonar: Sonar?) {
         project.tasks.register<GenerateSonarPropertiesTask>("generateSonarProperties") {
             group = "verification"
             description = "Generates sonar-project.properties file in build directory"
@@ -96,7 +96,6 @@ class SonarQubeConfigurator(
         properties["sonar.kotlin.detekt.reportPaths"] = resolveDetektReportPaths(sonar.detekt.get())
         properties["sonar.pullrequest.github.summary_comment"] = sonar.githubSummaryComment.get()
         properties["sonar.coverage.jacoco.xmlReportPaths"] = sonar.jacoco.get()
-        properties["detekt.sonar.kotlin.config.path"] = "${project.rootDir}/${sonar.detektConfigPath.get()}"
         properties["sonar.verbose"] = sonar.verbose.get()
 
         sonar.token.orNull?.let { properties["sonar.token"] = it }

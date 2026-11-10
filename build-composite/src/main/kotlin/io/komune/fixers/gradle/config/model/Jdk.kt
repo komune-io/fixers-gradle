@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * Configuration for JDK version.
  */
 class Jdk(
-    private val project: Project
+    project: Project
 ) {
     /**
      * The JDK version to use.
@@ -25,12 +25,9 @@ class Jdk(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Jdk to merge from
-     * @return This Jdk after merging
      */
-    fun mergeFrom(source: Jdk): Jdk {
+    fun mergeFrom(source: Jdk) {
         version.mergeIfNotPresent(source.version)
-
-        return this
     }
 
     companion object {

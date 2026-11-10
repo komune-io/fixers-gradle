@@ -8,7 +8,7 @@ A set of Gradle **convention plugins** that standardise how every Komune Kotlin 
 
 The top-level Gradle extension declared as `fixers { ... }` in a consumer's root `build.gradle.kts`. It is the single source of truth for project-wide build metadata; all other convention plugins read from it. Backed by the artifact `io.komune.fixers.gradle:config` and applied via the plugin `io.komune.fixers.gradle.config`.
 
-Sub-blocks: `bundle`, `jdk`, `kt2Ts`, `pom`, `repositories`, `sonar`, `detekt`, `jacoco`, `npm`, `publish`.
+Sub-blocks: `bundle`, `jdk`, `kt2Ts`, `pom`, `sonar`, `detekt`, `jacoco`, `npm`, `publish`. The repositories are the settings plugin's (`io.komune.fixers.gradle.settings`), which every build applies.
 
 ### Bundle
 
@@ -24,7 +24,7 @@ The umbrella for static analysis: **Detekt** (linting), **SonarQube** (analysis 
 
 ### Kt2Ts
 
-Kotlin-to-TypeScript declaration handling: the `kt2Ts` sub-block of Fixers Config plus the `tsGen`/`cleanTsGen` tasks registered by `io.komune.fixers.gradle.config`, which copy the `.d.ts` packages emitted by the Kotlin/JS build into an output directory (default `platform/web/kotlin`) and clean them with regex rewrites. The `npm` plugin reuses the same cleaning before NPM publication.
+Kotlin-to-TypeScript declaration handling: the `kt2Ts` sub-block of the root's Fixers Config plus the `tsGen`/`cleanTsGen`/`checkTsGen` tasks the root registers, which copy the declarations (`.d.mts`) and `package.json` of the packages emitted by the Kotlin/JS build into an output directory (default `platform/web/kotlin`), clean them with regex rewrites, and check the committed copy. The `npm` plugin reuses the same cleaning before NPM publication.
 
 ### Publish target
 

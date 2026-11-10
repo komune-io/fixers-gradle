@@ -4,9 +4,7 @@ import org.gradle.api.Project
 
 fun Project.versionFromFile(): String? {
     val versionFile = project.rootProject.file("VERSION")
-    return if (versionFile.exists()) {
-        versionFile.readText().trim()
-    } else null
+    return if (versionFile.exists()) versionFile.readText().trim() else null
 }
 
 /**
@@ -14,4 +12,4 @@ fun Project.versionFromFile(): String? {
  */
 fun Project.resolveVersion(
     ciVersion: String? = providers.environmentVariable("VERSION").orNull
-): String? = ciVersion?.trim()?.takeIf { it.isNotEmpty() } ?: versionFromFile()
+): String? = ciVersion?.run { trim().takeIf { it.isNotEmpty() } } ?: versionFromFile()

@@ -17,7 +17,7 @@ Gradle plugins to facilitate the configuration of Kotlin modules. These plugins 
 
 ## Installation
 
-To use the Fixers Gradle plugins in your project, add the following to your `settings.gradle.kts` file:
+Every build that applies a fixers project plugin applies the settings plugin first, in `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
@@ -26,9 +26,13 @@ pluginManagement {
         mavenCentral()
     }
 }
+
+plugins {
+    id("io.komune.fixers.gradle.settings") version "x.y.z"
+}
 ```
 
-Then, in your `build.gradle.kts` file, apply the desired plugins:
+It declares the repositories of the build (see [io.komune.fixers.gradle.settings](#iokomune-fixers-gradle-settings)); the project plugins fail without it. Then, in your root `build.gradle.kts` file, apply the desired plugins:
 
 ```kotlin
 plugins {
@@ -50,19 +54,14 @@ A settings plugin, published apart from the others because it carries no Kotlin 
 plugins {
     id("io.komune.fixers.gradle.settings") version "x.y.z"
 }
-
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-    }
-}
 ```
 
 It:
-- creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version;
-- declares the Node.js and Yarn distributions Kotlin/JS downloads, each as an exclusive repository serving that module only, and clears the Kotlin plugin's download base URLs so it adds no project repository of its own.
+- creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version, or when `settings.gradle.kts` creates `catalogue` itself; the build that produces the catalog (f2) sets `io.komune.fixers.settings.catalogue=false` in `gradle.properties` and creates its own;
+- declares the Node.js and Yarn distributions Kotlin/JS downloads, each as an exclusive repository serving that module only, and clears the Kotlin plugin's download base URLs so it adds no project repository of its own;
+- declares, after the repositories the build itself lists in `dependencyResolutionManagement`, Maven Central and the Sonatype snapshots (`KomuneSnapshots`), which serve `io.komune` groups and snapshot versions only.
 
-It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS`: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins then add none (`fixers { repositories { } }` has no effect), and the Komune CI init script adds its repositories to the settings instead of the projects. It adds no Maven repository itself: Maven Central, snapshots or `mavenLocal()` stay the project's to declare, in the order it chooses.
+It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS` and fails the build when the settings change it: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins add none, and the Komune CI init script adds GitHub Packages, for `io.komune` groups only and last, to the settings.
 
 ### io.komune.fixers.gradle.config
 
@@ -91,9 +90,9 @@ fixers {
 }
 ```
 
-Applied to the root project, it also enforces two conventions on every project:
-- **Spring Boot images**: in a module that applies `org.springframework.boot`, `checkBootImage` (run by `check`) and `bootBuildImage` itself fail unless the builder is pinned by digest (`…:<version>@sha256:<digest>`) and the buildpacks include a versioned health checker (`docker.io/paketobuildpacks/health-checker:<version>` or `urn:cnb:registry:paketo-buildpacks/health-checker@<version>`); fixers sets `BP_HEALTH_CHECKER_ENABLED=true`. The versions stay in the project; `test` alone is not affected.
-- **Yarn resolutions**: once Kotlin/JS is in the build, `check` runs `checkYarnResolutions`, which fails on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); an unparented `**/pkg` counts as depended on when a lock entry depends on the package, or when a Kotlin/JS module asks for it in its own `package.json` (yarn keeps the modules out of the lock as workspaces; the check reads those listed in the root `package.json`); a spec of the package that neither asks for fails the check with `the lock holds <spec>, which neither a lock entry nor a workspace asks for`; a `peerDependencies` entry is not an ask, and a workspace written as a pattern, missing or unreadable fails the check, and a package is matched by every spec of its lock entry, `npm:` aliases included; it fails too when the lock is missing.
+It fails in a build without the settings plugin, and in a module when the root project does not apply it: the conventions below are wired from the root. Applied to the root project, it enforces them on every project:
+- **Spring Boot images**: in a module that applies `org.springframework.boot`, fixers sets the builder (`docker.io/paketobuildpacks/builder-noble-java-tiny`), the run image (`docker.io/paketobuildpacks/ubuntu-noble-run-tiny`) and the buildpacks (`urn:cnb:builder:paketo-buildpacks/java` and `docker.io/paketobuildpacks/health-checker`), each pinned by digest, and `BP_HEALTH_CHECKER_ENABLED=true`. A build may set other images; `bootBuildImage` fails unless the builder, the run image and the health checker are pinned by digest (`…:<version>@sha256:<digest>`) and the environment keeps `BP_HEALTH_CHECKER_ENABLED=true` (`environment.put`, not `environment.set`). Configuration, `check` and the other tasks are not affected.
+- **Yarn resolutions**: once Kotlin/JS is in the build, fixers forces `**/ws` and `**/ajv` to patched versions (transitive packages of the Kotlin and ktor JS dependencies with advisories), and `check` runs `checkYarnResolutions`, which fails on a resolution of a path fixers forces, and on a `resolution(...)` that is not scoped with `**/`, that forces a range or several versions instead of one exact version, or that has no effect on `kotlin-js-store/yarn.lock` (its parent does not depend on the package, or the lock does not hold the forced version); an unparented `**/pkg` counts as depended on when a lock entry depends on the package, or when a Kotlin/JS module asks for it in its own `package.json` (yarn keeps the modules out of the lock as workspaces; the check reads those listed in the root `package.json`); a spec of the package that neither asks for fails the check with `the lock holds <spec>, which neither a lock entry nor a workspace asks for`; a `peerDependencies` entry is not an ask, and a workspace written as a pattern, missing or unreadable fails the check, and a package is matched by every spec of its lock entry, `npm:` aliases included; it fails too when the lock is missing.
 
 ### io.komune.fixers.gradle.kotlin.jvm
 
@@ -108,7 +107,9 @@ plugins {
 
 // The plugin automatically configures:
 // - JDK version (from fixers.jdk.version or default 17)
-// - Kotlin compiler options: -Xjsr305=strict, -Wextra, -Xreturn-value-checker=check, warnings as errors
+// - Kotlin compiler options: -Xjsr305=strict, -Wextra, -Xreturn-value-checker=full, -Xreport-all-warnings,
+//   warnings as errors: final on the extension, and a compile task refuses to run with it off or with
+//   -nowarn, -Xsuppress-warning or -Xwarning-level other than :error
 // - Default dependencies (Kotlin Reflect, Coroutines, JUnit)
 // - The JUnit Platform launcher on testRuntimeOnly when the tests use JUnit (Gradle 9 no longer provides it)
 ```
@@ -127,16 +128,14 @@ plugins {
 // The plugin automatically configures:
 // - Kotlin Multiplatform with common, JVM, and JS targets
 // - Default dependencies for each target
-// - Compiler options on every target: -Wextra, -Xreturn-value-checker=check, warnings as errors;
-//   -Xjsr305=strict on the JVM target. expect/actual classes (Beta) warn, so they fail: use expect
-//   functions or an interface instead
-// - JS target: es2015, Long as bigint; NON_EXPORTABLE_TYPE and EXPORTING_JS_NAME_CLASH_ES are
-//   errors even with allWarningsAsErrors turned off, and -Xreport-all-warnings keeps the warnings
-//   next to an error
+// - Compiler options on every target: -Wextra, -Xreturn-value-checker=full, -Xreport-all-warnings,
+//   warnings as errors, held as in the JVM plugin; -Xjsr305=strict on the JVM target. expect/actual
+//   classes (Beta) warn, so they fail: use expect functions or an interface instead
+// - JS target: es2015, Long as bigint
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
-An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, mark the member `@JsExport.Ignore`, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `tsGenCheck` catches the same names coming from dependencies: it fails when one `.d.mts` of the contract exports a name twice, whatever the two declarations are (class, interface, function, `const`/`let`/`var`, enum or type alias, under their `@JsName` when they have one), except a class or an interface and the namespace of its companion, and one type (interface, type alias) and one value (function, `const`/`let`/`var`) of the same name, which TypeScript keeps apart.
+An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, mark the member `@JsExport.Ignore`, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `checkTsGen` catches the same names coming from dependencies: it fails when one `.d.mts` of the contract exports a name twice, whatever the two declarations are (class, interface, function, `const`/`let`/`var`, enum or type alias, under their `@JsName` when they have one), except a class or an interface and the namespace of its companion, and one type (interface, type alias) and one value (function, `const`/`let`/`var`) of the same name, which TypeScript keeps apart.
 
 Every JS test runs in both Chromium and Firefox. Playwright downloads the browsers on the first test run (`kotlinInstallPlaywrightBrowsers`), so the build machine needs network access to `cdn.playwright.dev` but no installed browser. A project upgrading from a version that ran the tests with Karma sees `kotlinStoreYarnLock` fail with "Lock file was changed" until `kotlin-js-store/yarn.lock` is regenerated: delete it and `build/js`, then run `./gradlew kotlinUpgradeYarnLock`.
 
@@ -202,10 +201,6 @@ fixers {
     }
 
     detekt {
-        disable = false               // default: false
-        config = "detekt.yml"         // default: detekt.yml
-        baseline = "detekt-baseline.xml"
-        buildUponDefaultConfig = true // default: true
         checkstyleReport = true       // default: true
         htmlReport = true             // default: true
         sarifReport = true            // default: true
@@ -242,8 +237,8 @@ fixers {
         developerName = "Komune Team"                               // default
         developerOrganization = "Komune"                            // default
         developerOrganizationUrl = "https://komune.io"              // default
-        scmConnection = "scm:git:git://github.com/komune-io/fixers-gradle.git"    // default
-        scmDeveloperConnection = "scm:git:ssh://github.com/komune-io/fixers-gradle.git" // default
+        scmConnection = "scm:git:git://github.com/komune-io/<root project>.git"    // default
+        scmDeveloperConnection = "scm:git:ssh://github.com/komune-io/<root project>.git" // default
     }
 }
 ```
@@ -265,7 +260,7 @@ fixers {
     kt2Ts {
         outputDirectory = "platform/web/kotlin" // default
         inputDirectory = "build/js/packages"
-        committedFiles = Kt2TsFiles.ALL // default; DECLARATIONS: only the .d.mts and package.json
+        committedFiles = Kt2TsFiles.DECLARATIONS // default; ALL: every file, .mjs included
         additionalCleaning.set(mapOf(
             "fileName" to listOf(
                 Regex("pattern") to "replacement"
@@ -275,9 +270,9 @@ fixers {
 }
 ```
 
-`committedFiles` chooses what `tsGen` writes and `tsGenCheck` compares. `ALL` copies every file of the Kotlin/JS packages, for a front that imports the copy. `DECLARATIONS` keeps the declarations (`.d.mts`, and the legacy `.d.ts`) and each `package.json` only, for a library that commits its TypeScript contract to review it; each `package.json` then carries version `0.0.0` instead of the build's, so a release rewrites none of them. Set on the root project, it applies to every subproject that does not set its own.
+`kt2Ts` is read from the root project only, which registers `tsGen`, `cleanTsGen` and `checkTsGen`; a `kt2Ts` block in a subproject fails the build. `tsGen` copies every package under the input directory into the output directory and cleans its declarations; it fails when a type is left `any` (`any/* Foo */`, a type the JS export cannot express) or a Kotlin collection or `Nullable` survives the rules.
 
-The `.d.ts` cleaning expects a single contract package: set `kotlin.js.ir.output.granularity=whole-program` in the project's `gradle.properties`. The plugin leaves it to the project, since it changes the layout of every JS library the project publishes.
+`committedFiles` chooses what `tsGen` writes and `checkTsGen` compares. `DECLARATIONS`, the default, keeps the declarations (`.d.mts`, and the legacy `.d.ts`) and each `package.json` only: the TypeScript contract a library commits to review it. `ALL` copies every file of the Kotlin/JS packages, `.mjs` included, for a front that imports the copy. In both modes each `package.json` carries version `0.0.0` instead of the build's, so a release rewrites none of them.
 
 ### SonarQube
 
@@ -293,7 +288,6 @@ fixers {
         exclusions = "**/build/**,**/.gradle/**,**/node_modules/**,**/buildSrc/**,**/*.java" // default
         jacoco = "**/build/reports/jacoco/**/jacocoTestReport.xml" // default
         detekt = "build/reports/detekt/merge.xml"         // default
-        detektConfigPath = "detekt.yml"                   // default
         verbose = true                                    // default
         githubSummaryComment = "true"                     // default
         properties {
@@ -308,10 +302,6 @@ fixers {
 ```kotlin
 fixers {
     detekt {
-        disable = false               // default: false
-        config = "detekt.yml"         // default: detekt.yml
-        baseline = "detekt-baseline.xml"
-        buildUponDefaultConfig = true // default: true
         checkstyleReport = true       // default: true
         htmlReport = true             // default: true
         sarifReport = true            // default: true
@@ -320,7 +310,11 @@ fixers {
 }
 ```
 
-`config` is resolved from the root project, `baseline` from each module: `detektBaseline` writes one file per module, and an absolute path makes the modules share one. The `detekt` and `detektBaseline` tasks of a JVM module receive its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of every target that has them (Detekt registers them for JVM targets), and their baselines are written by `detektBaselineMain<Target>` and `detektBaselineTest<Target>`, not `detektBaseline`.
+Detekt runs every rule (`allRules`) on top of its default configuration, with the configuration fixers ships, which holds the exemptions decided once for every Komune build; no baseline, and every finding fails the build. These are final on the extension, and a Detekt task that changes them refuses to run; a `detekt.yml` at the root of the build fails it. The exemptions: no KDoc required on public declarations, while one over a private declaration fails (rename it, or say the why in a `//` comment); `LongParameterList` ignores Spring stereotypes (`@Service`, `@Component`, `@Configuration`, `@ConfigurationProperties`, `@Controller`, `@RestController`, `@Repository`); `ForbiddenVoid` accepts `Void` as a type argument; `FunctionNameMaxLength` skips test sources. Where a rule does not apply, suppress the finding with `@Suppress("RuleName")` and the reason next to it. Sources under a `generated` directory (KSP, OpenAPI) are left out.
+
+The `detekt` task of a JVM module receives its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of every JVM target, and the source set tasks of what only non-JVM compilations compile (`detektJsMainSourceSet`, `detektJsTestSourceSet`), without types: Detekt registers no typed task for those targets.
+
+Typed Detekt loads the Kotlin compiler in the Gradle daemon: give it room in `gradle.properties`, e.g. `org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g`, or the build fails on `OutOfMemoryError: Metaspace`.
 
 ### JaCoCo
 
@@ -344,19 +338,6 @@ fixers {
         organization = "komune-io" // default
         clean = true            // default: true
         version = "1.0.0"      // default: project version
-    }
-}
-```
-
-### Repositories
-
-```kotlin
-fixers {
-    repositories {
-        mavenLocal = false           // default: false
-        mavenCentral = true          // default: true
-        sonatypeSnapshots = false    // default: false
-        maven("https://custom.repo/maven")
     }
 }
 ```

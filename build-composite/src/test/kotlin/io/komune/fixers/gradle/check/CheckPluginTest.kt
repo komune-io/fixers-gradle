@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.config.model.Sonar
@@ -26,7 +27,7 @@ class CheckPluginTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
     }
 
     @Test
@@ -50,7 +51,6 @@ class CheckPluginTest {
             assertThat(sonar.githubSummaryComment.get()).isEqualTo("true")
             assertThat(sonar.sources.get()).isEqualTo(".")
             assertThat(sonar.inclusions.get()).isEqualTo("**/src/*main*/kotlin/**/*.kt")
-            assertThat(sonar.detektConfigPath.get()).isEqualTo("detekt.yml")
         }
 
         @Test
@@ -399,22 +399,6 @@ class CheckPluginTest {
 
             assertThat(target.publish.gradlePortalKey.get()).isEqualTo("existing-key")
         }
-
-        @Test
-        fun `version should fall back to project version when no VERSION file`() {
-            project.version = "2.0.0"
-            val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
-            assertThat(config.publish.version.get()).isEqualTo("2.0.0")
-        }
-
-        @Test
-        fun `version should read from VERSION file when present`(@TempDir tempDir: File) {
-            val rootProject = ProjectBuilder.builder().withProjectDir(tempDir).build()
-            File(tempDir, "VERSION").writeText("3.5.0\n")
-            rootProject.version = "fallback"
-            val config = rootProject.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, rootProject)
-            assertThat(config.publish.version.get()).isEqualTo("3.5.0")
-        }
     }
 
     @Nested
@@ -484,10 +468,10 @@ class CheckPluginTest {
             val config = createConfigExtension()
 
             config.detekt {
-                disable.set(true)
+                htmlReport.set(false)
             }
 
-            assertThat(config.detekt.disable.get()).isTrue()
+            assertThat(config.detekt.htmlReport.get()).isFalse()
         }
 
         @Test

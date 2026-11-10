@@ -2,6 +2,8 @@ package io.komune.fixers.gradle.plugin.npm
 
 import dev.petuska.npm.publish.NpmPublishPlugin
 import dev.petuska.npm.publish.extension.NpmPublishExtension
+import dev.petuska.npm.publish.task.NpmAssembleTask
+import dev.petuska.npm.publish.task.NpmPackTask
 import dev.petuska.npm.publish.task.NpmPublishTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
@@ -34,66 +36,68 @@ import org.gradle.kotlin.dsl.the
  */
 class NpmPlugin : Plugin<Project> {
 
-	override fun apply(target: Project) {
-		target.logger.info("Apply NpmPlugin to ${target.name}")
-		// Use afterEvaluate instead of projectsEvaluated because NpmPublishPlugin
-		// internally uses afterEvaluate which would fail if project is already evaluated
-		target.afterEvaluate {
-			target.rootProject.extensions.fixers?.takeIf { it.npm.publish.get() }?.let { config ->
-				target.logger.info("Apply NpmPlugin to ${target.name} - ${target.version}")
-				target.configureNpmPublishPlugin(config)
-				target.configurePackTsCleaning(config.npm)
-			}
-		}
-	}
+    override fun apply(target: Project) {
+        target.logger.info("Apply NpmPlugin to ${target.name}")
+        // Use afterEvaluate instead of projectsEvaluated because NpmPublishPlugin
+        // internally uses afterEvaluate which would fail if project is already evaluated
+        target.afterEvaluate {
+            val config = target.rootProject.extensions.fixers
+            if (config != null && config.npm.publish.get()) {
+                target.logger.info("Apply NpmPlugin to ${target.name} - ${target.version}")
+                target.configureNpmPublishPlugin(config)
+                target.configurePackTsCleaning(config.npm)
+            }
+        }
+    }
 
-	private fun Project.configurePackTsCleaning(npm: Npm) {
-		// Resolve values at configuration time for configuration cache compatibility
-		val projectBuildDir = "${layout.buildDirectory.asFile.get().absolutePath}/packages/js"
-		val cleaningRegex = rootProject.extensions.fixers?.kt2Ts?.buildCleaningRegex() ?: emptyMap()
+    private fun Project.configurePackTsCleaning(npm: Npm) {
+        // Resolve values at configuration time for configuration cache compatibility
+        val projectBuildDir = "${layout.buildDirectory.asFile.get().absolutePath}/packages/js"
+        val cleaningRegex = rootProject.extensions.fixers
+            ?.run { kt2Ts.buildCleaningRegex() }
+            .orEmpty()
 
-		tasks.register("npmTsGenTask", NpmTsGenTask::class.java) {
-			group = "build"
-			buildDir = projectBuildDir
-			cleaning = cleaningRegex
-			onlyIf { npm.clean.get() }
-		}
+        // Cleans the package the assemble task wrote, before it is packed or published.
+        val npmTsGen = tasks.register("npmTsGen", NpmTsGenTask::class.java) {
+            group = "build"
+            packageDir = projectBuildDir
+            cleaning = cleaningRegex
+            dependsOn(tasks.withType(NpmAssembleTask::class.java))
+            onlyIf { npm.clean.get() }
+        }
+        tasks.withType(NpmPackTask::class.java).configureEach { dependsOn(npmTsGen) }
+        tasks.withType(NpmPublishTask::class.java).configureEach { dependsOn(npmTsGen) }
+    }
 
-		// Use configureEach for lazy task configuration instead of forEach
-		tasks.withType(NpmPublishTask::class.java).configureEach {
-			dependsOn(tasks.withType(NpmTsGenTask::class.java))
-		}
-	}
+    private fun Project.configureNpmPublishPlugin(config: ConfigExtension) {
+        logger.info("Apply NpmPublishPlugin to ${this.name}")
+        project.pluginManager.apply(NpmPublishPlugin::class.java)
+        // Per-registry tokens read from PublishConfig (env/gradle-prop fallback chain).
+        val npmjsToken = config.publish.npmjsToken
+        val npmGithubToken = config.publish.npmGithubToken
+        val effectiveVersion = config.npm.version.orNull ?: project.version.toString()
+        project.the<NpmPublishExtension>().apply {
+            organization.set(config.npm.organization.get())
+            version.set(effectiveVersion)
+            registries {
+                register("npmjs") {
+                    uri.set(uri("https://registry.npmjs.org"))
+                    authToken.set(npmjsToken)
+                }
+                register("github") {
+                    uri.set(uri("https://npm.pkg.github.com"))
+                    authToken.set(npmGithubToken)
+                }
+            }
+        }
 
-	private fun Project.configureNpmPublishPlugin(config: ConfigExtension) {
-		logger.info("Apply NpmPublishPlugin to ${this.name}")
-		project.pluginManager.apply(NpmPublishPlugin::class.java)
-		// Per-registry tokens read from PublishConfig (env/gradle-prop fallback chain).
-		val npmjsToken = config.publish.npmjsToken
-		val npmGithubToken = config.publish.npmGithubToken
-		val effectiveVersion = config.npm.version.orNull ?: project.version.toString()
-		project.the<NpmPublishExtension>().apply {
-			organization.set(config.npm.organization.get())
-			version.set(effectiveVersion)
-			registries {
-				register("npmjs") {
-					uri.set(uri("https://registry.npmjs.org"))
-					authToken.set(npmjsToken)
-				}
-				register("github") {
-					uri.set(uri("https://npm.pkg.github.com"))
-					authToken.set(npmGithubToken)
-				}
-			}
-		}
-
-		// See the class KDoc for the dist-tag policy.
-		if (effectiveVersion.contains('-')) {
-			val prereleaseTag = config.npm.tag.get()
-			tasks.withType(NpmPublishTask::class.java).configureEach {
-				tag.convention(prereleaseTag)
-			}
-		}
-	}
+        // See the class KDoc for the dist-tag policy.
+        if (effectiveVersion.contains('-')) {
+            val prereleaseTag = config.npm.tag.get()
+            tasks.withType(NpmPublishTask::class.java).configureEach {
+                tag.convention(prereleaseTag)
+            }
+        }
+    }
 
 }

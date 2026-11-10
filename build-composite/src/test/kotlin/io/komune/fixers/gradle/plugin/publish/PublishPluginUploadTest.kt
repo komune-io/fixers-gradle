@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
 import com.sun.net.httpserver.HttpServer
 import io.komune.fixers.gradle.config.ConfigExtension
 import java.io.File
@@ -59,7 +60,7 @@ class PublishPluginUploadTest {
         version: String,
         configure: (ConfigExtension) -> Unit = {}
     ): Project {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         root.version = version
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         configure(config)

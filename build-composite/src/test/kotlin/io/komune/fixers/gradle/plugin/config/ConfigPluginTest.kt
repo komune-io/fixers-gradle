@@ -1,11 +1,12 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.fixers
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.Project
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.internal.GradleInternal
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Nested
@@ -27,7 +28,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should apply base plugin and create fixers extension`() {
-            val project = ProjectBuilder.builder().build()
+            val project = ProjectBuilder.builder().buildFixersRoot()
 
             project.plugins.apply(ConfigPlugin::class.java)
 
@@ -36,8 +37,38 @@ class ConfigPluginTest {
         }
 
         @Test
-        fun `should not reapply base plugin when already present`() {
+        fun `should fail in a build without the fixers settings plugin`() {
             val project = ProjectBuilder.builder().build()
+
+            assertThatThrownBy { project.plugins.apply(ConfigPlugin::class.java) }
+                .rootCause()
+                .hasMessageContaining("apply the io.komune.fixers.gradle.settings plugin in settings.gradle.kts")
+        }
+
+        @Test
+        fun `should fail in a module when the root project does not apply it`() {
+            val root = ProjectBuilder.builder().buildFixersRoot()
+            val module = ProjectBuilder.builder().withParent(root).withName("module").build()
+
+            assertThatThrownBy { module.plugins.apply(ConfigPlugin::class.java) }
+                .rootCause()
+                .hasMessageContaining(":module applies io.komune.fixers.gradle.config, the root project does not")
+        }
+
+        @Test
+        fun `should refuse a kt2Ts block on a subproject`() {
+            val root = ProjectBuilder.builder().buildFixersRoot()
+            val module = ProjectBuilder.builder().withParent(root).withName("module").build()
+            root.plugins.apply(ConfigPlugin::class.java)
+            module.plugins.apply(ConfigPlugin::class.java)
+
+            assertThatThrownBy { module.config().kt2Ts { outputDirectory.set("ts") } }
+                .hasMessageContaining("kt2Ts is read from the root project only")
+        }
+
+        @Test
+        fun `should not reapply base plugin when already present`() {
+            val project = ProjectBuilder.builder().buildFixersRoot()
             project.plugins.apply("base")
 
             project.plugins.apply(ConfigPlugin::class.java)
@@ -48,7 +79,7 @@ class ConfigPluginTest {
         @Test
         fun `should set version from VERSION file on root and subprojects`(@TempDir dir: File) {
             File(dir, "VERSION").writeText("9.9.9\n")
-            val root = ProjectBuilder.builder().withProjectDir(dir).build()
+            val root = ProjectBuilder.builder().withProjectDir(dir).buildFixersRoot()
             val child = ProjectBuilder.builder().withParent(root).build()
 
             root.plugins.apply(ConfigPlugin::class.java)
@@ -62,7 +93,7 @@ class ConfigPluginTest {
             @TempDir dir: File
         ) {
             File(dir, "VERSION").writeText("9.9.9\n")
-            val root = ProjectBuilder.builder().withProjectDir(dir).build()
+            val root = ProjectBuilder.builder().withProjectDir(dir).buildFixersRoot()
             val child = ProjectBuilder.builder().withParent(root).build()
 
             root.plugins.apply(ConfigPlugin::class.java)
@@ -75,7 +106,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should keep project version when no VERSION file exists`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             root.version = "1.2.3"
 
             root.plugins.apply(ConfigPlugin::class.java)
@@ -89,7 +120,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should propagate bundle group to root and subprojects`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val child = ProjectBuilder.builder().withParent(root).build()
             root.plugins.apply(ConfigPlugin::class.java)
             root.extensions.fixers!!.bundle.group.set("io.komune.test")
@@ -102,7 +133,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should merge root config into subprojects`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val child = ProjectBuilder.builder().withParent(root).build()
             root.plugins.apply(ConfigPlugin::class.java)
             root.extensions.fixers!!.bundle.description.set("Root description")
@@ -118,7 +149,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should keep subproject jacoco overrides when merging root config`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val child = ProjectBuilder.builder().withParent(root).build()
             root.plugins.apply(ConfigPlugin::class.java)
             root.extensions.fixers!!.jacoco.xmlReportFilename.set("root.xml")
@@ -130,23 +161,10 @@ class ConfigPluginTest {
         }
 
         @Test
-        fun `should configure maven central repository by default`() {
-            val root = ProjectBuilder.builder().build()
-            root.plugins.apply(ConfigPlugin::class.java)
-
-            fireProjectsEvaluated(root)
-
-            val urls = root.repositories.filterIsInstance<MavenArtifactRepository>().map { it.url.toString() }
-            assertThat(urls).anyMatch { it.contains("repo.maven.apache.org") }
-        }
-
-        @Test
-        fun `should add no project repository when the fixers settings plugin declares them`() {
-            val root = ProjectBuilder.builder().build()
+        fun `should add no project repository`() {
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val module = ProjectBuilder.builder().withParent(root).withName("module").build()
-            root.gradle.extensions.extraProperties.set(SETTINGS_PLUGIN_MARKER, true)
             root.plugins.apply(ConfigPlugin::class.java)
-            root.extensions.fixers!!.repositories.mavenLocal.set(true)
 
             fireProjectsEvaluated(root)
 
@@ -155,40 +173,26 @@ class ConfigPluginTest {
         }
 
         @Test
-        fun `should configure custom maven urls and sonatype snapshots when enabled`() {
-            val root = ProjectBuilder.builder().build()
-            root.plugins.apply(ConfigPlugin::class.java)
-            val config = root.extensions.fixers!!
-            config.repositories.sonatypeSnapshots.set(true)
-            config.repositories.maven("https://repo.example.com/custom")
-
-            fireProjectsEvaluated(root)
-
-            val urls = root.repositories.filterIsInstance<MavenArtifactRepository>().map { it.url.toString() }
-            assertThat(urls).anyMatch { it.contains("central.sonatype.com/repository/maven-snapshots") }
-            assertThat(urls).contains("https://repo.example.com/custom")
-        }
-
-        @Test
-        fun `should configure mavenLocal only when enabled`() {
-            val root = ProjectBuilder.builder().build()
-            root.plugins.apply(ConfigPlugin::class.java)
-            root.extensions.fixers!!.repositories.mavenLocal.set(true)
-
-            fireProjectsEvaluated(root)
-
-            assertThat(root.repositories.findByName("MavenLocal")).isNotNull
-        }
-
-        @Test
         fun `should register kt2Ts tasks`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             root.plugins.apply(ConfigPlugin::class.java)
 
             fireProjectsEvaluated(root)
 
             assertThat(root.tasks.findByName("cleanTsGen")).isNotNull
             assertThat(root.tasks.findByName("tsGen")).isNotNull
+        }
+
+        @Test
+        fun `should register the kt2Ts tasks on the root project only`() {
+            val root = ProjectBuilder.builder().buildFixersRoot()
+            val module = ProjectBuilder.builder().withParent(root).withName("module").build()
+            root.plugins.apply(ConfigPlugin::class.java)
+            module.plugins.apply(ConfigPlugin::class.java)
+
+            fireProjectsEvaluated(root)
+
+            assertThat(module.tasks.names).doesNotContain("tsGen", "cleanTsGen", "checkTsGen")
         }
     }
 
@@ -197,7 +201,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should create extension on first call and reuse it afterwards`() {
-            val project = ProjectBuilder.builder().build()
+            val project = ProjectBuilder.builder().buildFixersRoot()
 
             val first = project.config()
             val second = project.config()
@@ -208,7 +212,7 @@ class ConfigPluginTest {
 
         @Test
         fun `should apply configuration block`() {
-            val project = ProjectBuilder.builder().build()
+            val project = ProjectBuilder.builder().buildFixersRoot()
 
             val config = project.config {
                 bundle.description.set("configured")

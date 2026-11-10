@@ -10,7 +10,7 @@ import org.gradle.work.DisableCachingByDefault
 open class NpmTsGenTask: DefaultTask() {
 
     @Input
-    var buildDir: String = ""
+    var packageDir: String = ""
 
     @Input
     var cleaning: Map<String, List<Pair<Regex, String>>> = emptyMap()
@@ -19,6 +19,6 @@ open class NpmTsGenTask: DefaultTask() {
     fun doAction() {
         logger.info("[${name}] Run NpmTsGenTask...")
         logger.info("Cleaning: $cleaning")
-        cleanProjectDir(buildDir, cleaning)
+        cleanProjectDir(packageDir, cleaning)
     }
 }

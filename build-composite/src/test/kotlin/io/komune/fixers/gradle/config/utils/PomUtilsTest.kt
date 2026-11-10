@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.utils
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Bundle
 import org.assertj.core.api.Assertions.assertThat
@@ -16,7 +17,7 @@ class PomUtilsTest {
 
     private fun projectWithPublishing(root: Project? = null): Pair<Project, MavenPublication> {
         val project = if (root == null) {
-            ProjectBuilder.builder().build()
+            ProjectBuilder.builder().buildFixersRoot()
         } else {
             ProjectBuilder.builder().withParent(root).build()
         }
@@ -54,7 +55,7 @@ class PomUtilsTest {
 
     @Test
     fun `should fall back to root project bundle for missing values`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val rootConfig = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         rootConfig.bundle.description.set("Root description")
         rootConfig.bundle.url.set("https://root.example.com")
@@ -71,7 +72,7 @@ class PomUtilsTest {
 
     @Test
     fun `should prefer subproject bundle values over root fallback`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val rootConfig = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         rootConfig.bundle.description.set("Root description")
 

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * What the JS export cannot express fails the build instead of turning into `any` or into two
- * TypeScript declarations of one name, even in a project that keeps its other warnings as warnings.
+ * TypeScript declarations of one name.
  */
 class JsExportIntegrationTest : BaseIntegrationTest() {
 
@@ -21,20 +21,13 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
             repositories {
                 mavenCentral()
             }
-
-            // The other warnings stay warnings: these two must fail the build anyway.
-            kotlin {
-                compilerOptions {
-                    allWarningsAsErrors.set(false)
-                }
-            }
         """.trimIndent())
     }
 
     @Test
     fun `should fail on an exported declaration that uses a type the export cannot express`() {
         writeMppBuild()
-        createFile("src/commonMain/kotlin/com/example/Order.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/Order.kt", content = """
             package com.example
 
             class Hidden
@@ -52,13 +45,13 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `should fail on two exported declarations of one name in two packages`() {
         writeMppBuild()
-        createFile("src/commonMain/kotlin/com/example/a/Same.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/a/Same.kt", content = """
             package com.example.a
 
             @kotlin.js.JsExport
             class Same(val a: String)
         """.trimIndent())
-        createFile("src/commonMain/kotlin/com/example/b/Same.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/b/Same.kt", content = """
             package com.example.b
 
             @kotlin.js.JsExport
@@ -74,7 +67,7 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
     @Test
     fun `should compile an export once the type is exported, the member ignored and the name changed`() {
         writeMppBuild()
-        createFile("src/commonMain/kotlin/com/example/Order.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/Order.kt", content = """
             package com.example
 
             class Hidden
@@ -88,13 +81,13 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
                 fun hidden(): Hidden = Hidden()
             }
         """.trimIndent())
-        createFile("src/commonMain/kotlin/com/example/a/Same.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/a/Same.kt", content = """
             package com.example.a
 
             @kotlin.js.JsExport
             class Same(val a: String)
         """.trimIndent())
-        createFile("src/commonMain/kotlin/com/example/b/Same.kt", """
+        createFile(relativePath = "src/commonMain/kotlin/com/example/b/Same.kt", content = """
             package com.example.b
 
             @kotlin.js.JsExport

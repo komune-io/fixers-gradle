@@ -6,100 +6,57 @@ import org.gradle.api.Project
 import org.gradle.api.provider.Property
 
 /**
- * Configuration for Detekt static code analysis.
+ * The reports Detekt writes. The rules are fixers' own: see `configureDetekt`.
  */
 class Detekt(
-	private val project: Project
+    project: Project
 ) {
-	/**
-	 * Whether to disable Detekt static code analysis.
-	 */
-	val disable: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_DISABLE",
-		projectKey = "fixers.detekt.disable",
-		defaultValue = false
-	)
+    /**
+     * Whether to enable the checkstyle (XML) report.
+     */
+    val checkstyleReport: Property<Boolean> = project.property(
+        envKey = "FIXERS_DETEKT_REPORT_CHECKSTYLE",
+        projectKey = "fixers.detekt.report.checkstyle",
+        defaultValue = true
+    )
 
-	/**
-	 * The baseline file for Detekt.
-	 */
-	val baseline: Property<String> = project.property(
-		envKey = "FIXERS_DETEKT_BASELINE",
-		projectKey = "fixers.detekt.baseline"
-	)
+    /**
+     * Whether to enable the HTML report.
+     */
+    val htmlReport: Property<Boolean> = project.property(
+        envKey = "FIXERS_DETEKT_REPORT_HTML",
+        projectKey = "fixers.detekt.report.html",
+        defaultValue = true
+    )
 
-	/**
-	 * The configuration file for Detekt.
-	 */
-	val config: Property<String> = project.property(
-		envKey = "FIXERS_DETEKT_CONFIG",
-		projectKey = "fixers.detekt.config",
-		defaultValue = "detekt.yml"
-	)
+    /**
+     * Whether to enable the SARIF report.
+     */
+    val sarifReport: Property<Boolean> = project.property(
+        envKey = "FIXERS_DETEKT_REPORT_SARIF",
+        projectKey = "fixers.detekt.report.sarif",
+        defaultValue = true
+    )
 
-	/**
-	 * Whether to build upon the default Detekt configuration.
-	 * When true, custom config extends the default rather than replacing it.
-	 */
-	val buildUponDefaultConfig: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG",
-		projectKey = "fixers.detekt.buildUponDefaultConfig",
-		defaultValue = true
-	)
+    /**
+     * Whether to enable the Markdown report.
+     */
+    val markdownReport: Property<Boolean> = project.property(
+        envKey = "FIXERS_DETEKT_REPORT_MARKDOWN",
+        projectKey = "fixers.detekt.report.markdown",
+        defaultValue = true
+    )
 
-	/**
-	 * Whether to enable the checkstyle (XML) report.
-	 */
-	val checkstyleReport: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_REPORT_CHECKSTYLE",
-		projectKey = "fixers.detekt.report.checkstyle",
-		defaultValue = true
-	)
-
-	/**
-	 * Whether to enable the HTML report.
-	 */
-	val htmlReport: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_REPORT_HTML",
-		projectKey = "fixers.detekt.report.html",
-		defaultValue = true
-	)
-
-	/**
-	 * Whether to enable the SARIF report.
-	 */
-	val sarifReport: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_REPORT_SARIF",
-		projectKey = "fixers.detekt.report.sarif",
-		defaultValue = true
-	)
-
-	/**
-	 * Whether to enable the Markdown report.
-	 */
-	val markdownReport: Property<Boolean> = project.property(
-		envKey = "FIXERS_DETEKT_REPORT_MARKDOWN",
-		projectKey = "fixers.detekt.report.markdown",
-		defaultValue = true
-	)
-
-	/**
-	 * Merges properties from the source Detekt into this Detekt.
-	 * Properties are only merged if the target property is not present and the source property is present.
-	 *
-	 * @param source The source Detekt to merge from
-	 * @return This Detekt after merging
-	 */
-	fun mergeFrom(source: Detekt): Detekt {
-		disable.mergeIfNotPresent(source.disable)
-		baseline.mergeIfNotPresent(source.baseline)
-		config.mergeIfNotPresent(source.config)
-		buildUponDefaultConfig.mergeIfNotPresent(source.buildUponDefaultConfig)
-		checkstyleReport.mergeIfNotPresent(source.checkstyleReport)
-		htmlReport.mergeIfNotPresent(source.htmlReport)
-		sarifReport.mergeIfNotPresent(source.sarifReport)
-		markdownReport.mergeIfNotPresent(source.markdownReport)
-
-		return this
-	}
+    /**
+     * Merges properties from the source Detekt into this Detekt.
+     * Properties are only merged if the target property is not present and the source property is present.
+     *
+     * @param source The source Detekt to merge from
+     */
+    fun mergeFrom(source: Detekt) {
+        checkstyleReport.mergeIfNotPresent(source.checkstyleReport)
+        htmlReport.mergeIfNotPresent(source.htmlReport)
+        sarifReport.mergeIfNotPresent(source.sarifReport)
+        markdownReport.mergeIfNotPresent(source.markdownReport)
+    }
 }
