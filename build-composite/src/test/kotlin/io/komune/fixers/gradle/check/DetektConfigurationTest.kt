@@ -69,6 +69,16 @@ class DetektConfigurationTest {
     }
 
     @Test
+    fun `should accept digits in a package segment that starts with a letter`() {
+        val pattern = Regex(
+            Regex("""packagePattern: '([^']+)'""").find(fixersDetektConfig())!!.groupValues[1]
+        )
+
+        assertThat(listOf("s2.spring", "f2.dsl.cqrs", "io.komune.c2")).allMatch { pattern.matches(it) }
+        assertThat(listOf("S2.spring", "s_2.spring", "2s.spring", "s2.Spring")).noneMatch { pattern.matches(it) }
+    }
+
+    @Test
     fun `should lock the rules on the extension and refuse a detekt task that changes them`() {
         val (root, _) = rootWithConfig()
 

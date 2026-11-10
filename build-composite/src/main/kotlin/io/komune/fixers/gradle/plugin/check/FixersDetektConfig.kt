@@ -30,6 +30,9 @@ internal fun fixersDetektConfig(): String = """
           - 'Service'
 
     naming:
+      PackageNaming:
+        # Lower-case letters and digits, each segment starting with a letter: f2, s2, c2.
+        packagePattern: '[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*'
       FunctionNameMaxLength:
         # A test is named by the sentence it checks.
         excludes:
