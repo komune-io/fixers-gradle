@@ -76,15 +76,15 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
             """.trimIndent()
         )
         createFile(
-            "lib/build.gradle.kts",
-            """
+            relativePath = "lib/build.gradle.kts",
+            content = """
                 plugins { id("io.komune.fixers.gradle.kotlin.mpp") }
                 $libExtra
             """.trimIndent()
         )
     }
 
-    /** Lays out `io.komune.f2:f2-gradle-catalog:<version>`, published the way Gradle publishes a catalog. */
+    // Lays out `io.komune.f2:f2-gradle-catalog:<version>`, published the way Gradle publishes a catalog.
     private fun publishCatalog(): File {
         val repo = testProjectDir.resolve("catalog-repo").toFile()
         val dir = File(repo, "io/komune/f2/f2-gradle-catalog/$version").apply { mkdirs() }

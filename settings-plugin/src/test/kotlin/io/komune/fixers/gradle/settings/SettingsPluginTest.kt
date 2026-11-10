@@ -251,7 +251,7 @@ class SettingsPluginTest {
         )
     }
 
-    /** Lays out `io.komune.f2:f2-gradle-catalog:<version>` with one library, `probe`. */
+    // Lays out `io.komune.f2:f2-gradle-catalog:<version>` with one library, `probe`.
     private fun publishCatalog() {
         val dir = File(repoDir, "io/komune/f2/f2-gradle-catalog/$version").apply { mkdirs() }
         val base = "f2-gradle-catalog-$version"

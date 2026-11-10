@@ -34,14 +34,12 @@ object MavenRepositoryUploader {
     private const val HTTP_SERVER_ERROR = 500
     private const val HTTP_LAST_SERVER_ERROR = 599
 
-    /** Status reported for an upload that never got an HTTP response (connect timeout, reset, ...). */
+    // Status reported for an upload that never got an HTTP response (connect timeout, reset, ...).
     private const val NO_HTTP_RESPONSE = 0
 
-    /**
-     * A repository that is briefly overloaded, rate-limiting or unreachable should not abort
-     * a release that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
-     * and is returned as-is.
-     */
+    // A repository that is briefly overloaded, rate-limiting or unreachable should not abort
+    // a release that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
+    // and is returned as-is.
     private fun HttpPutResult.Error.isTransient(): Boolean =
         code == NO_HTTP_RESPONSE ||
             code == HTTP_TOO_MANY_REQUESTS ||
@@ -73,12 +71,10 @@ object MavenRepositoryUploader {
         fun withRetry(attempts: Int, backoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS) =
             apply { maxAttempts = attempts; initialBackoffMillis = backoffMillis }
 
-        /**
-         * Uploads a single file, retrying transient failures with exponential backoff.
-         * An I/O failure (connect timeout, connection reset, ...) counts as transient too.
-         * Returns the last result once the attempts are exhausted, so a persistent failure
-         * lands in the summary instead of cancelling the sibling uploads.
-         */
+        // Uploads a single file, retrying transient failures with exponential backoff.
+        // An I/O failure (connect timeout, connection reset, ...) counts as transient too.
+        // Returns the last result once the attempts are exhausted, so a persistent failure
+        // lands in the summary instead of cancelling the sibling uploads.
         private suspend fun putWithRetry(url: String, authHeader: String, file: File, label: String): HttpPutResult {
             var backoff = initialBackoffMillis
             var attempt = 1
@@ -128,7 +124,12 @@ object MavenRepositoryUploader {
                         semaphore.withPermit {
                             val relativePath = file.relativeTo(stagingDir).path
                             val url = "${baseUrl.trimEnd('/')}/$relativePath"
-                            val result = putWithRetry(url, authHeader, file, relativePath)
+                            val result = putWithRetry(
+                                url = url,
+                                authHeader = authHeader,
+                                file = file,
+                                label = relativePath,
+                            )
                             tally.record(result, "${completed.incrementAndGet()}/$totalFiles", relativePath)
                         }
                     }

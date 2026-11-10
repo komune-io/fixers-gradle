@@ -13,9 +13,6 @@ import org.junit.jupiter.api.Test
  */
 class NpmPluginIntegrationTest : BaseIntegrationTest() {
 
-    /**
-     * Creates a simple Kotlin/JS source file for testing.
-     */
     private fun createJsSourceFile() {
         val sourceDir = testProjectDir.resolve("src/jsMain/kotlin").toFile()
         sourceDir.mkdirs()
@@ -28,11 +25,8 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a basic package.json file for testing.
-     */
     private fun createBasicPackageJson() {
-        createFile("package.json", """
+        createFile(relativePath = "package.json", content = """
             {
               "name": "test-project",
               "version": "1.0.0",
@@ -47,9 +41,6 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a build file with the NpmPlugin.
-     */
     private fun createNpmBuildFile() {
         writeBuildFile("""
             plugins {
@@ -92,9 +83,6 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Verifies that NPM integration is correctly configured.
-     */
     private fun verifyNpmIntegration(result: BuildResult) {
         assertThat(result.task(":verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("NPM package.json:")
@@ -118,11 +106,8 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         verifyNpmIntegration(result)
     }
 
-    /**
-     * Creates a package.json file with dependencies for testing.
-     */
     private fun createPackageJsonWithDependencies() {
-        createFile("package.json", """
+        createFile(relativePath = "package.json", content = """
             {
               "name": "test-project",
               "version": "1.0.0",
@@ -140,9 +125,6 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a build file with NPM dependency configuration.
-     */
     private fun createNpmDependenciesBuildFile() {
         writeBuildFile("""
             plugins {
@@ -193,9 +175,6 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Verifies that NPM dependencies are correctly configured.
-     */
     private fun verifyNpmDependencies(result: BuildResult) {
         assertThat(result.task(":verifyNpmDependencies")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has lodash dependency: true")
@@ -219,13 +198,11 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         verifyNpmDependencies(result)
     }
 
-    /**
-     * Creates a build file that exposes the publish tag configured by NpmPlugin on
-     * each NpmPublishTask. The project version is injected by the caller via
-     * `-PprojectVersion=...` so the test can drive prerelease vs release behavior. If
-     * [npmTag] is non-null, it is set in the `fixers { npm { tag } }` DSL to exercise the
-     * configurable-dist-tag override.
-     */
+    // Creates a build file that exposes the publish tag configured by NpmPlugin on
+    // each NpmPublishTask. The project version is injected by the caller via
+    // `-PprojectVersion=...` so the test can drive prerelease vs release behavior. If
+    // [npmTag] is non-null, it is set in the `fixers { npm { tag } }` DSL to exercise the
+    // configurable-dist-tag override.
     private fun createPublishTagBuildFile(npmTag: String? = null) {
         val tagLine = if (npmTag != null) "tag = \"$npmTag\"" else ""
         writeBuildFile("""
@@ -338,11 +315,9 @@ class NpmPluginIntegrationTest : BaseIntegrationTest() {
         assertThat(result.output).doesNotContain("tag: <unset>")
     }
 
-    /**
-     * Creates a build file that exposes the per-registry `authToken` values configured by
-     * NpmPlugin on the `NpmPublishExtension`. Drives the assertion in
-     * [`should bind per-registry tokens from PublishConfig`].
-     */
+    // Creates a build file that exposes the per-registry `authToken` values configured by
+    // NpmPlugin on the `NpmPublishExtension`. Drives the assertion in
+    // [`should bind per-registry tokens from PublishConfig`].
     private fun createTokenWiringBuildFile() {
         writeBuildFile("""
             plugins {

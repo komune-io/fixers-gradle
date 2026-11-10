@@ -53,10 +53,10 @@ internal fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
             }
         }
     }
-    target.registerTsGenCheck(config, jsDistributions) { Triple(source, output, cleaning) }
+    target.registerTsGenCheck(config, jsDistributions) { Triple(first = source, second = output, third = cleaning) }
 }
 
-/** Whether this mode writes the file at [path], relative to the packages directory. */
+// Whether this mode writes the file at [path], relative to the packages directory.
 private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
     Kt2TsFiles.ALL -> true
     Kt2TsFiles.DECLARATIONS ->
@@ -72,8 +72,16 @@ internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
     packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
-        val versioned = packageVersion.replace(file.readText(), """  "version": "${Kt2TsFiles.CONTRACT_VERSION}"""")
-        file.writeText(if (committed == Kt2TsFiles.DECLARATIONS) packageMain.replace(versioned, "") else versioned)
+        val versioned = packageVersion.replace(
+            input = file.readText(),
+            replacement = """  "version": "${Kt2TsFiles.CONTRACT_VERSION}"""",
+        )
+        val written = if (committed == Kt2TsFiles.DECLARATIONS) {
+            packageMain.replace(input = versioned, replacement = "")
+        } else {
+            versioned
+        }
+        file.writeText(written)
     }
 }
 
@@ -165,19 +173,17 @@ private val UNTYPED = Regex("""(?<!")\bany\b(?!")""")
 // and a string literal type: what the export cannot express is followed by its Kotlin name.
 private val ANY = Regex("""(?<!")\bany\b(?!"|/\*)""")
 
-/** `any` lets every value through: a Kotlin `Any` is typed `unknown`, which TypeScript makes callers narrow. */
+// `any` lets every value through: a Kotlin `Any` is typed `unknown`, which TypeScript makes callers narrow.
 private fun String.withUnknownForAny(): String {
     val comments = COMMENT.findAll(this).map { it.range }.toList()
     return ANY.replace(this) { match -> if (comments.any { match.range.first in it }) match.value else "unknown" }
 }
 private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
-/**
- * Fails when a type the rules collapse survives them, nested deeper than they reach: the
- * declarations would reference a type that no longer exists; and when a type is left `any`. Every
- * task that cleans declarations runs it: `tsGen`, `checkTsGen`, and `npmTsGen` before an NPM
- * publication.
- */
+// Fails when a type the rules collapse survives them, nested deeper than they reach: the
+// declarations would reference a type that no longer exists; and when a type is left `any`. Every
+// task that cleans declarations runs it: `tsGen`, `checkTsGen`, and `npmTsGen` before an NPM
+// publication.
 private fun File.checkDeclarationsCleaned(content: String) {
     val code = COMMENT.replace(content) { comment -> comment.value.replace(Regex("[^\n]"), " ") }
     val leftovers = code.lineSequence().withIndex()
@@ -214,10 +220,8 @@ private const val OPTIONAL_OR_NULL = "$1?: $2$3 | null"
 // never closes a type argument.
 private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n])*>)*>)*>)*"""
 
-/**
- * Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `T?` is typed
- * `T | null`: Kotlin and its JSON serializers send `null`, not an absent value.
- */
+// Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `T?` is typed
+// `T | null`: Kotlin and its JSON serializers send `null`, not an absent value.
 private fun dmtsCleaning(): List<Pair<Regex, String>> {
     // Repeated rules are compiled once and applied once per pass.
     val collapseList = Regex("""Kt(?:Mutable)?(?:List|Set)<($TYPE)>""") to "$1[]"

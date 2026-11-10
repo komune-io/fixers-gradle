@@ -25,7 +25,10 @@ class Kt2TsIntegrationTest : BaseIntegrationTest() {
                 }
             }
         """.trimIndent())
-        createFile("emitted/pkg/kotlin/pkg.d.mts", "export declare function names(): KtList<string>;\n")
+        createFile(
+            relativePath = "emitted/pkg/kotlin/pkg.d.mts",
+            content = "export declare function names(): KtList<string>;\n",
+        )
     }
 
     @Test

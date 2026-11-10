@@ -44,10 +44,8 @@ class SettingsPlugin : Plugin<Settings> {
     }
 }
 
-/**
- * A `fixers = "x"` entry in the project's own catalog that differs from this plugin's version
- * would build against two fixers releases at once.
- */
+// A `fixers = "x"` entry in the project's own catalog that differs from this plugin's version
+// would build against two fixers releases at once.
 private fun checkCatalogVersion(settings: Settings, version: String) {
     val catalog = settings.settingsDir.resolve(SettingsPlugin.LOCAL_CATALOG)
     if (!catalog.exists()) return
@@ -95,7 +93,7 @@ private fun RepositoryHandler.declareJsDistributions() {
     }
 }
 
-/** Komune's groups, the only ones the snapshots repository serves. */
+// Komune's groups, the only ones the snapshots repository serves.
 private const val KOMUNE_GROUPS = """io\.komune(\..+)?"""
 
 private fun RepositoryHandler.declareMavenRepositories() {
@@ -113,11 +111,9 @@ private val JS_DOWNLOAD_SPECS = setOf(
     "org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootEnvSpec",
 )
 
-/**
- * A non-null download base URL makes the Kotlin plugin add its own project repository, which the
- * settings repositories above replace. The Kotlin plugin is reached by type name: this plugin
- * must not put it on the settings classpath.
- */
+// A non-null download base URL makes the Kotlin plugin add its own project repository, which the
+// settings repositories above replace. The Kotlin plugin is reached by type name: this plugin
+// must not put it on the settings classpath.
 private fun Project.clearJsDownloadBaseUrls() {
     plugins.configureEach {
         extensions.extensionsSchema.elements

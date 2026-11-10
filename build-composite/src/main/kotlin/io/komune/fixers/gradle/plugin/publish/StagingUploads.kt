@@ -8,8 +8,14 @@ internal fun uploadToGithubPackages(stagingDir: File, fixersConfig: ConfigExtens
     repositoryName = "GitHub Packages",
     stagingDir = stagingDir,
     url = fixersConfig.publish.githubPackagesUrl.get(),
-    username = requireCredential(fixersConfig.publish.pkgGithubUsername.orNull, "FIXERS_PUBLISH_GITHUB_USERNAME"),
-    password = requireCredential(fixersConfig.publish.pkgGithubToken.orNull, "FIXERS_PUBLISH_GITHUB_TOKEN"),
+    username = requireCredential(
+        value = fixersConfig.publish.pkgGithubUsername.orNull,
+        envVar = "FIXERS_PUBLISH_GITHUB_USERNAME",
+    ),
+    password = requireCredential(
+        value = fixersConfig.publish.pkgGithubToken.orNull,
+        envVar = "FIXERS_PUBLISH_GITHUB_TOKEN",
+    ),
 )
 
 internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtension) = uploadTo(
@@ -17,28 +23,31 @@ internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtens
     stagingDir = stagingDir,
     url = fixersConfig.publish.mavenSnapshotsUrl.get(),
     username = requireCredential(
-        fixersConfig.publish.mavenCentralUsername.orNull, "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME"
+        value = fixersConfig.publish.mavenCentralUsername.orNull,
+        envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME",
     ),
     password = requireCredential(
-        fixersConfig.publish.mavenCentralPassword.orNull, "FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD"
+        value = fixersConfig.publish.mavenCentralPassword.orNull,
+        envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD",
     ),
+)
+
+internal fun centralPortalCredentials(username: String?, password: String?) = CentralPortalUploader.Credentials(
+    username = requireCredential(value = username, envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME"),
+    password = requireCredential(value = password, envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD"),
 )
 
 internal fun uploadToCentralPortal(
     stagingDir: File,
     centralUrl: String,
-    username: String?,
-    password: String?,
+    credentials: CentralPortalUploader.Credentials,
     bundleName: String,
     options: CentralPortalUploader.Options,
 ) {
-    val resolvedUsername = requireCredential(username, "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME")
-    val resolvedPassword = requireCredential(password, "FIXERS_PUBLISH_MAVEN_CENTRAL_PASSWORD")
     CentralPortalUploader.upload(
         stagingDir = stagingDir,
         baseUrl = centralUrl,
-        username = resolvedUsername,
-        password = resolvedPassword,
+        credentials = credentials,
         bundleName = bundleName,
         options = options,
     )
@@ -57,6 +66,6 @@ private fun uploadTo(
     MavenRepositoryUploader.toRepository(repositoryName)
         .from(stagingDir)
         .atUrl(url)
-        .withCredentials(username, password)
+        .withCredentials(user = username, tok = password)
         .upload()
 }

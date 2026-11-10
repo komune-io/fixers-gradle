@@ -21,6 +21,7 @@ class CentralPortalUploaderTest {
     lateinit var stagingDir: File
 
     private lateinit var server: HttpServer
+    private val credentials = CentralPortalUploader.Credentials(username = "user", password = "pass")
     private var requestPath: String? = null
     private var requestQuery: String? = null
     private var authHeader: String? = null
@@ -87,7 +88,7 @@ class CentralPortalUploaderTest {
     fun `should upload zip bundle with bearer token and automatic publishing`() {
         createStagingFile("io/komune/test/1.0/test-1.0.jar")
 
-        CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass", "my-bundle", fastPolling())
+        CentralPortalUploader.upload(stagingDir, baseUrl(), credentials, "my-bundle", fastPolling())
 
         assertThat(requestPath).isEqualTo("/upload")
         assertThat(requestQuery).isEqualTo("publishingType=AUTOMATIC")
@@ -101,7 +102,7 @@ class CentralPortalUploaderTest {
         createStagingFile("io/komune/test/1.0/test-1.0.jar", "jar-bytes")
         createStagingFile("io/komune/test/1.0/test-1.0.pom", "pom-bytes")
 
-        CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass", options = fastPolling())
+        CentralPortalUploader.upload(stagingDir, baseUrl(), credentials, options = fastPolling())
 
         val zipBytes = extractZipFromMultipart(requestBody)
         val entries = mutableMapOf<String, String>()
@@ -121,7 +122,7 @@ class CentralPortalUploaderTest {
 
     @Test
     fun `should skip upload when staging directory is empty`() {
-        CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass")
+        CentralPortalUploader.upload(stagingDir, baseUrl(), credentials)
 
         assertThat(requestPath).isNull()
     }
@@ -130,7 +131,7 @@ class CentralPortalUploaderTest {
     fun `should skip upload when staging directory does not exist`() {
         val missing = File(stagingDir, "missing")
 
-        CentralPortalUploader.upload(missing, baseUrl(), "user", "pass")
+        CentralPortalUploader.upload(missing, baseUrl(), credentials)
 
         assertThat(requestPath).isNull()
     }
@@ -142,7 +143,7 @@ class CentralPortalUploaderTest {
         responseBody = "Unauthorized access"
 
         assertThatThrownBy {
-            CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "bad-pass")
+            CentralPortalUploader.upload(stagingDir, baseUrl(), CentralPortalUploader.Credentials(username = "user", password = "bad-pass"))
         }
             .isInstanceOf(GradleException::class.java)
             .hasMessageContaining("HTTP 401")
@@ -159,7 +160,7 @@ class CentralPortalUploaderTest {
             200 to """{"deploymentState":"PUBLISHED"}"""
         )
 
-        CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass", options = fastPolling())
+        CentralPortalUploader.upload(stagingDir, baseUrl(), credentials, options = fastPolling())
 
         assertThat(statusRequests).hasSize(3)
         assertThat(statusRequests).allMatch { it == "/status?id=deployment-abc" }
@@ -175,7 +176,7 @@ class CentralPortalUploaderTest {
         )
 
         assertThatThrownBy {
-            CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass", options = fastPolling())
+            CentralPortalUploader.upload(stagingDir, baseUrl(), credentials, options = fastPolling())
         }
             .isInstanceOf(GradleException::class.java)
             .hasMessageContaining("deployment-bad")
@@ -188,7 +189,7 @@ class CentralPortalUploaderTest {
         statusResponses = mutableListOf(200 to """{"deploymentState":"VALIDATED"}""")
 
         CentralPortalUploader.upload(
-            stagingDir, baseUrl(), "user", "pass",
+            stagingDir, baseUrl(), credentials,
             options = fastPolling(CentralPortalUploader.PUBLISHING_TYPE_USER_MANAGED)
         )
 
@@ -205,7 +206,7 @@ class CentralPortalUploaderTest {
         )
 
         // Must not throw: a flaky status endpoint is not a failed deployment.
-        CentralPortalUploader.upload(stagingDir, baseUrl(), "user", "pass", options = fastPolling())
+        CentralPortalUploader.upload(stagingDir, baseUrl(), credentials, options = fastPolling())
 
         assertThat(statusRequests).hasSize(2)
     }
@@ -218,7 +219,7 @@ class CentralPortalUploaderTest {
         // Times out without throwing: before polling existed the build never waited at all,
         // so a slow portal must not turn a good release red.
         CentralPortalUploader.upload(
-            stagingDir, baseUrl(), "user", "pass",
+            stagingDir, baseUrl(), credentials,
             options = CentralPortalUploader.Options(
                 statusPollIntervalMillis = 1,
                 statusPollTimeoutMillis = 200
@@ -234,7 +235,7 @@ class CentralPortalUploaderTest {
 
         assertThatThrownBy {
             CentralPortalUploader.upload(
-                stagingDir, baseUrl(), "user", "pass",
+                stagingDir, baseUrl(), credentials,
                 options = CentralPortalUploader.Options(statusPollTimeoutMillis = -1)
             )
         }.isInstanceOf(IllegalArgumentException::class.java)

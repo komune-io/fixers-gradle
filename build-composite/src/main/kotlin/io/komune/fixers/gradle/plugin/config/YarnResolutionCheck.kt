@@ -80,10 +80,10 @@ abstract class YarnResolutionCheckTask : DefaultTask() {
         val lock = lockFile.files.firstOrNull { it.exists() }?.readText()
         val root = rootPackageJson.orNull?.asFile
         val problems = yarnResolutionProblems(
-            resolutions.get(),
-            lock,
-            root?.let(::workspaceDependencies).orEmpty(),
-            fixersPins.get(),
+            resolutions = resolutions.get(),
+            lock = lock,
+            workspaces = root?.let(::workspaceDependencies).orEmpty(),
+            fixersPins = fixersPins.get(),
         )
         if (problems.isNotEmpty()) {
             throw GradleException(
@@ -140,8 +140,8 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
             DEPENDENCY_FIELDS.flatMap { field ->
                 (json[field] as? Map<*, *>).orEmpty().map { (name, range) ->
                     Spec(
-                        name as? String ?: refuse(file, "`$field` holds a key that is not a name"),
-                        range as? String ?: refuse(file, "`$field` gives $name no version range"),
+                        name = name as? String ?: refuse(file, "`$field` holds a key that is not a name"),
+                        range = range as? String ?: refuse(file, "`$field` gives $name no version range"),
                     )
                 }
             }
@@ -193,11 +193,11 @@ internal fun yarnResolutionProblems(
                     // A pin of fixers holds for every build: in one that does not need the package, the
                     // lock holds it only at the spec yarn adds for the resolution.
                     pinned != null && entries.filter { it.isOf(pkg) }.flatMap { it.specs }
-                        .all { !it.isOf(pkg) || it == Spec(pkg, pinned) } -> null
+                        .all { !it.isOf(pkg) || it == Spec(name = pkg, range = pinned) } -> null
                     !path.startsWith(ANY_DEPTH) ->
                         "$path: not scoped with $ANY_DEPTH, so it either misses its target or hits every tree"
                     version == null -> "$path: forces ${versions.joinToString(" ")}, not one exact version"
-                    else -> lockProblem(path, version, entries, requested)
+                    else -> lockProblem(path = path, version = version, entries = entries, requested = requested)
                 }
             }
         }
@@ -215,14 +215,20 @@ private fun lockProblem(path: String, version: String, entries: List<LockEntry>,
     }
     val isAtVersion = entries.any { it.isOf(pkg) && it.version == version }
     return when {
-        !isDependedOn && parent == null -> unrequestedProblem(path, pkg, version, entries, requested)
+        !isDependedOn && parent == null -> unrequestedProblem(
+            path = path,
+            pkg = pkg,
+            version = version,
+            entries = entries,
+            requested = requested,
+        )
         !isDependedOn -> "$path: ${parent.orEmpty()} does not depend on $pkg in the lock"
         !isAtVersion -> "$path: the lock does not hold $pkg at $version"
         else -> null
     }
 }
 
-/** For an unparented [path] nobody depends on: the lock specs of [pkg] nobody asks for, if any. */
+// For an unparented [path] nobody depends on: the lock specs of [pkg] nobody asks for, if any.
 private fun unrequestedProblem(
     path: String,
     pkg: String,
@@ -231,7 +237,7 @@ private fun unrequestedProblem(
     requested: Set<Spec>,
 ): String {
     val unrequested = entries.asSequence().filter { it.isOf(pkg) }.flatMap { it.specs }
-        .filter { it.isOf(pkg) && it !in requested && it != Spec(pkg, version) }
+        .filter { it.isOf(pkg) && it !in requested && it != Spec(name = pkg, range = version) }
         .toList()
     return if (unrequested.isEmpty()) {
         "$path: no package depends on $pkg in the lock"
@@ -244,7 +250,7 @@ private fun unrequestedProblem(
 /** A package as a dependency asks for it: its name there, and its range, `npm:` alias included. */
 internal data class Spec(val name: String, val range: String)
 
-/** The package installed: the alias target for `npm:other@range`, else [Spec.name]. */
+// The package installed: the alias target for `npm:other@range`, else [Spec.name].
 private val Spec.target: String
     get() = if (range.startsWith(NPM_ALIAS)) spec(range.removePrefix(NPM_ALIAS)).name else name
 
@@ -255,7 +261,7 @@ private class LockEntry(val specs: Set<Spec>, val version: String?, val dependen
     fun isOf(pkg: String) = specs.any { it.isOf(pkg) }
 }
 
-/** Splits `a/@scope/b/c` into `[a, @scope/b, c]`. */
+// Splits `a/@scope/b/c` into `[a, @scope/b, c]`.
 private fun packageNames(path: String): List<String> {
     val names = mutableListOf<String>()
     val segments = path.split("/").iterator()
@@ -289,7 +295,10 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
             }
             line.startsWith("    ") && isInDependencies -> {
                 val field = line.trim()
-                dependencies += Spec(field.substringBefore(" ").trim('"'), field.substringAfter(" ").trim('"'))
+                dependencies += Spec(
+                    name = field.substringBefore(" ").trim('"'),
+                    range = field.substringAfter(" ").trim('"'),
+                )
             }
             else -> {
                 val field = line.trim()
@@ -302,9 +311,13 @@ private fun parseYarnLock(lock: String): List<LockEntry> {
     return entries
 }
 
-/** `"@scope/name@^1.0.0"` or `name@1.0.0` to its package name and range. */
+// `"@scope/name@^1.0.0"` or `name@1.0.0` to its package name and range.
 private fun spec(spec: String): Spec {
     val unquoted = spec.trim('"')
     val at = unquoted.indexOf('@', startIndex = 1)
-    return if (at < 0) Spec(unquoted, "") else Spec(unquoted.substring(0, at), unquoted.substring(at + 1))
+    return if (at < 0) {
+        Spec(name = unquoted, range = "")
+    } else {
+        Spec(name = unquoted.substring(startIndex = 0, endIndex = at), range = unquoted.substring(startIndex = at + 1))
+    }
 }

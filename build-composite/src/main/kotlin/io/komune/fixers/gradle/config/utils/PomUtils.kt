@@ -25,9 +25,6 @@ fun Project.pom(bundle: Bundle): Action<MavenPom> = Action {
     developers(bundle, rootBundle)
 }
 
-/**
- * Returns this property's value if present, otherwise falls back to the other property's value.
- */
 private fun <T : Any> Property<T>.orFallback(other: Property<T>?): T? =
     if (this.isPresent) this.get() else other?.orNull
 

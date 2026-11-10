@@ -45,23 +45,21 @@ class PublishPlugin : Plugin<Project> {
         }
     }
 
-    /**
-     * Bridges `PublishConfig.gradlePortalKey` / `PublishConfig.gradlePortalSecret`
-     * (env `FIXERS_PUBLISH_GRADLE_PORTAL_KEY/SECRET` or gradle prop
-     * `fixers.publish.gradle.portal.key/secret`) to the `gradle.publish.key` /
-     * `gradle.publish.secret` system properties that `com.gradle.plugin-publish`
-     * reads at task-execution time.
-     *
-     * Uses `System.setProperty()` because `com.gradle.plugin-publish` only checks
-     * system properties and `GRADLE_PUBLISH_KEY/SECRET` env vars — not Gradle
-     * project properties or extra properties.
-     *
-     * Called inside `projectsEvaluated` so the `PublishConfig` properties are fully
-     * resolved (env → gradle prop → DSL fallback chain).
-     *
-     * Only sets the property if it is not already set, so explicit
-     * `-Dgradle.publish.key=...` always wins.
-     */
+    // Bridges `PublishConfig.gradlePortalKey` / `PublishConfig.gradlePortalSecret`
+    // (env `FIXERS_PUBLISH_GRADLE_PORTAL_KEY/SECRET` or gradle prop
+    // `fixers.publish.gradle.portal.key/secret`) to the `gradle.publish.key` /
+    // `gradle.publish.secret` system properties that `com.gradle.plugin-publish`
+    // reads at task-execution time.
+    //
+    // Uses `System.setProperty()` because `com.gradle.plugin-publish` only checks
+    // system properties and `GRADLE_PUBLISH_KEY/SECRET` env vars — not Gradle
+    // project properties or extra properties.
+    //
+    // Called inside `projectsEvaluated` so the `PublishConfig` properties are fully
+    // resolved (env → gradle prop → DSL fallback chain).
+    //
+    // Only sets the property if it is not already set, so explicit
+    // `-Dgradle.publish.key=...` always wins.
     private fun bridgeGradlePortalCredentials(config: PublishConfig) {
         val portalKey = config.gradlePortalKey.orNull
         val portalSecret = config.gradlePortalSecret.orNull
@@ -276,9 +274,14 @@ class PublishPlugin : Plugin<Project> {
 
                 doLast {
                     uploadToCentralPortal(
-                        stagingDirProvider.get().asFile, centralUrlProvider.get(),
-                        centralUsernameProvider.orNull, centralPasswordProvider.orNull, bundleName,
-                        CentralPortalUploader.Options(
+                        stagingDir = stagingDirProvider.get().asFile,
+                        centralUrl = centralUrlProvider.get(),
+                        credentials = centralPortalCredentials(
+                            username = centralUsernameProvider.orNull,
+                            password = centralPasswordProvider.orNull,
+                        ),
+                        bundleName = bundleName,
+                        options = CentralPortalUploader.Options(
                             publishingType = centralPublishingTypeProvider.get(),
                             statusPollTimeoutMillis = centralPollTimeoutProvider.get()
                                 .toLong() * MILLIS_PER_SECOND,
@@ -299,13 +302,10 @@ class PublishPlugin : Plugin<Project> {
 
 private const val VERSION_TAG = "version"
 
-/**
- * Collects resolved dependency versions from all resolvable configurations,
- * stripping KMP platform suffixes so that root artifact coordinates (e.g. f2-dsl-cqrs)
- * can be matched to platform-specific resolved artifacts (e.g. f2-dsl-cqrs-jvm).
- */
 private val KMP_PLATFORM_SUFFIXES = listOf("-jvm", "-js", "-wasm-js", "-wasmjs")
 
+// Platform suffixes are stripped so that root artifact coordinates (e.g. f2-dsl-cqrs)
+// match the platform-specific resolved artifacts (e.g. f2-dsl-cqrs-jvm).
 private fun collectResolvedVersions(project: Project): Map<String, String> {
     val versions = mutableMapOf<String, String>()
     project.configurations.filter { it.isCanBeResolved }.forEach { config ->
@@ -313,7 +313,14 @@ private fun collectResolvedVersions(project: Project): Map<String, String> {
             config.incoming.resolutionResult.allComponents
                 .mapNotNull { component -> component.moduleVersion }
                 .filter { id -> id.group.isNotEmpty() }
-                .forEach { id -> addVersionWithPlatformStripping(versions, id.group, id.name, id.version) }
+                .forEach { id ->
+                    putPlatformStrippedVersion(
+                        versions = versions,
+                        group = id.group,
+                        name = id.name,
+                        version = id.version,
+                    )
+                }
         } catch (_: Exception) {
             // Skip configurations that cannot be resolved
         }
@@ -321,7 +328,7 @@ private fun collectResolvedVersions(project: Project): Map<String, String> {
     return versions
 }
 
-private fun addVersionWithPlatformStripping(
+private fun putPlatformStrippedVersion(
     versions: MutableMap<String, String>,
     group: String,
     name: String,

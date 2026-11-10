@@ -17,10 +17,8 @@ import org.junit.jupiter.api.io.TempDirDeletionStrategy
  */
 class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
-    /**
-     * Sets up a multi-project build with a "lib" subproject.
-     * The root applies the config plugin; the subproject applies publish + kotlin.
-     */
+    // Sets up a multi-project build with a "lib" subproject.
+    // The root applies the config plugin; the subproject applies publish + kotlin.
     private fun setupMultiProject(subprojectBuildContent: String, rootBuildExtra: String = "") {
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
@@ -40,9 +38,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         File(libDir, "build.gradle.kts").writeText(subprojectBuildContent)
     }
 
-    /**
-     * Creates a simple Kotlin source file for testing in the lib subproject.
-     */
     private fun createSimpleKotlinSourceFile() {
         val sourceDir = testProjectDir.resolve("lib/src/main/kotlin").toFile()
         sourceDir.mkdirs()
@@ -55,9 +50,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a JVM subproject build file with the PublishPlugin.
-     */
     private fun createJvmPublishProject() {
         setupMultiProject("""
             plugins {
@@ -109,9 +101,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Verifies that Maven publishing is correctly configured.
-     */
     private fun verifyMavenPublishingConfig(result: BuildResult) {
         assertThat(result.task(":lib:verifyConfig")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
@@ -132,9 +121,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         verifyMavenPublishingConfig(result)
     }
 
-    /**
-     * Creates Kotlin source files for multiplatform project in the lib subproject.
-     */
     private fun createMultiplatformSourceFiles() {
         val commonSourceDir = testProjectDir.resolve("lib/src/commonMain/kotlin").toFile()
         commonSourceDir.mkdirs()
@@ -161,9 +147,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a Kotlin Multiplatform subproject with publishing.
-     */
     private fun createMppPublishProject() {
         val rootExtra = """
             fixers {
@@ -175,7 +158,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
             }
         """.trimIndent()
 
-        setupMultiProject("""
+        setupMultiProject(subprojectBuildContent = """
             plugins {
                 id("io.komune.fixers.gradle.kotlin.mpp")
                 id("io.komune.fixers.gradle.publish")
@@ -205,12 +188,9 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
                     println("Has js publication: ${'$'}{publishing.publications.findByName("js") != null}")
                 }
             }
-        """.trimIndent(), rootExtra)
+        """.trimIndent(), rootBuildExtra = rootExtra)
     }
 
-    /**
-     * Verifies that MPP publishing is correctly configured.
-     */
     private fun verifyMppPublishingConfig(result: BuildResult) {
         assertThat(result.task(":lib:verifyMppPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
@@ -232,11 +212,9 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         verifyMppPublishingConfig(result)
     }
 
-    /**
-     * Creates a build file for a Gradle plugin project with publishing.
-     * This remains a single-project build since com.gradle.plugin-publish
-     * internally applies maven-publish, making the publishing DSL available.
-     */
+    // Creates a build file for a Gradle plugin project with publishing.
+    // This remains a single-project build since com.gradle.plugin-publish
+    // internally applies maven-publish, making the publishing DSL available.
     private fun createGradlePluginPublishBuildFile() {
         writeBuildFile("""
             plugins {
@@ -307,9 +285,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Verifies that Gradle plugin publishing is correctly configured.
-     */
     private fun verifyGradlePluginPublishingConfig(result: BuildResult) {
         assertThat(result.task(":verifyGradlePluginPublishing")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(result.output).contains("Has maven-publish plugin: true")
@@ -410,9 +385,6 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
         verifyGradlePluginPublishingConfig(result)
     }
 
-    /**
-     * Creates a version catalog subproject with the PublishPlugin.
-     */
     private fun createCatalogPublishProject() {
         val rootExtra = """
             fixers {

@@ -55,10 +55,10 @@ private fun Project.wireBootImageConvention() {
         val image = path
         doFirst {
             val problems = bootImageProblems(
-                builder.orNull,
-                runImage.orNull,
-                buildpacks.getOrElse(emptyList()),
-                environment.getOrElse(emptyMap()),
+                builder = builder.orNull,
+                runImage = runImage.orNull,
+                buildpacks = buildpacks.getOrElse(emptyList()),
+                environment = environment.getOrElse(emptyMap()),
             )
             if (problems.isNotEmpty()) {
                 throw GradleException(
@@ -77,14 +77,14 @@ internal fun bootImageProblems(
     environment: Map<String, String>,
 ): List<String> {
     val problems = listOfNotNull(
-        pinProblem("builder", builder),
-        pinProblem("run image", runImage),
+        pinProblem(what = "builder", image = builder),
+        pinProblem(what = "run image", image = runImage),
     ).toMutableList()
     val healthCheckers = buildpacks.filter { HEALTH_CHECKER in it }
     if (healthCheckers.isEmpty()) {
         problems += "no health-checker buildpack: add $DEFAULT_HEALTH_CHECKER"
     }
-    healthCheckers.mapNotNullTo(problems) { pinProblem("health-checker buildpack", it) }
+    healthCheckers.mapNotNullTo(problems) { pinProblem(what = "health-checker buildpack", image = it) }
     if (environment[HEALTH_CHECKER_ENABLED] != "true") {
         problems += "$HEALTH_CHECKER_ENABLED must be true: put entries in the environment rather than set it"
     }

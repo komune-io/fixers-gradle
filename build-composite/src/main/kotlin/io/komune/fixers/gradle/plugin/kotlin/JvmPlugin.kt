@@ -54,7 +54,7 @@ class JvmPlugin : Plugin<Project> {
         }
 
         dependencies {
-            add("implementation", kotlin("reflect"))
+            add(configurationName = "implementation", dependencyNotation = kotlin("reflect"))
         }
 
         configureJUnitPlatform()

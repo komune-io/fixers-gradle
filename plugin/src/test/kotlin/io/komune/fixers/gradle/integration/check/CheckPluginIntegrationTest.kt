@@ -94,9 +94,6 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
     @Nested
     inner class JacocoIntegrationTests {
 
-        /**
-         * Creates a multi-project setup with a subproject for JaCoCo testing.
-         */
         private fun setupMultiProjectWithSubproject() {
             // Update settings file for multi-project build
             settingsFile.writeText("""
@@ -261,9 +258,6 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             assertThat(xmlReportFile.exists()).isTrue()
         }
 
-        /**
-         * Creates a multi-project setup with an MPP subproject for JaCoCo testing.
-         */
         private fun setupMppSubproject() {
             settingsFile.writeText("""
                 rootProject.name = "integration-test-project"

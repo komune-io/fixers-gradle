@@ -66,11 +66,12 @@ object CentralPortalUploader {
         val statusPollTimeoutMillis: Long = DEFAULT_POLL_TIMEOUT_MS,
     )
 
+    data class Credentials(val username: String, val password: String)
+
     fun upload(
         stagingDir: File,
         baseUrl: String,
-        username: String,
-        password: String,
+        credentials: Credentials,
         bundleName: String = "bundle",
         options: Options = Options(),
     ) {
@@ -83,9 +84,15 @@ object CentralPortalUploader {
         val zipBytes = createZipBundle(stagingDir)
         logger.lifecycle("Bundle '$bundleName' size: ${zipBytes.size / BYTES_PER_KB} KB")
 
-        val token = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
+        val token = Base64.getEncoder().encodeToString("${credentials.username}:${credentials.password}".toByteArray())
         val filename = "$bundleName.zip"
-        val deploymentId = uploadBundle(baseUrl, token, zipBytes, filename, options.publishingType)
+        val deploymentId = uploadBundle(
+            baseUrl = baseUrl,
+            token = token,
+            zipBytes = zipBytes,
+            filename = filename,
+            publishingType = options.publishingType,
+        )
         logger.lifecycle("Deployment initiated: $deploymentId (publishingType=${options.publishingType})")
 
         require(options.statusPollTimeoutMillis >= 0) {
@@ -96,7 +103,7 @@ object CentralPortalUploader {
             logger.lifecycle("Status polling disabled — check the deployment at $DEPLOYMENTS_URL")
             return
         }
-        awaitTerminalState(baseUrl, token, deploymentId, options)
+        awaitTerminalState(baseUrl = baseUrl, token = token, deploymentId = deploymentId, options = options)
     }
 
     private fun createZipBundle(dir: File): ByteArray {
@@ -122,10 +129,10 @@ object CentralPortalUploader {
         val boundary = "----FormBoundary${System.currentTimeMillis()}"
         val url = URI("$baseUrl/upload?publishingType=$publishingType").toURL()
 
-        val connection = openPostConnection(url, token, UPLOAD_READ_TIMEOUT_MS)
+        val connection = openPostConnection(url = url, token = token, readTimeoutMillis = UPLOAD_READ_TIMEOUT_MS)
         connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
         connection.doOutput = true
-        writeMultipartBody(connection, boundary, zipBytes, filename)
+        writeMultipartBody(connection = connection, boundary = boundary, zipBytes = zipBytes, filename = filename)
 
         val responseCode = connection.responseCode
         if (responseCode !in HTTP_SUCCESS) {
@@ -136,13 +143,11 @@ object CentralPortalUploader {
         return connection.inputStream.bufferedReader().readText().trim()
     }
 
-    /**
-     * Polls the deployment status until it either succeeds or fails.
-     *
-     * A `FAILED` deployment fails the build. Running out of time does not: before this
-     * polling existed the build never waited at all, so a slow Central Portal must not turn
-     * a good release red — it degrades to a warning naming the deployment.
-     */
+    // Polls the deployment status until it either succeeds or fails.
+    //
+    // A `FAILED` deployment fails the build. Running out of time does not: before this
+    // polling existed the build never waited at all, so a slow Central Portal must not turn
+    // a good release red — it degrades to a warning naming the deployment.
     private fun awaitTerminalState(baseUrl: String, token: String, deploymentId: String, options: Options) {
         val successState = if (options.publishingType == PUBLISHING_TYPE_USER_MANAGED) {
             STATE_VALIDATED
@@ -156,8 +161,13 @@ object CentralPortalUploader {
             val remainingMillis = deadline - System.currentTimeMillis()
             if (remainingMillis <= 0) break
 
-            val readTimeoutMillis = minOf(remainingMillis, STATUS_READ_TIMEOUT_MS.toLong()).toInt()
-            val state = fetchDeploymentState(baseUrl, token, deploymentId, readTimeoutMillis)
+            val readTimeoutMillis = minOf(a = remainingMillis, b = STATUS_READ_TIMEOUT_MS.toLong()).toInt()
+            val state = fetchDeploymentState(
+                baseUrl = baseUrl,
+                token = token,
+                deploymentId = deploymentId,
+                readTimeoutMillis = readTimeoutMillis,
+            )
             if (state != null && state != lastState) {
                 logger.lifecycle("  Deployment $deploymentId state: $state")
                 lastState = state
@@ -175,8 +185,8 @@ object CentralPortalUploader {
                 }
                 else -> {
                     val sleepMillis = minOf(
-                        options.statusPollIntervalMillis,
-                        deadline - System.currentTimeMillis()
+                        a = options.statusPollIntervalMillis,
+                        b = deadline - System.currentTimeMillis(),
                     )
                     if (sleepMillis > 0) Thread.sleep(sleepMillis)
                 }
@@ -191,10 +201,8 @@ object CentralPortalUploader {
         )
     }
 
-    /**
-     * Returns the current `deploymentState`, or `null` when the portal could not be reached
-     * or answered with something unparseable. `null` means "unknown, try again", never "failed".
-     */
+    // Returns the current `deploymentState`, or `null` when the portal could not be reached
+    // or answered with something unparseable. `null` means "unknown, try again", never "failed".
     private fun fetchDeploymentState(
         baseUrl: String,
         token: String,
@@ -203,7 +211,7 @@ object CentralPortalUploader {
     ): String? {
         val url = URI("$baseUrl/status?id=$deploymentId").toURL()
         return try {
-            val connection = openPostConnection(url, token, readTimeoutMillis)
+            val connection = openPostConnection(url = url, token = token, readTimeoutMillis = readTimeoutMillis)
             val responseCode = connection.responseCode
             if (responseCode !in HTTP_SUCCESS) {
                 logger.lifecycle("  Central Portal status check returned HTTP $responseCode, retrying")

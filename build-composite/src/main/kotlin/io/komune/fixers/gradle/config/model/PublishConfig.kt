@@ -225,7 +225,7 @@ open class PublishConfig(
     companion object {
         private const val USERNAME_PREVIEW_LENGTH = 3
 
-        /** 10 minutes: generous enough for Central Portal validation, short enough to not stall CI. */
+        // 10 minutes: generous enough for Central Portal validation, short enough to not stall CI.
         private const val DEFAULT_STATUS_POLL_TIMEOUT_SECONDS = 600
     }
 }

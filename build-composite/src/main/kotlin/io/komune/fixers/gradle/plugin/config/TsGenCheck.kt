@@ -69,7 +69,7 @@ internal fun Project.registerTsGenCheck(
             if (stagingDir.walkTopDown().none { it.isFile }) {
                 throw GradleException("No Kotlin/JS output under $source to compare $shownOutput with.")
             }
-            val stale = staleFiles(stagingDir, output).map { "$shownOutput/$it." }
+            val stale = staleFiles(fresh = stagingDir, committed = output).map { "$shownOutput/$it." }
             val duplicated = duplicatedDeclarations(stagingDir).map { "$shownOutput/$it" }
             if (stale.isNotEmpty() || duplicated.isNotEmpty()) {
                 val fixes = listOfNotNull(
@@ -122,7 +122,7 @@ internal fun File.syncFrom(source: File, keep: (String) -> Boolean = { true }) {
         .forEach { it.delete() }
 }
 
-/** Source maps carry the paths of the machine that compiled them. */
+// Source maps carry the paths of the machine that compiled them.
 private fun File.comparedFiles(): Map<String, File> = packageFiles().filterKeys { !it.endsWith(".map") }
 
 internal fun staleFiles(fresh: File, committed: File): List<String> {
@@ -149,16 +149,14 @@ private val declaredName = Regex(
     RegexOption.MULTILINE,
 )
 
-/** Declarations that name a type only, and those that name a value only; a class or an enum names both. */
+// Declarations that name a type only, and those that name a value only; a class or an enum names both.
 private val typeOnly = setOf("interface", "type")
 private val valueOnly = setOf("function", "const", "let", "var")
 
-/**
- * TypeScript keeps one type and one value of a name apart, so a type-only declaration and a
- * value-only one of the same name are not a duplicate; any other pair is, a class and an
- * interface included, which TypeScript merges into one type. The namespaces are counted apart:
- * one namespace of a name is a Kotlin companion.
- */
+// TypeScript keeps one type and one value of a name apart, so a type-only declaration and a
+// value-only one of the same name are not a duplicate; any other pair is, a class and an
+// interface included, which TypeScript merges into one type. The namespaces are counted apart:
+// one namespace of a name is a Kotlin companion.
 private val isDuplicate: (List<String>) -> Boolean = { kinds ->
     kinds.size > 1 && !(kinds.size == 2 && kinds.count { it in typeOnly } == 1 && kinds.count { it in valueOnly } == 1)
 }

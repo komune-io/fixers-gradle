@@ -119,10 +119,8 @@ fun Project.configureDetekt() {
     }
 }
 
-/**
- * Reports are named after the task: a project may run several Detekt tasks (Kotlin Multiplatform
- * registers one per source set and compilation), and a shared location makes them overwrite each other.
- */
+// Reports are named after the task: a project may run several Detekt tasks (Kotlin Multiplatform
+// registers one per source set and compilation), and a shared location makes them overwrite each other.
 private fun Detekt.configureReports(chosen: FixersDetekt?) {
     val isCheckstyleEnabled = chosen == null || chosen.checkstyleReport.get()
     val isSarifEnabled = chosen == null || chosen.sarifReport.get()
@@ -162,13 +160,11 @@ private fun <T : Any> Property<T>.lock(value: T) {
     disallowChanges()
 }
 
-/**
- * `check` runs `detekt`, which the Detekt plugin registers without a classpath: the rules that
- * need types are then skipped without a word. Multiplatform sources sit outside `src/main`, where
- * `detekt` looks: the typed tasks of every JVM target, which see `commonMain` too, analyse them,
- * and the source set tasks analyse what no JVM compilation compiles (`jsMain`, `jsTest`), without
- * types: Detekt registers no typed task for those targets.
- */
+// `check` runs `detekt`, which the Detekt plugin registers without a classpath: the rules that
+// need types are then skipped without a word. Multiplatform sources sit outside `src/main`, where
+// `detekt` looks: the typed tasks of every JVM target, which see `commonMain` too, analyse them,
+// and the source set tasks analyse what no JVM compilation compiles (`jsMain`, `jsTest`), without
+// types: Detekt registers no typed task for those targets.
 private fun Project.configureTypedDetekt() {
     val compileClasspaths = configurations.matching { configuration -> configuration.name in COMPILE_CLASSPATHS }
     tasks.withType<Detekt>().matching { task -> task.name == DETEKT_TASK }.configureEach {
@@ -178,13 +174,12 @@ private fun Project.configureTypedDetekt() {
         val kotlin = extensions.getByType(KotlinMultiplatformExtension::class.java)
         tasks.matching { task -> task.name == CHECK_TASK }.configureEach {
             dependsOn(tasks.withType<Detekt>().matching { task -> MPP_TYPED_DETEKT_TASK.matches(task.name) })
-            dependsOn(tasks.withType<Detekt>().matching { task -> task.name in kotlin.nonJvmSourceSetTasks() })
+            dependsOn(tasks.withType<Detekt>().matching { task -> task.name in kotlin.nonJvmOnlyDetektTasks() })
         }
     }
 }
 
-/** The Detekt task of each source set that only non-JVM compilations compile. */
-private fun KotlinMultiplatformExtension.nonJvmSourceSetTasks(): Set<String> {
+private fun KotlinMultiplatformExtension.nonJvmOnlyDetektTasks(): Set<String> {
     val compilations = targets.asSequence().flatMap { target -> target.compilations.map { target.platformType to it } }
     val jvm = compilations.filter { (platform, _) -> platform in JVM_PLATFORMS }
         .flatMapTo(mutableSetOf()) { (_, compilation) -> compilation.allKotlinSourceSets.map { it.name } }
