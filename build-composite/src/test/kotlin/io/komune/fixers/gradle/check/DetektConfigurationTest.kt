@@ -5,6 +5,7 @@ import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
+import io.komune.fixers.gradle.plugin.check.WRITE_CONFIG_TASK
 import io.komune.fixers.gradle.plugin.check.fixersDetektConfig
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
@@ -64,8 +65,12 @@ class DetektConfigurationTest {
         assertThat(detekt.allRules.get()).isTrue()
         assertThat(detekt.buildUponDefaultConfig.get()).isTrue()
         assertThat(detekt.ignoreFailures.get()).isFalse()
+        val write = root.tasks.getByName(WRITE_CONFIG_TASK)
+        write.actions.forEach { it.execute(write) }
         assertThat(detekt.config.files).singleElement()
+            .isEqualTo(root.layout.buildDirectory.file("fixers/detekt.yml").get().asFile)
             .satisfies({ file -> assertThat(file.readText()).isEqualTo(fixersDetektConfig()) })
+        assertThat(root.tasks.getByName("detekt").taskDependencies.getDependencies(null)).contains(write)
     }
 
     @Test
@@ -106,14 +111,19 @@ class DetektConfigurationTest {
     }
 
     @Test
-    fun `should leave generated sources out of every detekt task`() {
-        val (root, _) = rootWithConfig()
+    fun `should leave generated sources out of every detekt task, a generated source root included`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val generatedRoot = File(dir, "build/generated/ksp/main/kotlin").apply { mkdirs() }
+        File(generatedRoot, "Generated.kt").writeText("class Generated\n")
+        val generatedBelow = File(dir, "src/main/kotlin/generated").apply { mkdirs() }
+        File(generatedBelow, "Below.kt").writeText("class Below\n")
+        val own = File(dir, "src/main/kotlin/Own.kt").apply { writeText("class Own\n") }
 
         root.configureDetekt()
 
-        root.tasks.withType(Detekt::class.java).forEach { task ->
-            assertThat(task.excludes).contains("**/generated/**")
-        }
+        val detekt = root.tasks.getByName("detekt") as Detekt
+        detekt.source(generatedRoot, File(dir, "src/main/kotlin"))
+        assertThat(detekt.source.files.map { it.name }).contains(own.name).doesNotContain("Generated.kt", "Below.kt")
     }
 
     @Test

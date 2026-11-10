@@ -101,6 +101,17 @@ abstract class ConfigExtension(
         configure.execute(jacoco)
     }
 
+    /** Removed: without it, `fixers { repositories { } }` would reach the project's own repositories. */
+    @Deprecated(
+        "fixers declares no repository: the settings plugin io.komune.fixers.gradle.settings does. Delete this block.",
+        level = DeprecationLevel.ERROR,
+    )
+    @Suppress("UnusedParameter") // The parameter only gives the removed block its old shape, so it lands here.
+    fun repositories(configure: Action<Any>): Nothing =
+        throw GradleException(
+            "fixers declares no repository: the settings plugin io.komune.fixers.gradle.settings does."
+        )
+
     fun publish(configure: Action<PublishConfig>) {
         configure.execute(publish)
     }

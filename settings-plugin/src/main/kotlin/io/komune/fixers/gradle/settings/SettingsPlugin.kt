@@ -9,7 +9,8 @@ import org.gradle.api.initialization.resolve.RepositoriesMode
 import org.gradle.api.provider.Property
 
 /**
- * Loads the f2 version catalog as `catalogue`, at this plugin's own version, and declares every
+ * Loads the f2 version catalog as `catalogue`, at this plugin's own version (unless
+ * `io.komune.fixers.settings.catalogue=false`), and declares every
  * repository of the build: the Node.js and Yarn distributions Kotlin/JS downloads, each serving its
  * module only, then, after the project's own, Maven Central and the Sonatype snapshots of Komune's
  * groups. A project that declares a repository fails the build, and the fixers project plugins
@@ -20,17 +21,30 @@ class SettingsPlugin : Plugin<Settings> {
     override fun apply(settings: Settings) {
         val version = FixersSettingsVersion.VALUE
         checkCatalogVersion(settings, version)
-        settings.dependencyResolutionManagement.repositoriesMode.apply {
-            set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            disallowChanges()
+        val resolution = settings.dependencyResolutionManagement
+        resolution.repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+        resolution.repositories.declareJsDistributions()
+        val isCatalogueLoaded = settings.providers.gradleProperty(CATALOGUE_PROPERTY).orNull != "false"
+        settings.gradle.settingsEvaluated {
+            if (resolution.repositoriesMode.get() != RepositoriesMode.FAIL_ON_PROJECT_REPOS) {
+                throw GradleException(
+                    "The fixers settings plugin declares every repository of the build and keeps repositoriesMode " +
+                        "at FAIL_ON_PROJECT_REPOS: remove repositoriesMode.set(…) from settings.gradle.kts."
+                )
+            }
+            resolution.repositories.declareMavenRepositories()
+            if (isCatalogueLoaded) {
+                if (resolution.versionCatalogs.findByName(CATALOG_NAME) != null) {
+                    throw GradleException(
+                        "settings.gradle.kts creates the `$CATALOG_NAME` catalog the fixers settings plugin loads: " +
+                            "remove versionCatalogs.create(\"$CATALOG_NAME\"), or, in the build that produces it, " +
+                            "set $CATALOGUE_PROPERTY=false in gradle.properties."
+                    )
+                }
+                resolution.versionCatalogs.create(CATALOG_NAME) { from("$CATALOG_COORDINATES:$version") }
+            }
         }
-        val repositories = settings.dependencyResolutionManagement.repositories
-        repositories.declareJsDistributions()
-        settings.gradle.settingsEvaluated { repositories.declareMavenRepositories() }
         settings.gradle.extensions.extraProperties.set(MARKER, true)
-        settings.dependencyResolutionManagement.versionCatalogs.create(CATALOG_NAME) {
-            from("$CATALOG_COORDINATES:$version")
-        }
         settings.gradle.allprojects { clearJsDownloadBaseUrls() }
     }
 
@@ -38,6 +52,9 @@ class SettingsPlugin : Plugin<Settings> {
         const val CATALOG_NAME = "catalogue"
         const val CATALOG_COORDINATES = "io.komune.f2:f2-gradle-catalog"
         const val LOCAL_CATALOG = "gradle/libs.versions.toml"
+
+        /** `false` in the build that produces the catalog (f2), which cannot load itself at its own version. */
+        const val CATALOGUE_PROPERTY = "io.komune.fixers.settings.catalogue"
 
         /** Read by the fixers config plugin, which fails without it. */
         const val MARKER = "io.komune.fixers.gradle.settings"

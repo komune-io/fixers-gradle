@@ -178,7 +178,10 @@ internal fun yarnResolutionProblems(
             emptyList()
         }
         lock == null -> {
-            listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
+            listOf(
+            "no yarn.lock to check ${resolutions.keys.joinToString()} against: " +
+                "run ./gradlew kotlinUpgradeYarnLock and commit kotlin-js-store/yarn.lock"
+        )
         }
         else -> {
             val entries = parseYarnLock(lock)

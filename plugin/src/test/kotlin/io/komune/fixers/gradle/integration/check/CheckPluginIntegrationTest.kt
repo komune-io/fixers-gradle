@@ -43,11 +43,14 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             }
         """.trimIndent())
 
-        // Run the detekt task
-        val result = runGradle("detektMain")
+        // `clean` in the same invocation, then again from the configuration cache: the configuration
+        // Detekt reads must survive both.
+        val first = runGradle("clean", "detektMain", "--configuration-cache")
+        val second = runGradle("clean", "detektMain", "--configuration-cache")
 
-        // Verify that the task completed successfully
-        assertThat(result.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(first.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(second.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(second.output).contains("Configuration cache entry reused")
     }
 
     /**

@@ -113,7 +113,7 @@ class PublishPlugin : Plugin<Project> {
         }
 
         val currentProject = this
-        PublishMppSetup.setupMppPublish(currentProject, fixersConfig)
+        PublishMppSetup.setupMppPublish(currentProject)
         PublishJvmSetup.setupJVMPublish(currentProject)
         PublishPlatformSetup.setupPlatformPublish(currentProject)
         PublishCatalogSetup.setupCatalogPublish(currentProject)
@@ -135,8 +135,9 @@ class PublishPlugin : Plugin<Project> {
                 }
             }
             // A platform's dependencyManagement is what it publishes.
+            val isPlatform = currentProject.plugins.hasPlugin(JavaPlatformPlugin::class.java)
             pom.withXml {
-                if (!currentProject.plugins.hasPlugin(JavaPlatformPlugin::class.java)) {
+                if (!isPlatform) {
                     inlineDependencyVersions(asNode(), resolvedVersions)
                 }
             }

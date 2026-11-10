@@ -28,7 +28,7 @@ class PublishMppSetupTest {
     fun `should register javadocJar task for mpp projects`() {
         val (project, config) = mppProjectWithConfig()
 
-        PublishMppSetup.setupMppPublish(project, config)
+        PublishMppSetup.setupMppPublish(project)
 
         assertThat(project.tasks.findByName("javadocJar")).isNotNull
     }
@@ -36,7 +36,7 @@ class PublishMppSetupTest {
     @Test
     fun `should suffix artifactId with publication name for target publications`() {
         val (project, config) = mppProjectWithConfig()
-        PublishMppSetup.setupMppPublish(project, config)
+        PublishMppSetup.setupMppPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         val publication = publishing.publications.getByName("jvm") as MavenPublication
@@ -47,7 +47,7 @@ class PublishMppSetupTest {
     @Test
     fun `should keep plain project name for kotlinMultiplatform publication`() {
         val (project, config) = mppProjectWithConfig()
-        PublishMppSetup.setupMppPublish(project, config)
+        PublishMppSetup.setupMppPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         val publication = publishing.publications.getByName("kotlinMultiplatform") as MavenPublication
@@ -58,7 +58,7 @@ class PublishMppSetupTest {
     @Test
     fun `should attach javadoc artifact to publications`() {
         val (project, config) = mppProjectWithConfig()
-        PublishMppSetup.setupMppPublish(project, config)
+        PublishMppSetup.setupMppPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         val publication = publishing.publications.getByName("jvm") as MavenPublication
@@ -73,7 +73,7 @@ class PublishMppSetupTest {
         val project = ProjectBuilder.builder().withParent(root).build()
         project.plugins.apply("maven-publish")
 
-        PublishMppSetup.setupMppPublish(project, config)
+        PublishMppSetup.setupMppPublish(project)
 
         assertThat(project.tasks.findByName("javadocJar")).isNull()
     }

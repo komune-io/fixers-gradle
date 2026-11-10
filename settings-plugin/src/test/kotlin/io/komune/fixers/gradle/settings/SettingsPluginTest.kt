@@ -116,7 +116,46 @@ class SettingsPluginTest {
 
         val result = runner("help").buildAndFail()
 
-        assertThat(result.output).contains("cannot be changed")
+        assertThat(result.output)
+            .contains("keeps repositoriesMode at FAIL_ON_PROJECT_REPOS: remove repositoriesMode.set")
+    }
+
+    @Test
+    fun `should refuse a catalogue the build creates itself`() {
+        publishCatalog()
+        writeSettings(after = OWN_CATALOGUE)
+        writeOwnCatalogue()
+
+        val result = runner("help").buildAndFail()
+
+        assertThat(result.output).contains("""remove versionCatalogs.create("catalogue")""")
+    }
+
+    @Test
+    fun `should leave the catalogue to the build that produces it`() {
+        writeSettings(after = OWN_CATALOGUE)
+        writeOwnCatalogue()
+        File(projectDir, "gradle.properties").writeText("io.komune.fixers.settings.catalogue=false\n")
+        File(projectDir, "build.gradle.kts").writeText(
+            """
+                val library = extensions.getByType<VersionCatalogsExtension>().named("catalogue")
+                    .findLibrary("own").get().get().toString()
+                println("catalogue own=" + library)
+            """.trimIndent()
+        )
+
+        assertThat(run("help").output).contains("catalogue own=io.komune.own:own:1.0.0")
+    }
+
+    private fun writeOwnCatalogue() {
+        File(projectDir, "gradle").mkdirs()
+        File(projectDir, "gradle/own.toml").writeText(
+            """
+                [libraries]
+                own = "io.komune.own:own:1.0.0"
+
+            """.trimIndent()
+        )
     }
 
     @Test
@@ -301,6 +340,9 @@ class SettingsPluginTest {
 
     private companion object {
         const val KOTLIN_VERSION = "2.4.21"
+
+        const val OWN_CATALOGUE = """dependencyResolutionManagement.versionCatalogs.create("catalogue") """ +
+            """{ from(files("gradle/own.toml")) }"""
 
         /** The init script the Komune CI action writes to `~/.gradle`, from the module directory. */
         const val CI_INIT_SCRIPT = "../.github/actions/setup-gradle-github-pkg/init.gradle.kts"

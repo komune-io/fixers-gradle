@@ -57,11 +57,11 @@ plugins {
 ```
 
 It:
-- creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version;
+- creates the `catalogue` version catalog from `io.komune.f2:f2-gradle-catalog`, at the plugin's own version, and fails when `gradle/libs.versions.toml` declares another `fixers = "…"` version, or when `settings.gradle.kts` creates `catalogue` itself; the build that produces the catalog (f2) sets `io.komune.fixers.settings.catalogue=false` in `gradle.properties` and creates its own;
 - declares the Node.js and Yarn distributions Kotlin/JS downloads, each as an exclusive repository serving that module only, and clears the Kotlin plugin's download base URLs so it adds no project repository of its own;
 - declares, after the repositories the build itself lists in `dependencyResolutionManagement`, Maven Central and the Sonatype snapshots (`KomuneSnapshots`), which serve `io.komune` groups and snapshot versions only.
 
-It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS`, final: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins add none, and the Komune CI init script adds GitHub Packages, for `io.komune` groups only and last, to the settings.
+It sets `repositoriesMode` to `FAIL_ON_PROJECT_REPOS` and fails the build when the settings change it: every repository lives in the settings, and a `repositories { }` block in a build script fails the build. The fixers project plugins add none, and the Komune CI init script adds GitHub Packages, for `io.komune` groups only and last, to the settings.
 
 ### io.komune.fixers.gradle.config
 

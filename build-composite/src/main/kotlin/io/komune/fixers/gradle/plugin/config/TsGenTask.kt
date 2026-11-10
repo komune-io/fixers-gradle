@@ -166,12 +166,14 @@ internal const val PACKAGE_JSON = "package.json"
 // What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
 
-// A type the export cannot express, typed `any` with its Kotlin name in a comment.
-private val UNTYPED = Regex("""(?<!")\bany\b(?!")""")
+// `any` where a type goes: after `:`, `<`, `,`, `|`, `&`, `(`, `=>` or `extends`; not a name, which
+// `(`, `.` or `:` follows.
+private const val TYPE_POSITION = """(?<=(?:[:<,|&(]|=>|\bextends)\s?)\bany\b(?![\w"(.:?])"""
+private val UNTYPED = Regex(TYPE_POSITION)
 
 // A Kotlin `Any`, or a type the emitter types `any` (KtSingleton, a ktor hook), outside a comment
 // and a string literal type: what the export cannot express is followed by its Kotlin name.
-private val ANY = Regex("""(?<!")\bany\b(?!"|/\*)""")
+private val ANY = Regex("""$TYPE_POSITION(?!/\*)""")
 
 // `any` lets every value through: a Kotlin `Any` is typed `unknown`, which TypeScript makes callers narrow.
 private fun String.withUnknownForAny(): String {

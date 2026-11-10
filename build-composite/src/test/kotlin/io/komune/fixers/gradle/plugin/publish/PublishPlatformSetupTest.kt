@@ -73,6 +73,24 @@ class PublishPlatformSetupTest {
     }
 
     @Test
+    fun `should write one license and one developer into the POMs of a multiplatform module`() {
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(io.komune.fixers.gradle.plugin.config.ConfigPlugin::class.java)
+        val project = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
+        project.plugins.apply(io.komune.fixers.gradle.plugin.kotlin.MppPlugin::class.java)
+        project.plugins.apply(PublishPlugin::class.java)
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+        (root.gradle as org.gradle.api.internal.GradleInternal).let { it.buildListenerBroadcaster.projectsEvaluated(it) }
+
+        val generate = project.tasks.getByName("generatePomFileForKotlinMultiplatformPublication")
+        generate.actions.forEach { it.execute(generate) }
+
+        val pom = project.layout.buildDirectory.file("publications/kotlinMultiplatform/pom-default.xml").get().asFile.readText()
+        assertThat(Regex("<license>").findAll(pom).count()).isEqualTo(1)
+        assertThat(Regex("<developer>").findAll(pom).count()).isEqualTo(1)
+    }
+
+    @Test
     fun `should not create publication when java-platform plugin is missing`() {
         val (project, _) = projectWithConfig()
         project.plugins.apply("maven-publish")

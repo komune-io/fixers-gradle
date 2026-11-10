@@ -80,11 +80,16 @@ internal fun bootImageProblems(
         pinProblem(what = "builder", image = builder),
         pinProblem(what = "run image", image = runImage),
     ).toMutableList()
-    val healthCheckers = buildpacks.filter { HEALTH_CHECKER in it }
-    if (healthCheckers.isEmpty()) {
+    if (builder != null && builder != DEFAULT_BUILDER && runImage == DEFAULT_RUN_IMAGE) {
+        problems += "builder $builder runs on fixers' default run image: " +
+            "set the run image of that builder, pinned by digest"
+    }
+    if (buildpacks.none { HEALTH_CHECKER in it }) {
         problems += "no health-checker buildpack: add $DEFAULT_HEALTH_CHECKER"
     }
-    healthCheckers.mapNotNullTo(problems) { pinProblem(what = "health-checker buildpack", image = it) }
+    // The builder's own buildpacks are pinned with the builder.
+    buildpacks.filterNot { it.startsWith(BUILDER_BUILDPACK) }
+        .mapNotNullTo(problems) { pinProblem(what = "buildpack", image = it) }
     if (environment[HEALTH_CHECKER_ENABLED] != "true") {
         problems += "$HEALTH_CHECKER_ENABLED must be true: put entries in the environment rather than set it"
     }
@@ -93,9 +98,13 @@ internal fun bootImageProblems(
 
 private fun pinProblem(what: String, image: String?): String? = when {
     image.isNullOrBlank() -> "no $what: set one pinned by digest ($DIGEST…)"
-    DIGEST !in image -> "$what $image is not pinned by digest ($DIGEST…)"
+    !PINNED.containsMatchIn(image) -> "$what $image is not pinned by digest ($DIGEST<64 hex digits>)"
     else -> null
 }
+
+private val PINNED = Regex("""@sha256:[0-9a-f]{64}$""")
+
+private const val BUILDER_BUILDPACK = "urn:cnb:builder:"
 
 @Suppress("UNCHECKED_CAST")
 private fun <T> Task.property(getter: String): T = javaClass.getMethod(getter).invoke(this) as T

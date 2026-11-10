@@ -85,6 +85,20 @@ class BootImageConventionTest {
     }
 
     @Test
+    fun `should reject a digest that is not 64 hex digits, on any buildpack the project adds`() {
+        assertThat(problems(builder = "docker.io/paketobuildpacks/builder-noble-java-tiny:0.0.212@sha256:"))
+            .singleElement().asString().contains("is not pinned by digest")
+        assertThat(problems(buildpacks = listOf(JAVA_BUILDPACK, pinnedHealthChecker, "docker.io/paketobuildpacks/opentelemetry:2.0")))
+            .singleElement().asString().contains("buildpack docker.io/paketobuildpacks/opentelemetry:2.0 is not pinned by digest")
+    }
+
+    @Test
+    fun `should reject another builder on fixers' default run image`() {
+        assertThat(problems(builder = pinnedBuilder.replace("noble", "jammy"), runImage = DEFAULT_RUN_IMAGE))
+            .singleElement().asString().contains("runs on fixers' default run image")
+    }
+
+    @Test
     fun `should reject an image without the health checker`() {
         assertThat(problems(buildpacks = listOf(JAVA_BUILDPACK)))
             .singleElement().asString().startsWith("no health-checker buildpack")
@@ -98,7 +112,7 @@ class BootImageConventionTest {
             "urn:cnb:registry:paketo-buildpacks/health-checker@2.14.2",
         ).forEach { healthChecker ->
             assertThat(problems(buildpacks = listOf(JAVA_BUILDPACK, healthChecker)))
-                .singleElement().asString().contains("health-checker buildpack $healthChecker is not pinned by digest")
+                .singleElement().asString().contains("buildpack $healthChecker is not pinned by digest")
         }
     }
 
@@ -128,7 +142,7 @@ class BootImageConventionTest {
 
         assertThatThrownBy { image.actions.forEach { it.execute(image) } }
             .hasMessageContaining("builder paketobuildpacks/builder-jammy-tiny:0.0.553 is not pinned by digest")
-            .hasMessageContaining("health-checker buildpack docker.io/paketobuildpacks/health-checker:2.14.2 is not pinned")
+            .hasMessageContaining("buildpack docker.io/paketobuildpacks/health-checker:2.14.2 is not pinned")
     }
 
     @Test

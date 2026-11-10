@@ -7,12 +7,18 @@ import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
 import io.komune.fixers.gradle.config.model.Detekt as FixersDetekt
 import java.io.File
+import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFile
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -20,7 +26,8 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 private const val DETEKT_TASK = "detekt"
 private const val PROJECT_CONFIG = "detekt.yml"
-private const val GENERATED_SOURCES = "**/generated/**"
+private const val GENERATED_DIRECTORY = "/generated/"
+internal const val WRITE_CONFIG_TASK = "writeFixersDetektConfig"
 private val JVM_PLATFORMS = setOf(KotlinPlatformType.jvm, KotlinPlatformType.androidJvm)
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
 private const val CHECK_TASK = "check"
@@ -63,7 +70,13 @@ fun Project.configureDetekt() {
                 "and suppress a finding with @Suppress and its reason where a rule does not apply."
         )
     }
-    val fixersConfig = rootProject.resources.text.fromString(fixersDetektConfig()).asFile()
+    // A task output, so that `clean` and the configuration cache keep it where Detekt reads it.
+    val configLocation = rootProject.layout.buildDirectory.file("fixers/detekt.yml")
+    val writeConfig = rootProject.tasks.register<WriteDetektConfig>(WRITE_CONFIG_TASK) {
+        content.set(fixersDetektConfig())
+        outputFile.set(configLocation)
+    }
+    val fixersConfig = writeConfig.flatMap { it.outputFile }
 
     val detektReportMergeSarif = tasks.register<ReportMergeTask>("detektReportMergeSarif") {
         output.set(layout.buildDirectory.file("reports/detekt/merge.sarif"))
@@ -96,10 +109,12 @@ fun Project.configureDetekt() {
                 ignoreFailures.set(false)
                 failOnSeverity.set(FailOnSeverity.Info)
                 config.setFrom(fixersConfig)
-                // Code a tool generates (KSP, OpenAPI) is not the project's to fix.
-                exclude(GENERATED_SOURCES)
+                // Code a tool generates (KSP, OpenAPI) is not the project's to fix, whether it sits under a
+                // source root or is one.
+                exclude { element -> GENERATED_DIRECTORY in element.file.invariantSeparatorsPath }
                 val task = this
-                doFirst { task.failOnWeakenedRules(fixersConfig) }
+                val expectedConfig = configLocation.map { location -> location.asFile }
+                doFirst { task.failOnWeakenedRules(expectedConfig.get()) }
 
                 configureReports(fixersDetekt)
 
@@ -141,6 +156,12 @@ private fun Detekt.configureReports(chosen: FixersDetekt?) {
 }
 
 private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
+    val baselineFile = baseline.orNull?.asFile
+    if (baselineFile != null && baselineFile.exists()) {
+        throw GradleException(
+            "$path reads the baseline $baselineFile: fixers runs without one; delete it and fix the findings."
+        )
+    }
     val weakened = listOfNotNull(
         "allRules".takeUnless { allRules.get() },
         "buildUponDefaultConfig".takeUnless { buildUponDefaultConfig.get() },
@@ -148,7 +169,6 @@ private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
         "ignoreFailures".takeIf { ignoreFailures.get() },
         "failOnSeverity".takeUnless { failOnSeverity.get() == FailOnSeverity.Info },
         "config".takeUnless { config.files == setOf(fixersConfig) },
-        "baseline".takeIf { baseline.isPresent && baseline.get().asFile.exists() },
     )
     if (weakened.isNotEmpty()) {
         throw GradleException("$path changes what fixers sets on Detekt: ${weakened.joinToString()}.")
@@ -188,4 +208,19 @@ private fun KotlinMultiplatformExtension.nonJvmOnlyDetektTasks(): Set<String> {
         .filter { it !in jvm }
         .map { "detekt${it.replaceFirstChar(Char::uppercase)}SourceSet" }
         .toSet()
+}
+
+/** Writes the configuration fixers ships where every Detekt task of the build reads it. */
+@CacheableTask
+abstract class WriteDetektConfig : DefaultTask() {
+    @get:Input
+    abstract val content: Property<String>
+
+    @get:OutputFile
+    abstract val outputFile: RegularFileProperty
+
+    @TaskAction
+    fun write() {
+        outputFile.get().asFile.apply { parentFile.mkdirs() }.writeText(content.get())
+    }
 }

@@ -1,7 +1,5 @@
 package io.komune.fixers.gradle.plugin.publish
 
-import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.config.utils.pom
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -15,14 +13,14 @@ import org.gradle.plugins.signing.Sign
 
 object PublishMppSetup {
 
-    fun setupMppPublish(project: Project, config: ConfigExtension) {
+    fun setupMppPublish(project: Project) {
         project.plugins.withType(MppPlugin::class.java) {
             project.setupMppPublishJar()
-            project.setupPublication(config)
+            project.setupPublication()
         }
     }
 
-    private fun Project.setupPublication(config: ConfigExtension) {
+    private fun Project.setupPublication() {
         val projectName = name
 
         // Workaround for https://github.com/gradle/gradle/issues/26091:
@@ -35,8 +33,6 @@ object PublishMppSetup {
             publications.withType<MavenPublication>().configureEach {
                 val mavenPublication = this
                 mavenPublication.artifactId = mppTargetArtifactId(projectName, mavenPublication.name)
-                val publication = project.pom(config.bundle)
-                mavenPublication.pom(publication)
 
                 val javadocJarTask = tasks["javadocJar"]
                 mavenPublication.artifact(javadocJarTask)

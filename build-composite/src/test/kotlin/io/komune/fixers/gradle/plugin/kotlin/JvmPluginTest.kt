@@ -88,8 +88,24 @@ class JvmPluginTest {
     }
 
     @Test
+    fun `should lock suppressWarnings off on the extension and refuse a compile task that turns it on`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThatThrownBy { kotlin.compilerOptions.suppressWarnings.set(true) }.hasMessageContaining("cannot be changed")
+        val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
+        compile.compilerOptions.suppressWarnings.set(true)
+        assertThatThrownBy { compile.actions.first().execute(compile) }.hasMessageContaining("suppressWarnings = true")
+    }
+
+    @Test
     fun `should refuse a compiler argument that silences a warning`() {
-        listOf("-nowarn", "-Xsuppress-warning=UNUSED_VARIABLE", "-Xwarning-level=UNUSED_VARIABLE:disabled").forEach { arg ->
+        listOf(
+            "-nowarn",
+            "-Xsuppress-warning=UNUSED_VARIABLE",
+            "-Xwarning-level=UNUSED_VARIABLE:disabled",
+            "-Xsuppress-deprecated-jvm-target-warning",
+        ).forEach { arg ->
             val project = jvmProject()
             val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
             compile.compilerOptions.freeCompilerArgs.add(arg)

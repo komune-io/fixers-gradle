@@ -398,13 +398,14 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should type a Kotlin Any as unknown, outside comments and string literals`() {
+        fun `should type a Kotlin Any as unknown where a type goes, outside comments and string literals`() {
             val file = File(dir, "any.d.mts")
             file.writeText(
                 "declare function KtSingleton<T>(): T & (abstract new() => any);\n" +
                     "/** valid in any module */\n" +
                     "export declare function f(other?: any): any;\n" +
-                    "export declare interface WithId<ID extends any> {\n    get name(): \"any\";\n}\n"
+                    "export declare interface WithId<ID extends any> {\n    get name(): \"any\";\n}\n" +
+                    "export declare interface Names {\n    readonly any: string;\n    any(): boolean;\n    of(x: Set<any>, y: string | any): any[];\n}\n"
             )
             val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
 
@@ -414,7 +415,8 @@ class TsGenTaskTest {
                 "declare function KtSingleton<T>(): T & (abstract new() => unknown);\n" +
                     "/** valid in any module */\n" +
                     "export declare function f(other?: unknown): unknown;\n" +
-                    "export declare interface WithId<ID extends unknown> {\n    get name(): \"any\";\n}\n"
+                    "export declare interface WithId<ID extends unknown> {\n    get name(): \"any\";\n}\n" +
+                    "export declare interface Names {\n    readonly any: string;\n    any(): boolean;\n    of(x: Set<unknown>, y: string | unknown): unknown[];\n}\n"
             )
         }
 
