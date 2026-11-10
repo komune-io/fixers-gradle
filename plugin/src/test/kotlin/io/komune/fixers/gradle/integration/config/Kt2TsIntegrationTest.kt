@@ -46,14 +46,14 @@ class Kt2TsIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `tsGenCheck should be up to date on a second run over an unchanged contract`() {
+    fun `checkTsGen should be up to date on a second run over an unchanged contract`() {
         writeKt2TsBuild()
         runGradle("tsGen")
 
-        val first = runGradle("tsGenCheck")
-        val second = runGradle("tsGenCheck")
+        val first = runGradle("checkTsGen")
+        val second = runGradle("checkTsGen")
 
-        assertThat(first.task(":tsGenCheck")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-        assertThat(second.task(":tsGenCheck")?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
+        assertThat(first.task(":checkTsGen")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(second.task(":checkTsGen")?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
     }
 }

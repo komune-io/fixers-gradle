@@ -72,39 +72,33 @@ inline fun <reified T> Property<T>.extractEnv(envValue: String) where T : Any {
 
 /**
  * Helper function to merge a property from source to target if target is not present and source is present
- * 
+ *
  * @param sourceProp The source property to merge from
- * @return The target property (this) after merging
  */
-fun <T : Any> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
+fun <T : Any> Property<T>.mergeIfNotPresent(sourceProp: Property<T>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }
 
 /**
  * Helper function to merge a list property from source to target if target is not present and source is present
- * 
+ *
  * @param sourceProp The source list property to merge from
- * @return The target list property (this) after merging
  */
-fun <T : Any> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProperty<T> {
+fun <T : Any> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }
 
 /**
  * Helper function to merge a map property from source to target if target is not present and source is present
- * 
+ *
  * @param sourceProp The source map property to merge from
- * @return The target map property (this) after merging
  */
-fun <K : Any, V : Any> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>): MapProperty<K, V> {
+fun <K : Any, V : Any> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }

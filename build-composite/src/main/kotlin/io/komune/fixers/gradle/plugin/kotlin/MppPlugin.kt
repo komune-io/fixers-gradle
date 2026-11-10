@@ -10,59 +10,56 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class MppPlugin : Plugin<Project> {
 
-	override fun apply(target: Project) {
-		target.logger.info("Applying MppPlugin to project: ${target.name}")
-		target.setupMultiplatformLibrary()
-		target.setupJvmTarget()
-		target.setupJsTarget()
-		target.setupJarInfo()
-	}
+    override fun apply(target: Project) {
+        target.logger.info("Applying MppPlugin to project: ${target.name}")
+        target.setupMultiplatformLibrary()
+        target.setupJvmTarget()
+        target.setupJsTarget()
+        target.setupJarInfo()
+    }
 
-	private fun Project.setupMultiplatformLibrary() {
-		logger.info("Setting up Multiplatform Library for project: $name")
-		apply(plugin = "org.jetbrains.kotlin.multiplatform")
-		extensions.configure(KotlinMultiplatformExtension::class.java) {
-			compilerOptions {
-				allWarningsAsErrors.set(true)
-				freeCompilerArgs.addAll("-Wextra", "-Xreturn-value-checker=check")
-			}
-			sourceSets {
-				configureEach {
-					logger.info("Add optIn[kotlin.js.ExperimentalJsExport] for $name")
-					languageSettings.optIn("kotlin.js.ExperimentalJsExport")
-				}
-				maybeCreate("commonMain").dependencies {
-					logger.info("Configuring dependencies for commonMain")
-					implementation(kotlin("reflect"))
-				}
-			}
-		}
-	}
+    private fun Project.setupMultiplatformLibrary() {
+        logger.info("Setting up Multiplatform Library for project: $name")
+        apply(plugin = "org.jetbrains.kotlin.multiplatform")
+        extensions.configure(KotlinMultiplatformExtension::class.java) {
+            compileStrictly(compilerOptions)
+            sourceSets {
+                configureEach {
+                    logger.info("Add optIn[kotlin.js.ExperimentalJsExport] for $name")
+                    languageSettings.optIn("kotlin.js.ExperimentalJsExport")
+                }
+                maybeCreate("commonMain").dependencies {
+                    logger.info("Configuring dependencies for commonMain")
+                    implementation(kotlin("reflect"))
+                }
+            }
+        }
+    }
 
-	private fun Project.setupJvmTarget() {
-		logger.info("Setting up JVM Target for project: $name")
-		val jdkVersion = fixersJdkVersion()
-		extensions.configure(KotlinMultiplatformExtension::class.java) {
-			jvm {
-				logger.info("Configuring JVM compilation with JDK version: $jdkVersion")
-				compilerOptions {
-					freeCompilerArgs.add("-Xjsr305=strict")
-					jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-				}
-			}
-			sourceSets.getByName("jvmMain") {
-				dependencies {
-					logger.info("Configuring dependencies for jvmMain")
-					implementation(kotlin("reflect"))
-				}
-			}
-		}
+    private fun Project.setupJvmTarget() {
+        logger.info("Setting up JVM Target for project: $name")
+        val jdkVersion = fixersJdkVersion()
+        extensions.configure(KotlinMultiplatformExtension::class.java) {
+            jvm {
+                logger.info("Configuring JVM compilation with JDK version: $jdkVersion")
+                compilerOptions {
+                    freeCompilerArgs.add("-Xjsr305=strict")
+                    jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
+                }
+            }
+            sourceSets.getByName("jvmMain") {
+                dependencies {
+                    logger.info("Configuring dependencies for jvmMain")
+                    implementation(kotlin("reflect"))
+                }
+            }
+        }
 
-		configureJUnitPlatform(testCompilation = "jvmTest")
-	}
+        configureJUnitPlatform(testCompilation = "jvmTest")
+    }
 
-	private fun Project.setupJsTarget() {
-		logger.info("Setting up JS Target for project: $name")
-		apply<MppJsPlugin>()
-	}
+    private fun Project.setupJsTarget() {
+        logger.info("Setting up JS Target for project: $name")
+        apply<MppJsPlugin>()
+    }
 }

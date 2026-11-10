@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Sonar
 import io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator
@@ -21,7 +22,7 @@ class SonarQubeConfiguratorTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
         configurator = SonarQubeConfigurator(project)
     }
 

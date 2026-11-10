@@ -57,9 +57,12 @@ abstract class BaseIntegrationTest {
         settingsFile = testProjectDir.resolve("settings.gradle.kts").toFile()
         propertiesFile = testProjectDir.resolve("gradle.properties").toFile()
 
-        // Create basic settings file
+        // The project plugins require the fixers settings plugin; these builds declare their own
+        // repositories, so they stand in for it with its marker. SettingsAndConfigIntegrationTest
+        // runs the real one.
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
+            gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
         """.trimIndent())
 
         // Create basic properties file

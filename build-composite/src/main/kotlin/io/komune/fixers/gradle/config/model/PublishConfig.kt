@@ -219,9 +219,8 @@ open class PublishConfig(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source PublishConfig to merge from
-     * @return This PublishConfig after merging
      */
-    fun mergeFrom(source: PublishConfig): PublishConfig {
+    fun mergeFrom(source: PublishConfig) {
         mavenCentralUrl.mergeIfNotPresent(source.mavenCentralUrl)
         mavenSnapshotsUrl.mergeIfNotPresent(source.mavenSnapshotsUrl)
         mavenCentralPublishingType.mergeIfNotPresent(source.mavenCentralPublishingType)
@@ -239,6 +238,5 @@ open class PublishConfig(
         gradlePluginPortalEnabled.mergeIfNotPresent(source.gradlePluginPortalEnabled)
         gradlePortalKey.mergeIfNotPresent(source.gradlePortalKey)
         gradlePortalSecret.mergeIfNotPresent(source.gradlePortalSecret)
-        return this
     }
 }

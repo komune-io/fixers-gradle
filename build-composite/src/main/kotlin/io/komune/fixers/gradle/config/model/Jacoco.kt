@@ -61,16 +61,13 @@ class Jacoco(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Jacoco to merge from
-     * @return This Jacoco after merging
      */
-    fun mergeFrom(source: Jacoco): Jacoco {
+    fun mergeFrom(source: Jacoco) {
         enabled.mergeIfNotPresent(source.enabled)
         htmlReport.mergeIfNotPresent(source.htmlReport)
         xmlReport.mergeIfNotPresent(source.xmlReport)
         xmlReportFilename.mergeIfNotPresent(source.xmlReportFilename)
         version.mergeIfNotPresent(source.version)
-
-        return this
     }
 
     companion object {

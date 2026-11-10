@@ -1,6 +1,8 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import io.komune.fixers.gradle.plugin.kotlin.JvmPlugin
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -16,8 +18,9 @@ import org.junit.jupiter.api.Test
 class PublishJvmSetupTest {
 
     private fun jvmProjectWithConfig(): Pair<Project, ConfigExtension> {
-        val root = ProjectBuilder.builder().build()
-        val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(ConfigPlugin::class.java)
+        val config = root.extensions.getByType(ConfigExtension::class.java)
         val project = ProjectBuilder.builder().withParent(root).withName("jvm-lib").build()
         project.plugins.apply(JvmPlugin::class.java)
         project.plugins.apply("maven-publish")
@@ -66,7 +69,7 @@ class PublishJvmSetupTest {
 
         @Test
         fun `should do nothing when JvmPlugin is not applied`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
             val project = ProjectBuilder.builder().withParent(root).build()
             project.plugins.apply("maven-publish")

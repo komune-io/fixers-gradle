@@ -182,9 +182,8 @@ class Sonar(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Sonar to merge from
-     * @return This Sonar after merging
      */
-    fun mergeFrom(source: Sonar): Sonar {
+    fun mergeFrom(source: Sonar) {
         url.mergeIfNotPresent(source.url)
         organization.mergeIfNotPresent(source.organization)
         projectKey.mergeIfNotPresent(source.projectKey)
@@ -203,8 +202,6 @@ class Sonar(
         source.customProperties.forEach { (key, value) ->
             customProperties.putIfAbsent(key, value)
         }
-
-        return this
     }
 
     companion object

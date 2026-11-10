@@ -2,8 +2,11 @@
 
 package io.komune.fixers.gradle.plugin.kotlin
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
+import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.Project
 import org.gradle.jvm.tasks.Jar
 import org.gradle.testfixtures.ProjectBuilder
@@ -22,9 +25,9 @@ import org.junit.jupiter.api.Test
 class MppPluginTest {
 
     private fun mppProject(configure: (ConfigExtension) -> Unit = {}): Project {
-        val root = ProjectBuilder.builder().build()
-        val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
-        configure(config)
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(ConfigPlugin::class.java)
+        configure(root.extensions.getByType(ConfigExtension::class.java))
         val project = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
         project.plugins.apply(MppPlugin::class.java)
         return project
@@ -82,20 +85,14 @@ class MppPluginTest {
     }
 
     @Test
-    fun `should make a declaration the js export cannot express a compilation error`() {
+    fun `should leave no warning level to the js options, every warning being an error`() {
         val project = mppProject()
 
         val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
-        assertThat(compileJs.compilerOptions.freeCompilerArgs.get()).contains(
-            "-Xwarning-level=NON_EXPORTABLE_TYPE:error",
-            "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error",
-            "-Xreport-all-warnings",
-        )
         val links = project.tasks.withType(KotlinJsIrLink::class.java)
         assertThat(links).isNotEmpty
-        links.forEach { link ->
-            assertThat(link.compilerOptions.freeCompilerArgs.get())
-                .contains("-Xwarning-level=NON_EXPORTABLE_TYPE:error", "-Xwarning-level=EXPORTING_JS_NAME_CLASH_ES:error")
+        (links + compileJs).forEach { task ->
+            assertThat(task.compilerOptions.freeCompilerArgs.get()).noneMatch { it.startsWith("-Xwarning-level") }
         }
     }
 
@@ -153,7 +150,22 @@ class MppPluginTest {
         val compileJs = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
         listOf(compileJvm.compilerOptions, compileJs.compilerOptions).forEach { options ->
             assertThat(options.allWarningsAsErrors.get()).isTrue()
-            assertThat(options.freeCompilerArgs.get()).contains("-Xreturn-value-checker=check")
+            assertThat(options.freeCompilerArgs.get()).contains("-Xreturn-value-checker=full", "-Xreport-all-warnings")
+        }
+    }
+
+    @Test
+    fun `should lock warnings as errors on the extension and refuse a compile task without them`() {
+        val project = mppProject()
+
+        val kotlin = project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+        assertThatThrownBy { kotlin.compilerOptions.allWarningsAsErrors.set(false) }
+            .hasMessageContaining("cannot be changed")
+        listOf("compileKotlinJvm", "compileKotlinJs").forEach { name ->
+            val compile = project.tasks.getByName(name) as org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>
+            compile.compilerOptions.allWarningsAsErrors.set(false)
+            assertThatThrownBy { compile.actions.first().execute(compile) }
+                .hasMessageContaining("allWarningsAsErrors = false")
         }
     }
 

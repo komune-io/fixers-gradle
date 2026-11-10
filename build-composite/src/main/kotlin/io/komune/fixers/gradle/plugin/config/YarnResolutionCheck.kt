@@ -22,6 +22,17 @@ import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.RootPackageJsonTask
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
+/**
+ * Versions fixers forces on the Kotlin/JS lock of every build: transitive packages of the Kotlin
+ * and ktor JS dependencies whose declared versions carry an advisory. `ws` 8.20.1 is pinned by
+ * ktor-client-core (GHSA-96hv-2xvq-fx4p); `ajv` before 8.18.0 (CVE-2025-69873). Remove a pin once
+ * the dependency declares a fixed version.
+ */
+internal val FIXERS_YARN_PINS: Map<String, String> = mapOf(
+    "**/ws" to "8.22.2",
+    "**/ajv" to "8.20.0",
+)
+
 internal const val YARN_RESOLUTION_CHECK_TASK = "checkYarnResolutions"
 
 private const val ANY_DEPTH = "**/"
@@ -45,6 +56,10 @@ abstract class YarnResolutionCheckTask : DefaultTask() {
     @get:Input
     abstract val resolutions: MapProperty<String, List<String>>
 
+    /** The resolutions of [FIXERS_YARN_PINS], path to forced version. */
+    @get:Input
+    abstract val fixersPins: MapProperty<String, String>
+
     /** The lock, which may be missing: a missing lock is a failure of this check, not of Gradle's. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
@@ -64,7 +79,12 @@ abstract class YarnResolutionCheckTask : DefaultTask() {
     fun check() {
         val lock = lockFile.files.firstOrNull { it.exists() }?.readText()
         val root = rootPackageJson.orNull?.asFile
-        val problems = yarnResolutionProblems(resolutions.get(), lock, root?.let(::workspaceDependencies).orEmpty())
+        val problems = yarnResolutionProblems(
+            resolutions.get(),
+            lock,
+            root?.let(::workspaceDependencies).orEmpty(),
+            fixersPins.get(),
+        )
         if (problems.isNotEmpty()) {
             throw GradleException(
                 "Yarn resolutions without effect on the Kotlin/JS lock:\n" +
@@ -77,14 +97,16 @@ abstract class YarnResolutionCheckTask : DefaultTask() {
 internal fun Project.registerYarnResolutionCheck() {
     plugins.withType(YarnPlugin::class.java) {
         val yarn = extensions.getByType(YarnRootExtension::class.java)
+        FIXERS_YARN_PINS.forEach { (path, version) -> yarn.resolution(path, version) }
         val check = tasks.register(YARN_RESOLUTION_CHECK_TASK, YarnResolutionCheckTask::class.java) {
             group = "verification"
             description = "Fails on a yarn resolution that is not scoped with **/ or does not reach the lock."
             resolutions.set(
                 yarn.resolutionsProperty.map { list ->
-                    list.associate { it.path to it.includedVersions.toList() }
+                    list.groupBy({ it.path }, { it.includedVersions.toList() }).mapValues { (_, versions) -> versions.flatten() }
                 }
             )
+            fixersPins.set(FIXERS_YARN_PINS)
             lockFile.from(yarn.lockFileDirectoryProperty.file(yarn.lockFileNameProperty))
             // Not every RootPackageJsonTask: wasmRootPackageJson writes the Wasm one.
             rootPackageJson.set(
@@ -135,19 +157,35 @@ private fun readJson(file: File): Map<*, *> = try {
  * path names, or any package for an unparented path, must depend on the package, and the lock
  * must hold the package at the forced version. The workspaces (the Kotlin/JS modules) have no
  * entry in the lock: an unparented path is also depended on when one of [workspaces], what the
- * workspaces ask for, names the package.
+ * workspaces ask for, names the package. A path of [fixersPins] is the build's to leave alone: a
+ * resolution of its own there is refused, and the pin passes when the lock does not hold its package.
  */
 internal fun yarnResolutionProblems(
     resolutions: Map<String, List<String>>,
     lock: String?,
     workspaces: Set<Spec> = emptySet(),
-): List<String> = when {
-    resolutions.isEmpty() -> emptyList()
-    lock == null -> listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
-    else -> {
-        val entries = parseYarnLock(lock)
-        val requested = entries.flatMapTo(mutableSetOf()) { it.dependencies } + workspaces
-        resolutions.mapNotNull { (path, versions) -> resolutionProblem(path, versions, entries, requested) }
+    fixersPins: Map<String, String> = emptyMap(),
+): List<String> {
+    val declared = resolutions.filter { (path, versions) -> versions != listOfNotNull(fixersPins[path]) }
+    return when {
+        resolutions.isEmpty() -> emptyList()
+        lock == null -> listOf("no yarn.lock to check ${resolutions.keys.joinToString()} against")
+        else -> {
+            val entries = parseYarnLock(lock)
+            val requested = entries.flatMapTo(mutableSetOf()) { it.dependencies } + workspaces
+            resolutions.mapNotNull { (path, versions) ->
+                val pinned = fixersPins[path]
+                val pkg = packageNames(path.removePrefix(ANY_DEPTH)).last()
+                when {
+                    pinned != null && path in declared -> "$path: fixers already forces $pkg to $pinned; remove this resolution"
+                    // A pin of fixers holds for every build: in one that does not need the package, the
+                    // lock holds it only at the spec yarn adds for the resolution.
+                    pinned != null && entries.filter { it.isOf(pkg) }.flatMap { it.specs }
+                        .all { !it.isOf(pkg) || it == Spec(pkg, pinned) } -> null
+                    else -> resolutionProblem(path, versions, entries, requested)
+                }
+            }
+        }
     }
 }
 

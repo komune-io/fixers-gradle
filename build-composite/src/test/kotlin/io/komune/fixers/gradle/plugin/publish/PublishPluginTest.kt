@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
 import groovy.util.Node
 import io.komune.fixers.gradle.config.ConfigExtension
 import org.assertj.core.api.Assertions.assertThat
@@ -22,7 +23,7 @@ import org.junit.jupiter.api.Test
 class PublishPluginTest {
 
     private fun rootWithConfig(version: String = "1.0.0"): Pair<Project, ConfigExtension> {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         root.version = version
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         return root to config
@@ -72,7 +73,7 @@ class PublishPluginTest {
 
         @Test
         fun `should skip publishing configuration when root has no fixers config`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val child = childOf(root)
             child.plugins.apply(PublishPlugin::class.java)
 

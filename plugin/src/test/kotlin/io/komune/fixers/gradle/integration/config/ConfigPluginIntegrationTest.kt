@@ -65,6 +65,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         // Set up multi-project build
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
+            gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
             include("subproject")
         """.trimIndent())
 
@@ -139,6 +140,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
     fun `should propagate bundle group to root and subprojects`() {
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
+            gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
             include("subproject")
         """.trimIndent())
 
@@ -206,7 +208,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
                 }
 
                 detekt {
-                    disable = false
+                    htmlReport = false
                 }
 
                 sonar {
@@ -227,7 +229,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
                 doLast {
                     // Access the extension properties directly
                     val config = rootProject.extensions.getByName("fixers") as io.komune.fixers.gradle.config.ConfigExtension
-                    println("Detekt disabled: ${'$'}{config.detekt.disable.get()}")
+                    println("Detekt html report: ${'$'}{config.detekt.htmlReport.get()}")
                     println("Sonar project key: ${'$'}{config.sonar.projectKey.get()}")
                     println("Kt2Ts output directory: ${'$'}{config.kt2Ts.outputDirectory.get()}")
                 }
@@ -238,7 +240,7 @@ class ConfigPluginIntegrationTest : BaseIntegrationTest() {
         val result = runGradle("verifyConfig")
 
         // Verify that all properties are correctly configured
-        assertThat(result.output).contains("Detekt disabled: false")
+        assertThat(result.output).contains("Detekt html report: false")
         assertThat(result.output).contains("Sonar project key: test-project")
         assertThat(result.output).contains("Kt2Ts output directory: generated/ts")
     }

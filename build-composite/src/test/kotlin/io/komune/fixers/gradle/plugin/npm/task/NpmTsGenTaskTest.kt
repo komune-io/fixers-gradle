@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.npm.task
 
+import io.komune.fixers.gradle.buildFixersRoot
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testfixtures.ProjectBuilder
@@ -18,8 +19,8 @@ class NpmTsGenTaskTest {
     fun `should clean files in build directory using configured regexes`() {
         val file = File(buildDir, "api.d.ts")
         file.writeText("value: kotlin.Long;")
-        val project = ProjectBuilder.builder().build()
-        val task = project.tasks.register("npmTsGenTask", NpmTsGenTask::class.java).get()
+        val project = ProjectBuilder.builder().buildFixersRoot()
+        val task = project.tasks.register("npmTsGen", NpmTsGenTask::class.java).get()
         task.buildDir = buildDir.absolutePath
         task.cleaning = mapOf(".d.ts" to listOf(Regex("""kotlin\.Long""") to "number"))
 
@@ -32,8 +33,8 @@ class NpmTsGenTaskTest {
     fun `should be a no-op with empty cleaning configuration`() {
         val file = File(buildDir, "api.d.ts")
         file.writeText("value: kotlin.Long;")
-        val project = ProjectBuilder.builder().build()
-        val task = project.tasks.register("npmTsGenTask", NpmTsGenTask::class.java).get()
+        val project = ProjectBuilder.builder().buildFixersRoot()
+        val task = project.tasks.register("npmTsGen", NpmTsGenTask::class.java).get()
         task.buildDir = buildDir.absolutePath
 
         task.doAction()

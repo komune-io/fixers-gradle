@@ -1,16 +1,17 @@
 package io.komune.fixers.gradle.check
 
 import dev.detekt.gradle.Detekt
-import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.configureDetekt
+import io.komune.fixers.gradle.plugin.check.fixersDetektConfig
 import io.komune.fixers.gradle.plugin.check.getDetektReportMergeXmlFile
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
@@ -54,42 +55,75 @@ class DetektConfigurationTest {
     }
 
     @Test
-    fun `should configure detekt extension with defaults`() {
+    fun `should run every rule with the configuration fixers ships`() {
         val (root, _) = rootWithConfig()
 
         root.configureDetekt()
 
         val detekt = root.extensions.getByType(DetektExtension::class.java)
+        assertThat(detekt.allRules.get()).isTrue()
         assertThat(detekt.buildUponDefaultConfig.get()).isTrue()
-        // No detekt.yml in the project dir: the built-in default config is used
-        assertThat(detekt.config.files).isEmpty()
+        assertThat(detekt.ignoreFailures.get()).isFalse()
+        assertThat(detekt.config.files).singleElement()
+            .satisfies({ file -> assertThat(file.readText()).isEqualTo(fixersDetektConfig()) })
     }
 
     @Test
-    fun `should use detekt config file when present in root dir`(@TempDir dir: File) {
-        val configFile = File(dir, "detekt.yml")
-        configFile.writeText("build:\n  maxIssues: 0\n")
+    fun `should lock the rules on the extension and refuse a detekt task that changes them`() {
+        val (root, _) = rootWithConfig()
+
+        root.configureDetekt()
+
+        val detekt = root.extensions.getByType(DetektExtension::class.java)
+        assertThatThrownBy { detekt.allRules.set(false) }.hasMessageContaining("cannot be changed")
+        assertThatThrownBy { detekt.config.setFrom("other.yml") }.hasMessageContaining("cannot be changed")
+        val task = root.tasks.withType(Detekt::class.java).getByName("detekt")
+        task.allRules.set(false)
+        task.ignoreFailures.set(true)
+        task.config.setFrom(root.file("detekt-other.yml"))
+        assertThatThrownBy { task.actions.first().execute(task) }
+            .hasMessageContaining(":detekt changes what fixers sets on Detekt: allRules, ignoreFailures, config")
+    }
+
+    @Test
+    fun `should refuse a detekt configuration of the project`(@TempDir dir: File) {
+        File(dir, "detekt.yml").writeText("build:\n  maxIssues: 0\n")
         val (root, _) = rootWithConfig(dir)
 
-        root.configureDetekt()
-
-        val detekt = root.extensions.getByType(DetektExtension::class.java)
-        assertThat(detekt.config.files.map { it.canonicalFile }).containsExactly(configFile.canonicalFile)
+        assertThatThrownBy { root.configureDetekt() }
+            .hasMessageContaining("detekt.yml")
+            .hasMessageContaining("fixers ships the Detekt configuration")
     }
 
     @Test
-    fun `should set baseline when configured`(@TempDir dir: File) {
-        val (root, config) = rootWithConfig(dir)
-        config.detekt.baseline.set("detekt-baseline.xml")
+    fun `should leave generated sources out of every detekt task`() {
+        val (root, _) = rootWithConfig()
 
         root.configureDetekt()
 
-        val detekt = root.extensions.getByType(DetektExtension::class.java)
-        assertThat(detekt.baseline.get().asFile.name).isEqualTo("detekt-baseline.xml")
+        root.tasks.withType(Detekt::class.java).forEach { task ->
+            assertThat(task.excludes).contains("**/generated/**")
+        }
     }
 
     @Test
-    fun `should give the detekt and baseline tasks the compile classpaths so typed rules run`(@TempDir dir: File) {
+    fun `should run the detekt tasks of the js source sets on check`(@TempDir dir: File) {
+        val (root, _) = rootWithConfig(dir)
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("mpp")
+            .withProjectDir(File(dir, "mpp").apply { mkdirs() })
+            .build()
+        child.plugins.apply(MppPlugin::class.java)
+        root.configureDetekt()
+
+        val checkDependencies = child.tasks.getByName("check").taskDependencies.getDependencies(null).map { it.name }
+        assertThat(checkDependencies).contains("detektJsMainSourceSet", "detektJsTestSourceSet")
+            .doesNotContain("detektCommonMainSourceSet", "detektJvmMainSourceSet")
+    }
+
+    @Test
+    fun `should give the detekt task the compile classpaths so typed rules run`(@TempDir dir: File) {
         val (root, _) = rootWithConfig(dir)
         val child = ProjectBuilder.builder()
             .withParent(root)
@@ -106,8 +140,6 @@ class DetektConfigurationTest {
 
         val detekt = child.tasks.getByName("detekt") as Detekt
         assertThat(detekt.classpath.files).contains(mainJar, testJar)
-        val baseline = child.tasks.getByName("detektBaseline") as DetektCreateBaselineTask
-        assertThat(baseline.classpath.files).contains(mainJar, testJar)
     }
 
     @Test

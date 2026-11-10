@@ -9,20 +9,24 @@ import org.gradle.api.initialization.resolve.RepositoriesMode
 import org.gradle.api.provider.Property
 
 /**
- * Loads the f2 version catalog as `catalogue`, at this plugin's own version, and declares the
- * Node.js and Yarn distributions Kotlin/JS downloads, each repository serving its module only.
- *
- * Every repository lives in the settings: a project that declares one fails the build, and the
- * fixers project plugins add none. No Maven repository is added here: the project declares its
- * own, in its own order.
+ * Loads the f2 version catalog as `catalogue`, at this plugin's own version, and declares every
+ * repository of the build: the Node.js and Yarn distributions Kotlin/JS downloads, each serving its
+ * module only, then, after the project's own, Maven Central and the Sonatype snapshots of Komune's
+ * groups. A project that declares a repository fails the build, and the fixers project plugins
+ * fail without this one.
  */
 class SettingsPlugin : Plugin<Settings> {
 
     override fun apply(settings: Settings) {
         val version = FixersSettingsVersion.VALUE
         checkCatalogVersion(settings, version)
-        settings.dependencyResolutionManagement.repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-        settings.dependencyResolutionManagement.repositories.declareJsDistributions()
+        settings.dependencyResolutionManagement.repositoriesMode.apply {
+            set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            disallowChanges()
+        }
+        val repositories = settings.dependencyResolutionManagement.repositories
+        repositories.declareJsDistributions()
+        settings.gradle.settingsEvaluated { repositories.declareMavenRepositories() }
         settings.gradle.extensions.extraProperties.set(MARKER, true)
         settings.dependencyResolutionManagement.versionCatalogs.create(CATALOG_NAME) {
             from("$CATALOG_COORDINATES:$version")
@@ -35,7 +39,7 @@ class SettingsPlugin : Plugin<Settings> {
         const val CATALOG_COORDINATES = "io.komune.f2:f2-gradle-catalog"
         const val LOCAL_CATALOG = "gradle/libs.versions.toml"
 
-        /** Read by the fixers config plugin, which then adds no project repository. */
+        /** Read by the fixers config plugin, which fails without it. */
         const val MARKER = "io.komune.fixers.gradle.settings"
     }
 }
@@ -87,6 +91,19 @@ private fun RepositoryHandler.declareJsDistributions() {
             }
         }
         filter { includeModule("com.yarnpkg", "yarn") }
+    }
+}
+
+/** Komune's groups, the only ones the snapshots repository serves. */
+private const val KOMUNE_GROUPS = """io\.komune(\..+)?"""
+
+private fun RepositoryHandler.declareMavenRepositories() {
+    mavenCentral()
+    maven {
+        name = "KomuneSnapshots"
+        setUrl("https://central.sonatype.com/repository/maven-snapshots")
+        mavenContent { snapshotsOnly() }
+        content { includeGroupByRegex(KOMUNE_GROUPS) }
     }
 }
 

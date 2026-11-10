@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
+import io.komune.fixers.gradle.buildFixersRoot
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.jvm.tasks.Jar
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test
 class JarExtentionTest {
 
     private fun javaProject(name: String, version: String): Project {
-        val project = ProjectBuilder.builder().withName(name).build()
+        val project = ProjectBuilder.builder().withName(name).buildFixersRoot()
         project.version = version
         project.plugins.apply("java")
         return project

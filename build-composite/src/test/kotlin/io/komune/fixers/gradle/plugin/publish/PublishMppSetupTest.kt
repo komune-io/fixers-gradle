@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import org.assertj.core.api.Assertions.assertThat
@@ -15,7 +16,7 @@ import org.junit.jupiter.api.Test
 class PublishMppSetupTest {
 
     private fun mppProjectWithConfig(): Pair<Project, ConfigExtension> {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         val project = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
         project.plugins.apply(MppPlugin::class.java)
@@ -67,7 +68,7 @@ class PublishMppSetupTest {
 
     @Test
     fun `should do nothing when MppPlugin is not applied`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         val project = ProjectBuilder.builder().withParent(root).build()
         project.plugins.apply("maven-publish")

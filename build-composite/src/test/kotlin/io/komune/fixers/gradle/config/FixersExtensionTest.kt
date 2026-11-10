@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.plugin.use.PluginDependenciesSpec
 import org.gradle.plugin.use.PluginDependencySpec
@@ -13,14 +14,14 @@ class FixersExtensionTest {
 
     @Test
     fun `fixers accessor should return null when extension is absent`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
 
         assertThat(project.extensions.fixers).isNull()
     }
 
     @Test
     fun `fixers accessor should return the registered extension`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
         assertThat(project.extensions.fixers).isSameAs(config)
@@ -28,7 +29,7 @@ class FixersExtensionTest {
 
     @Test
     fun `Project fixers should configure the root extension from a subproject`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         val child = ProjectBuilder.builder().withParent(root).build()
 
@@ -57,7 +58,7 @@ class FixersExtensionTest {
 
     @Test
     fun `PublishConfig getStagingRepositoryPath should resolve into build directory`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
         val path = config.publish.getStagingRepositoryPath(project)
@@ -68,7 +69,7 @@ class FixersExtensionTest {
 
     @Test
     fun `PublishConfig toString should mask secrets`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.publish.pkgGithubToken.set("secret-token")
         config.publish.npmjsToken.set("npm-secret")
@@ -83,7 +84,7 @@ class FixersExtensionTest {
 
     @Test
     fun `PublishConfig central portal defaults should preserve the previous publishing behaviour`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
         assertThat(config.publish.mavenCentralPublishingType.get()).isEqualTo("AUTOMATIC")
@@ -92,7 +93,7 @@ class FixersExtensionTest {
 
     @Test
     fun `PublishConfig should accept an overridden central portal publishing type`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
         config.publish.mavenCentralPublishingType.set("USER_MANAGED")

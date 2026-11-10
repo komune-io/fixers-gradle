@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -14,7 +15,7 @@ import org.junit.jupiter.api.Test
 class PublishPlatformSetupTest {
 
     private fun projectWithConfig(): Pair<Project, ConfigExtension> {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         val project = ProjectBuilder.builder().withParent(root).withName("platform-lib").build()
         return project to config

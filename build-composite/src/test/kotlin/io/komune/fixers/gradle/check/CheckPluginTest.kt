@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.config.model.Sonar
@@ -26,7 +27,7 @@ class CheckPluginTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
     }
 
     @Test
@@ -409,7 +410,7 @@ class CheckPluginTest {
 
         @Test
         fun `version should read from VERSION file when present`(@TempDir tempDir: File) {
-            val rootProject = ProjectBuilder.builder().withProjectDir(tempDir).build()
+            val rootProject = ProjectBuilder.builder().withProjectDir(tempDir).buildFixersRoot()
             File(tempDir, "VERSION").writeText("3.5.0\n")
             rootProject.version = "fallback"
             val config = rootProject.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, rootProject)
@@ -484,10 +485,10 @@ class CheckPluginTest {
             val config = createConfigExtension()
 
             config.detekt {
-                disable.set(true)
+                htmlReport.set(false)
             }
 
-            assertThat(config.detekt.disable.get()).isTrue()
+            assertThat(config.detekt.htmlReport.get()).isFalse()
         }
 
         @Test

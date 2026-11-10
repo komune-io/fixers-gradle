@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.check.CheckPlugin
 import org.assertj.core.api.Assertions.assertThat
@@ -20,7 +21,7 @@ class CheckPluginLifecycleTest {
 
     @Test
     fun `should configure sonar detekt and subproject jacoco after evaluation`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         val child = ProjectBuilder.builder().withParent(root).build()
         child.plugins.apply("java")
@@ -35,21 +36,8 @@ class CheckPluginLifecycleTest {
     }
 
     @Test
-    fun `should skip detekt configuration when disabled`() {
-        val root = ProjectBuilder.builder().build()
-        val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
-        config.detekt.disable.set(true)
-        root.plugins.apply(CheckPlugin::class.java)
-
-        fireProjectsEvaluated(root)
-
-        assertThat(root.plugins.hasPlugin("org.sonarqube")).isTrue()
-        assertThat(root.tasks.findByName("detektReportMergeXml")).isNull()
-    }
-
-    @Test
     fun `should work without fixers configuration`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         root.plugins.apply(CheckPlugin::class.java)
 
         fireProjectsEvaluated(root)

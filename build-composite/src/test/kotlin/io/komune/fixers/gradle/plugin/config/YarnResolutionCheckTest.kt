@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -198,8 +199,43 @@ class YarnResolutionCheckTest {
     }
 
     @Test
+    fun `should accept a pin of fixers on a package the lock does not hold`() {
+        assertThat(yarnResolutionProblems(mapOf("**/ajv" to listOf("8.20.0")), lock, fixersPins = mapOf("**/ajv" to "8.20.0")))
+            .isEmpty()
+        val orphan = lock + "\n\najv@8.20.0:\n  version \"8.20.0\"\n"
+        assertThat(yarnResolutionProblems(mapOf("**/ajv" to listOf("8.20.0")), orphan, fixersPins = mapOf("**/ajv" to "8.20.0")))
+            .isEmpty()
+    }
+
+    @Test
+    fun `should check a pin of fixers on a package the lock holds`() {
+        assertThat(yarnResolutionProblems(mapOf("**/ws" to listOf("8.23.0")), lock, fixersPins = mapOf("**/ws" to "8.23.0")))
+            .singleElement().asString().isEqualTo("**/ws: the lock does not hold ws at 8.23.0")
+    }
+
+    @Test
+    fun `should refuse a resolution of a path fixers pins`() {
+        assertThat(
+            yarnResolutionProblems(mapOf("**/ws" to listOf("8.22.2", "8.21.3")), lock, fixersPins = mapOf("**/ws" to "8.22.2"))
+        ).singleElement().asString().isEqualTo("**/ws: fixers already forces ws to 8.22.2; remove this resolution")
+    }
+
+    @Test
+    fun `should pin the vulnerable transitive packages of the Kotlin JS dependencies`() {
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(ConfigPlugin::class.java)
+        val module = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
+        module.plugins.apply(MppPlugin::class.java)
+
+        val yarn = root.extensions.getByType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension::class.java)
+        assertThat(yarn.resolutionsProperty.get().associate { it.path to it.includedVersions.toList() })
+            .containsAllEntriesOf(FIXERS_YARN_PINS.mapValues { (_, version) -> listOf(version) })
+        assertThat(FIXERS_YARN_PINS.keys).containsExactlyInAnyOrder("**/ws", "**/ajv")
+    }
+
+    @Test
     fun `should run the check with the root check task once yarn is in the build`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         root.plugins.apply(ConfigPlugin::class.java)
         val module = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
         module.plugins.apply(MppPlugin::class.java)

@@ -18,45 +18,45 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 @Suppress("UnstableApiUsage")
 class JvmPlugin : Plugin<Project> {
 
-	override fun apply(target: Project) {
-		target.logger.info("Applying JvmPlugin to project: ${target.name}")
-		target.apply(plugin = "java")
-		target.apply(plugin = "org.jetbrains.kotlin.jvm")
-		target.configureJvmCompilation()
-		target.setupJarInfo()
-	}
+    override fun apply(target: Project) {
+        target.logger.info("Applying JvmPlugin to project: ${target.name}")
+        target.apply(plugin = "java")
+        target.apply(plugin = "org.jetbrains.kotlin.jvm")
+        target.configureJvmCompilation()
+        target.setupJarInfo()
+    }
 
-	private fun Project.configureJvmCompilation() {
-		logger.info("Configuring JVM compilation for project: $name")
-		plugins.apply(ConfigPlugin::class.java)
-		val jdkVersion = fixersJdkVersion()
+    private fun Project.configureJvmCompilation() {
+        logger.info("Configuring JVM compilation for project: $name")
+        plugins.apply(ConfigPlugin::class.java)
+        val jdkVersion = fixersJdkVersion()
 
-		logger.info("Using JDK version: $jdkVersion")
+        logger.info("Using JDK version: $jdkVersion")
 
-		// Configure compiler options at extension level (recommended approach for Kotlin 2.x)
-		extensions.configure(KotlinJvmProjectExtension::class.java) {
-			jvmToolchain(jdkVersion)
-			compilerOptions {
-				allWarningsAsErrors.set(true)
-				freeCompilerArgs.addAll("-Xjsr305=strict", "-Wextra", "-Xreturn-value-checker=check")
-				jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-			}
-		}
+        // Configure compiler options at extension level (recommended approach for Kotlin 2.x)
+        extensions.configure(KotlinJvmProjectExtension::class.java) {
+            jvmToolchain(jdkVersion)
+            compileStrictly(compilerOptions)
+            compilerOptions {
+                freeCompilerArgs.add("-Xjsr305=strict")
+                jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
+            }
+        }
 
-		plugins.withType(JavaPlugin::class.java).whenPluginAdded {
-			tasks.withType(JavaCompile::class).configureEach {
-				logger.info("Configuring Java compile task: $name in project ${project.name}")
-				options.release.set(jdkVersion)
-			}
-			extensions.configure(JavaPluginExtension::class.java) {
-				toolchain.languageVersion.set(JavaLanguageVersion.of(jdkVersion))
-			}
-		}
+        plugins.withType(JavaPlugin::class.java).whenPluginAdded {
+            tasks.withType(JavaCompile::class).configureEach {
+                logger.info("Configuring Java compile task: $name in project ${project.name}")
+                options.release.set(jdkVersion)
+            }
+            extensions.configure(JavaPluginExtension::class.java) {
+                toolchain.languageVersion.set(JavaLanguageVersion.of(jdkVersion))
+            }
+        }
 
-		dependencies {
-			add("implementation", kotlin("reflect"))
-		}
+        dependencies {
+            add("implementation", kotlin("reflect"))
+        }
 
-		configureJUnitPlatform()
-	}
+        configureJUnitPlatform()
+    }
 }

@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.config.model.Kt2Ts
 import java.io.File
@@ -23,7 +24,7 @@ class TsGenTaskTest {
     }
 
     private fun projectWithConfig(): Pair<Project, ConfigExtension> {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         return project to config
     }
@@ -64,7 +65,7 @@ class TsGenTaskTest {
 
         @Test
         fun `tsGen should wait for the Kotlin JS library distribution of every project`() {
-            val root = ProjectBuilder.builder().build()
+            val root = ProjectBuilder.builder().buildFixersRoot()
             val module = ProjectBuilder.builder().withName("module").withParent(root).build()
             val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
 
@@ -97,7 +98,7 @@ class TsGenTaskTest {
 
         @Test
         fun `tsGen should not rewrite the npm packages of subprojects`(@TempDir dir: File) {
-            val root = ProjectBuilder.builder().withProjectDir(dir).build()
+            val root = ProjectBuilder.builder().withProjectDir(dir).buildFixersRoot()
             val module = ProjectBuilder.builder().withName("module").withParent(root).build()
             val npmPackage = module.layout.buildDirectory.dir("packages/js").get().asFile.apply { mkdirs() }
             val raw = "export declare function names(): KtList<string>;\n"
@@ -116,7 +117,7 @@ class TsGenTaskTest {
     @Nested
     inner class BuildCleaningRegexTest {
 
-        private fun kt2Ts(): Kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
+        private fun kt2Ts(): Kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
 
         @Test
         fun `should provide cleaning rules for dts dmts and package json`() {
@@ -157,7 +158,7 @@ class TsGenTaskTest {
         private fun clean(fileName: String, content: String): String {
             val file = File(dir, fileName)
             file.writeText(content)
-            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
             cleanProjectDir(dir.absolutePath, cleaning)
             return file.readText()
         }
@@ -238,16 +239,17 @@ class TsGenTaskTest {
 
         @Test
         fun `should tolerate missing directories`() {
-            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
 
             cleanProjectDir(File(dir, "does-not-exist").absolutePath, cleaning)
         }
     }
 
     /**
-     * `kotlin-2.4.21.d.mts` is the unmodified output of Kotlin/JS 2.4.21 (ES modules, `es2015`,
+     * `kotlin-2.4.21.d.mts` is the output of Kotlin/JS 2.4.21 (ES modules, `es2015`,
      * `-Xes-long-as-bigint`, production library) for a sample of DTOs, enums and functions;
-     * the expected files are what the rules make of it.
+     * the expected files are what the rules make of it. Its member of a non-exported type was taken
+     * out: under fixers it no longer compiles (`NON_EXPORTABLE_TYPE`), and kt2Ts refuses its `any`.
      */
     @Nested
     inner class Kotlin2421DeclarationsTest {
@@ -258,7 +260,7 @@ class TsGenTaskTest {
         private fun clean(): String {
             val file = File(dir, "api.d.mts")
             file.writeText(resource("kotlin-2.4.21.d.mts"))
-            val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
+            val kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
             cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
             return file.readText()
         }
@@ -300,7 +302,7 @@ class TsGenTaskTest {
         private fun cleanSnippet(content: String): String {
             val file = File(dir, "snippet.d.mts")
             file.writeText(content)
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
             return file.readText()
         }
 
@@ -336,7 +338,7 @@ class TsGenTaskTest {
         private fun cleanResource(name: String): String {
             val file = File(dir, "resource.d.mts")
             file.writeText(resource(name))
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
             return file.readText()
         }
 
@@ -375,7 +377,7 @@ class TsGenTaskTest {
         fun `should fail on a collection nested deeper than the rules reach`() {
             val file = File(dir, "deep.d.mts")
             file.writeText("export declare interface Deep {\n    readonly cube: KtList<KtList<KtList<KtList<string>>>>;\n}\n")
-            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
 
             assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
                 .isInstanceOf(GradleException::class.java)
@@ -387,7 +389,7 @@ class TsGenTaskTest {
         fun `should fail on a Nullable the rules leave behind`() {
             val file = File(dir, "left.d.mts")
             file.writeText("export declare interface Left {\n    readonly x: Nullable<Record<string, Record<string, Record<string, Record<string, string>>>>>;\n}\n")
-            val cleaning = Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex()
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
 
             assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
                 .isInstanceOf(GradleException::class.java)
@@ -396,9 +398,18 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should accept Nullable inside a comment`() {
-            assertThat(cleanSnippet("    readonly item: Nullable<any>/* Nullable<Graph> */;\n"))
-                .isEqualTo("    readonly item?: any/* Nullable<Graph> */ | null;\n")
+        fun `should fail on a type the export left as any`() {
+            listOf("left.d.mts", "left.d.ts").forEach { name ->
+                val file = File(dir, name)
+                file.writeText("export declare interface Left {\n    readonly x: any/* Foo.Companion */;\n}\n")
+                val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
+
+                assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
+                    .isInstanceOf(GradleException::class.java)
+                    .hasMessageContaining("$name:2")
+                    .hasMessageContaining("any/* Foo.Companion */")
+                file.delete()
+            }
         }
 
         @Test
@@ -435,7 +446,7 @@ class TsGenTaskTest {
         fun `should keep trailing nullable parameters optional`() {
             val file = File(dir, "fn.d.mts")
             file.writeText("export declare function f(a: Nullable<string>, b: string, c: Nullable<KtMap<string, number>>, d: Nullable<string>): void;\n")
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().build()).buildCleaningRegex())
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
 
             assertThat(file.readText())
                 .isEqualTo("export declare function f(a: string | null, b: string, c?: Record<string, number> | null, d?: string | null): void;\n")
@@ -500,16 +511,9 @@ class TsGenTaskTest {
         private fun clean(content: String): String {
             val file = File(dir, "api.d.mts")
             file.writeText(content)
-            val kt2Ts = Kt2Ts(ProjectBuilder.builder().build())
+            val kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
             cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
             return file.readText()
-        }
-
-        @Test
-        fun `should keep the comment of a non exported nullable type before null`() {
-            val result = clean("export declare interface A {\n    readonly item: Nullable<any>/* Nullable<Graph> */;\n}\n")
-
-            assertThat(result).contains("readonly item?: any/* Nullable<Graph> */ | null;")
         }
     }
 }

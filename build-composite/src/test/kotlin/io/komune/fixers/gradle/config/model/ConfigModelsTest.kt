@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.config.model
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
@@ -17,7 +18,7 @@ class ConfigModelsTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
     }
 
     @Nested
@@ -58,27 +59,19 @@ class ConfigModelsTest {
         fun `should have sensible defaults`() {
             val detekt = Detekt(project)
 
-            assertThat(detekt.disable.get()).isFalse()
-            assertThat(detekt.config.get()).isEqualTo("detekt.yml")
-            assertThat(detekt.buildUponDefaultConfig.get()).isTrue()
             assertThat(detekt.checkstyleReport.get()).isTrue()
-            assertThat(detekt.baseline.isPresent).isFalse()
+            assertThat(detekt.htmlReport.get()).isTrue()
         }
 
         @Test
         fun `should merge absent values only`() {
-            val source = Detekt(project).apply {
-                baseline.set("baseline.xml")
-                config.set("custom.yml")
-            }
-            val target = Detekt(project).apply {
-                config.set("target.yml")
-            }
+            val source = Detekt(project).apply { htmlReport.set(false) }
+            val target = Detekt(project).apply { sarifReport.set(false) }
 
             target.mergeFrom(source)
 
-            assertThat(target.baseline.get()).isEqualTo("baseline.xml")
-            assertThat(target.config.get()).isEqualTo("target.yml")
+            assertThat(target.sarifReport.get()).isFalse()
+            assertThat(target.htmlReport.get()).isTrue()
         }
     }
 
@@ -86,20 +79,8 @@ class ConfigModelsTest {
     inner class Kt2TsModelTest {
 
         @Test
-        fun `should commit every file when nothing sets committedFiles`() {
-            val kt2Ts = Kt2Ts(project)
-
-            assertThat(kt2Ts.committedFiles.isPresent).isFalse()
-            assertThat(kt2Ts.committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.ALL)
-        }
-
-        @Test
-        fun `should take committedFiles from the root unless the subproject sets it`() {
-            val root = Kt2Ts(project).apply { committedFiles.set(Kt2TsFiles.DECLARATIONS) }
-
-            assertThat(Kt2Ts(project).mergeFrom(root).committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.DECLARATIONS)
-            val own = Kt2Ts(project).apply { committedFiles.set(Kt2TsFiles.ALL) }
-            assertThat(own.mergeFrom(root).committedFilesOrDefault.get()).isEqualTo(Kt2TsFiles.ALL)
+        fun `should commit the declarations only when nothing sets committedFiles`() {
+            assertThat(Kt2Ts(project).committedFiles.get()).isEqualTo(Kt2TsFiles.DECLARATIONS)
         }
 
         @Test
@@ -109,22 +90,6 @@ class ConfigModelsTest {
             assertThat(kt2Ts.outputDirectory.get()).isEqualTo("platform/web/kotlin")
             assertThat(kt2Ts.inputDirectory.isPresent).isFalse()
             assertThat(kt2Ts.additionalCleaning.get()).isEmpty()
-        }
-
-        @Test
-        fun `should merge absent values only`() {
-            val source = Kt2Ts(project).apply {
-                inputDirectory.set("build/js/packages")
-                outputDirectory.set("source-out")
-            }
-            val target = Kt2Ts(project).apply {
-                outputDirectory.set("target-out")
-            }
-
-            target.mergeFrom(source)
-
-            assertThat(target.inputDirectory.get()).isEqualTo("build/js/packages")
-            assertThat(target.outputDirectory.get()).isEqualTo("target-out")
         }
     }
 
@@ -145,7 +110,7 @@ class ConfigModelsTest {
         @Test
         fun `should not override convention-backed values on merge`() {
             // All properties have conventions, so isPresent is always true and
-            // mergeIfNotPresent keeps the target values (same contract as Repositories).
+            // mergeIfNotPresent keeps the target values .
             val source = Jacoco(project).apply {
                 enabled.set(false)
                 xmlReportFilename.set("source.xml")
@@ -154,9 +119,8 @@ class ConfigModelsTest {
                 xmlReportFilename.set("target.xml")
             }
 
-            val merged = target.mergeFrom(source)
+            target.mergeFrom(source)
 
-            assertThat(merged).isSameAs(target)
             assertThat(target.enabled.get()).isTrue()
             assertThat(target.xmlReportFilename.get()).isEqualTo("target.xml")
         }
@@ -179,43 +143,6 @@ class ConfigModelsTest {
             target.mergeFrom(source)
 
             assertThat(target.version.get()).isEqualTo(21)
-        }
-    }
-
-    @Nested
-    inner class RepositoriesModelTest {
-
-        @Test
-        fun `should default to maven central only`() {
-            val repos = Repositories(project)
-
-            assertThat(repos.mavenLocal.get()).isFalse()
-            assertThat(repos.mavenCentral.get()).isTrue()
-            assertThat(repos.sonatypeSnapshots.get()).isFalse()
-            assertThat(repos.mavenUrls.get()).isEmpty()
-        }
-
-        @Test
-        fun `should collect custom maven urls`() {
-            val repos = Repositories(project)
-
-            repos.maven("https://repo.example.com/a")
-            repos.maven("https://repo.example.com/b")
-
-            assertThat(repos.mavenUrls.get())
-                .containsExactly("https://repo.example.com/a", "https://repo.example.com/b")
-        }
-
-        @Test
-        fun `should not override convention-backed flags on merge`() {
-            // All flags have conventions, so isPresent is always true and
-            // mergeIfNotPresent keeps the target defaults.
-            val source = Repositories(project).apply { mavenLocal.set(true) }
-            val target = Repositories(project)
-
-            target.mergeFrom(source)
-
-            assertThat(target.mavenLocal.get()).isFalse()
         }
     }
 
@@ -254,20 +181,18 @@ class ConfigModelsTest {
             project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
 
         @Test
-        fun `should configure kt2Ts npm jdk publish and repositories via DSL`() {
+        fun `should configure kt2Ts npm jdk and publish via DSL`() {
             val config = createConfig()
 
             config.kt2Ts { outputDirectory.set("custom/out") }
             config.npm { organization.set("custom-org") }
             config.jdk { version.set(21) }
             config.publish { pkgGithubUsername.set("user") }
-            config.repositories { mavenLocal.set(true) }
 
             assertThat(config.kt2Ts.outputDirectory.get()).isEqualTo("custom/out")
             assertThat(config.npm.organization.get()).isEqualTo("custom-org")
             assertThat(config.jdk.version.get()).isEqualTo(21)
             assertThat(config.publish.pkgGithubUsername.get()).isEqualTo("user")
-            assertThat(config.repositories.mavenLocal.get()).isTrue()
         }
 
         @Test

@@ -7,12 +7,12 @@ import org.gradle.kotlin.dsl.withType
 
 
 fun Project.setupJarInfo() {
-	tasks.withType<Jar>().configureEach {
-		manifest {
-			attributes(
-				"Implementation-Title" to project.name,
-				"Implementation-Version" to project.provider { project.version.toString() }
-			)
-		}
-	}
+    tasks.withType<Jar>().configureEach {
+        manifest {
+            attributes(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.provider { project.version.toString() }
+            )
+        }
+    }
 }

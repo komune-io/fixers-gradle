@@ -165,9 +165,8 @@ class Bundle(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Bundle to merge from
-     * @return This Bundle after merging
      */
-    fun mergeFrom(source: Bundle): Bundle {
+    fun mergeFrom(source: Bundle) {
         // Basic properties
         name.mergeIfNotPresent(source.name)
         group.mergeIfNotPresent(source.group)
@@ -188,7 +187,5 @@ class Bundle(
         // SCM properties
         scmConnection.mergeIfNotPresent(source.scmConnection)
         scmDeveloperConnection.mergeIfNotPresent(source.scmDeveloperConnection)
-
-        return this
     }
 }

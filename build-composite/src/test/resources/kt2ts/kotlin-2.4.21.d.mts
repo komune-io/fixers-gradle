@@ -55,7 +55,7 @@ export declare namespace NestedDto {
     }
 }
 export declare class SampleDto {
-    constructor(s: string, sNull: Nullable<string>, i: number, iNull: Nullable<number>, d: number, bNull: Nullable<boolean>, listSNull: KtList<Nullable<string>>, onChange: Nullable<(p0: string) => void>, listS: KtList<string>, listDtoNull: Nullable<KtList<NestedDto>>, mapSS: KtMap<string, string>, mapSDtoNull: KtMap<string, Nullable<NestedDto>>, setS: KtSet<string>, arrS: Array<string>, nested: NestedDto, hidden: any/* Hidden */, dateIso: string);
+    constructor(s: string, sNull: Nullable<string>, i: number, iNull: Nullable<number>, d: number, bNull: Nullable<boolean>, listSNull: KtList<Nullable<string>>, onChange: Nullable<(p0: string) => void>, listS: KtList<string>, listDtoNull: Nullable<KtList<NestedDto>>, mapSS: KtMap<string, string>, mapSDtoNull: KtMap<string, Nullable<NestedDto>>, setS: KtSet<string>, arrS: Array<string>, nested: NestedDto, dateIso: string);
     get s(): string;
     get sNull(): Nullable<string>;
     get i(): number;
@@ -71,9 +71,8 @@ export declare class SampleDto {
     get setS(): KtSet<string>;
     get arrS(): Array<string>;
     get nested(): NestedDto;
-    get hidden(): any/* Hidden */;
     get dateIso(): string;
-    copy(s?: string, sNull?: Nullable<string>, i?: number, iNull?: Nullable<number>, d?: number, bNull?: Nullable<boolean>, listSNull?: KtList<Nullable<string>>, onChange?: Nullable<(p0: string) => void>, listS?: KtList<string>, listDtoNull?: Nullable<KtList<NestedDto>>, mapSS?: KtMap<string, string>, mapSDtoNull?: KtMap<string, Nullable<NestedDto>>, setS?: KtSet<string>, arrS?: Array<string>, nested?: NestedDto, hidden?: any/* Hidden */, dateIso?: string): SampleDto;
+    copy(s?: string, sNull?: Nullable<string>, i?: number, iNull?: Nullable<number>, d?: number, bNull?: Nullable<boolean>, listSNull?: KtList<Nullable<string>>, onChange?: Nullable<(p0: string) => void>, listS?: KtList<string>, listDtoNull?: Nullable<KtList<NestedDto>>, mapSS?: KtMap<string, string>, mapSDtoNull?: KtMap<string, Nullable<NestedDto>>, setS?: KtSet<string>, arrS?: Array<string>, nested?: NestedDto, dateIso?: string): SampleDto;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;

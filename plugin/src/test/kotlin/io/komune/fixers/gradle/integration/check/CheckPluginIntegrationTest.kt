@@ -93,21 +93,10 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         File(sourceDir, "Sample.kt").writeText("""
             package com.example
 
-            class Sample {
+            internal class Sample {
                 fun hello(name: String): String = "Hello, ${'$'}name!"
             }
 
-        """.trimIndent())
-
-        // Create a detekt config file
-        createFile("detekt.yml", """
-            complexity:
-              LongParameterList:
-                active: true
-                allowedFunctionParameters: 5
-            style:
-              MagicNumber:
-                active: true
         """.trimIndent())
 
         // Set up the build file with the CheckPlugin
@@ -121,12 +110,6 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             repositories {
                 mavenCentral()
             }
-
-            fixers {
-                detekt {
-                    disable = false
-                }
-            }
         """.trimIndent())
 
         // Run the detekt task
@@ -134,37 +117,6 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
 
         // Verify that the task completed successfully
         assertThat(result.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-    }
-
-    /**
-     * Test that the CheckPlugin correctly disables Detekt when configured to do so.
-     */
-    @Test
-    fun `should not run Detekt when disabled`() {
-        // Set up the build file with the CheckPlugin and Detekt disabled
-        writeBuildFile("""
-            plugins {
-                kotlin("jvm") version "$TEST_KOTLIN_VERSION"
-                id("io.komune.fixers.gradle.config")
-                id("io.komune.fixers.gradle.check")
-            }
-
-            repositories {
-                mavenCentral()
-            }
-
-            fixers {
-                detekt {
-                    disable = true
-                }
-            }
-        """.trimIndent())
-
-        // Try to run the detekt task - it should fail because the task doesn't exist
-        val result = runGradleAndFail("detektMain")
-
-        // Verify that the task failed because it doesn't exist
-        assertThat(result.output).contains("Task 'detektMain' not found")
     }
 
     /**
@@ -218,6 +170,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
             // Update settings file for multi-project build
             settingsFile.writeText("""
                 rootProject.name = "integration-test-project"
+                gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
                 include("subproject")
             """.trimIndent())
 
@@ -383,6 +336,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         private fun setupMppSubproject() {
             settingsFile.writeText("""
                 rootProject.name = "integration-test-project"
+                gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
                 include("mpp-subproject")
             """.trimIndent())
 
@@ -579,6 +533,7 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         fun `should hand an absolute detekt report path to every module`() {
             settingsFile.writeText("""
                 rootProject.name = "integration-test-project"
+                gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
                 include("subproject")
             """.trimIndent())
 

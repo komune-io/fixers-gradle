@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * What the JS export cannot express fails the build instead of turning into `any` or into two
- * TypeScript declarations of one name, even in a project that keeps its other warnings as warnings.
+ * TypeScript declarations of one name.
  */
 class JsExportIntegrationTest : BaseIntegrationTest() {
 
@@ -20,13 +20,6 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
 
             repositories {
                 mavenCentral()
-            }
-
-            // The other warnings stay warnings: these two must fail the build anyway.
-            kotlin {
-                compilerOptions {
-                    allWarningsAsErrors.set(false)
-                }
             }
         """.trimIndent())
     }

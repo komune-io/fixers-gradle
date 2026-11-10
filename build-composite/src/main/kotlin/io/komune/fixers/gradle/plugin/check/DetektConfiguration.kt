@@ -1,19 +1,26 @@
 package io.komune.fixers.gradle.plugin.check
 
 import dev.detekt.gradle.Detekt
-import dev.detekt.gradle.DetektCreateBaselineTask
 import dev.detekt.gradle.extensions.DetektExtension
+import dev.detekt.gradle.extensions.FailOnSeverity
 import dev.detekt.gradle.report.ReportMergeTask
 import io.komune.fixers.gradle.config.fixers
+import java.io.File
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 private const val DETEKT_TASK = "detekt"
-private const val DETEKT_BASELINE_TASK = "detektBaseline"
+private const val PROJECT_CONFIG = "detekt.yml"
+private const val GENERATED_SOURCES = "**/generated/**"
+private val JVM_PLATFORMS = setOf(KotlinPlatformType.jvm, KotlinPlatformType.androidJvm)
 private val COMPILE_CLASSPATHS = setOf("compileClasspath", "testCompileClasspath")
 private const val CHECK_TASK = "check"
 
@@ -43,8 +50,21 @@ internal fun Project.detektReportsWithExtension(extension: String): Provider<Fil
     }
 }
 
+/**
+ * Every Detekt rule, the configuration fixers ships ([fixersDetektConfig]) and no baseline, held
+ * final on the extension and on every Detekt task: a build cannot switch a rule off, only a
+ * reasoned `@Suppress` can. A `detekt.yml` at the root of the build fails it.
+ */
 fun Project.configureDetekt() {
     val fixersDetekt = rootProject.extensions.fixers?.detekt
+    val projectConfig = rootDir.resolve(PROJECT_CONFIG)
+    if (projectConfig.exists()) {
+        throw GradleException(
+            "$projectConfig: fixers ships the Detekt configuration and runs every rule; delete this file, " +
+                "and suppress a finding with @Suppress and its reason where a rule does not apply."
+        )
+    }
+    val fixersConfig = rootProject.resources.text.fromString(fixersDetektConfig()).asFile()
 
     val detektReportMergeSarif = tasks.register<ReportMergeTask>("detektReportMergeSarif") {
         output.set(layout.buildDirectory.file("reports/detekt/merge.sarif"))
@@ -59,20 +79,29 @@ fun Project.configureDetekt() {
 
         pluginManager.withPlugin("dev.detekt") {
             extensions.configure(DetektExtension::class.java) {
-                buildUponDefaultConfig.set(fixersDetekt?.buildUponDefaultConfig?.get() ?: true)
-
-                val configFile = rootDir.resolve(fixersDetekt?.config?.get() ?: "detekt.yml")
-                if (configFile.exists()) {
-                    config.setFrom(configFile)
-                }
-                // If the config file does not exist, Detekt uses its built-in default config
-
-                fixersDetekt?.baseline?.orNull?.let {
-                    baseline.set(file(it))
-                }
+                allRules.lock(true)
+                buildUponDefaultConfig.lock(true)
+                disableDefaultRuleSets.lock(false)
+                ignoreFailures.lock(false)
+                failOnSeverity.lock(FailOnSeverity.Info)
+                config.setFrom(fixersConfig)
+                config.disallowChanges()
+                baseline.disallowChanges()
             }
 
             tasks.withType<Detekt>().configureEach {
+                // Not held final: the Detekt plugin sets some of these after this action. Checked when it runs.
+                allRules.set(true)
+                buildUponDefaultConfig.set(true)
+                disableDefaultRuleSets.set(false)
+                ignoreFailures.set(false)
+                failOnSeverity.set(FailOnSeverity.Info)
+                config.setFrom(fixersConfig)
+                // Code a tool generates (KSP, OpenAPI) is not the project's to fix.
+                exclude(GENERATED_SOURCES)
+                val task = this
+                doFirst { task.failOnWeakenedRules(fixersConfig) }
+
                 val checkstyleEnabled = fixersDetekt?.checkstyleReport?.get() ?: true
                 val htmlEnabled = fixersDetekt?.htmlReport?.get() ?: true
                 val sarifEnabled = fixersDetekt?.sarifReport?.get() ?: true
@@ -113,23 +142,54 @@ fun Project.configureDetekt() {
     }
 }
 
+private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
+    val weakened = listOfNotNull(
+        "allRules".takeUnless { allRules.get() },
+        "buildUponDefaultConfig".takeUnless { buildUponDefaultConfig.get() },
+        "disableDefaultRuleSets".takeIf { disableDefaultRuleSets.get() },
+        "ignoreFailures".takeIf { ignoreFailures.get() },
+        "failOnSeverity".takeUnless { failOnSeverity.get() == FailOnSeverity.Info },
+        "config".takeUnless { config.files == setOf(fixersConfig) },
+        "baseline".takeIf { baseline.orNull?.asFile?.exists() == true },
+    )
+    if (weakened.isNotEmpty()) {
+        throw GradleException("$path changes what fixers sets on Detekt: ${weakened.joinToString()}.")
+    }
+}
+
+private fun <T : Any> Property<T>.lock(value: T) {
+    set(value)
+    disallowChanges()
+}
+
 /**
- * `check` runs `detekt`, which the Detekt plugin registers without a classpath, like
- * `detektBaseline`: the rules that need types are then skipped without a word. Multiplatform
- * sources sit outside `src/main`, where `detekt` looks: the typed tasks of every target, which
- * see `commonMain` too, are the ones that analyse them.
+ * `check` runs `detekt`, which the Detekt plugin registers without a classpath: the rules that
+ * need types are then skipped without a word. Multiplatform sources sit outside `src/main`, where
+ * `detekt` looks: the typed tasks of every JVM target, which see `commonMain` too, analyse them,
+ * and the source set tasks analyse what no JVM compilation compiles (`jsMain`, `jsTest`), without
+ * types: Detekt registers no typed task for those targets.
  */
 private fun Project.configureTypedDetekt() {
     val compileClasspaths = configurations.matching { configuration -> configuration.name in COMPILE_CLASSPATHS }
     tasks.withType<Detekt>().matching { task -> task.name == DETEKT_TASK }.configureEach {
         classpath.from(compileClasspaths)
     }
-    tasks.withType<DetektCreateBaselineTask>().matching { task -> task.name == DETEKT_BASELINE_TASK }.configureEach {
-        classpath.from(compileClasspaths)
-    }
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        val kotlin = extensions.getByType(KotlinMultiplatformExtension::class.java)
         tasks.matching { task -> task.name == CHECK_TASK }.configureEach {
             dependsOn(tasks.withType<Detekt>().matching { task -> MPP_TYPED_DETEKT_TASK.matches(task.name) })
+            dependsOn(tasks.withType<Detekt>().matching { task -> task.name in kotlin.nonJvmSourceSetTasks() })
         }
     }
+}
+
+/** The Detekt task of each source set that only non-JVM compilations compile. */
+private fun KotlinMultiplatformExtension.nonJvmSourceSetTasks(): Set<String> {
+    val compilations = targets.flatMap { target -> target.compilations.map { target.platformType to it } }
+    val jvm = compilations.filter { (platform, _) -> platform in JVM_PLATFORMS }
+        .flatMapTo(mutableSetOf()) { (_, compilation) -> compilation.allKotlinSourceSets.map { it.name } }
+    return compilations.filter { (platform, _) -> platform != KotlinPlatformType.common && platform !in JVM_PLATFORMS }
+        .flatMap { (_, compilation) -> compilation.allKotlinSourceSets.map { it.name } }
+        .filter { it !in jvm }
+        .mapTo(mutableSetOf()) { "detekt${it.replaceFirstChar(Char::uppercase)}SourceSet" }
 }

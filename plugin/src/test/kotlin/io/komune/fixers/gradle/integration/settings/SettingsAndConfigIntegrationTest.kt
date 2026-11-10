@@ -35,17 +35,11 @@ class SettingsAndConfigIntegrationTest : BaseIntegrationTest() {
 
     @Test
     fun `should fail the yarn resolution check when there is no lock`() {
-        writeBuild(
-            rootExtra = """
-                plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
-                    the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().resolution("**/ws", "8.22.2")
-                }
-            """.trimIndent(),
-        )
+        writeBuild()
 
         val result = runGradleAndFail("checkYarnResolutions")
 
-        assertThat(result.output).contains("no yarn.lock to check **/ws against")
+        assertThat(result.output).contains("no yarn.lock to check **/ws, **/ajv against")
     }
 
     @Test

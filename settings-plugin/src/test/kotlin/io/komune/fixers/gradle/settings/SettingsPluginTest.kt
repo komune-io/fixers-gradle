@@ -41,7 +41,7 @@ class SettingsPluginTest {
     }
 
     @Test
-    fun `should add only the Node and Yarn repositories and keep the project's own in order`() {
+    fun `should add Maven Central and the Komune snapshots after the project's own repositories`() {
         publishCatalog()
         writeSettings(
             repositories = """
@@ -49,14 +49,15 @@ class SettingsPluginTest {
                 maven { name = "Probe"; url = uri("${repoDir.toURI()}") }
             """.trimIndent(),
             after = """
-                val names = dependencyResolutionManagement.repositories.map { it.name }
-                println("repositories=" + names.joinToString())
+                gradle.settingsEvaluated {
+                    println("repositories=" + dependencyResolutionManagement.repositories.map { it.name }.joinToString())
+                }
             """.trimIndent(),
         )
 
         val result = run("help")
 
-        assertThat(result.output).contains("repositories=Node.js, Yarn, MavenLocal, Probe")
+        assertThat(result.output).contains("repositories=Node.js, Yarn, MavenLocal, Probe, MavenRepo, KomuneSnapshots")
     }
 
     @Test
@@ -98,6 +99,27 @@ class SettingsPluginTest {
     }
 
     @Test
+    fun `should keep the project repositories forbidden`() {
+        publishCatalog()
+        writeSettings(after = "dependencyResolutionManagement.repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)")
+
+        val result = runner("help").buildAndFail()
+
+        assertThat(result.output).contains("cannot be changed")
+    }
+
+    @Test
+    fun `should mark the build for the fixers project plugins`() {
+        publishCatalog()
+        writeSettings()
+        File(projectDir, "build.gradle.kts").writeText(
+            "println(\"marker=\" + gradle.extensions.extraProperties.has(\"io.komune.fixers.gradle.settings\"))\n"
+        )
+
+        assertThat(run("help").output).contains("marker=true")
+    }
+
+    @Test
     fun `should build under the Komune CI init script`() {
         publishCatalog()
         writeSettings(
@@ -112,7 +134,7 @@ class SettingsPluginTest {
 
         val result = runner("help", "--init-script", initScript.path).build()
 
-        assertThat(result.output).contains("repositories=Node.js, Yarn, Probe, MavenRepo, FixersGitHubPackages")
+        assertThat(result.output).contains("repositories=Node.js, Yarn, Probe, MavenRepo, KomuneSnapshots, FixersGitHubPackages")
     }
 
     @Test

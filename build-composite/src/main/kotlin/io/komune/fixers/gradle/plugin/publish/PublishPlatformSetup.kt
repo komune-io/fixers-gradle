@@ -6,9 +6,9 @@ import org.gradle.api.plugins.JavaPlatformPlugin
 
 object PublishPlatformSetup {
 
-	fun setupPlatformPublish(project: Project, config: ConfigExtension) {
-		project.plugins.withType(JavaPlatformPlugin::class.java) {
-			project.createMavenPublicationIfAbsent("javaPlatform", config)
-		}
-	}
+    fun setupPlatformPublish(project: Project, config: ConfigExtension) {
+        project.plugins.withType(JavaPlatformPlugin::class.java) {
+            project.createMavenPublicationIfAbsent("javaPlatform", config)
+        }
+    }
 }

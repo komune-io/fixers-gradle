@@ -19,10 +19,7 @@ class CheckPlugin : Plugin<Project> {
             val sonarConfigurator = SonarQubeConfigurator(target)
             sonarConfigurator.configure(config?.sonar, config?.bundle)
 
-            // Configure Detekt if not disabled
-            if (config?.detekt?.disable?.orNull != true) {
-                target.configureDetekt()
-            }
+            target.configureDetekt()
 
             // Configure JaCoCo for subprojects
             target.subprojects {

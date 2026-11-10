@@ -12,24 +12,24 @@ import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.register
 
 
-fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
-    val target = this
+/**
+ * Registers on the root project `tsGen`, which writes the TypeScript contract of the build from its
+ * Kotlin/JS output, `cleanTsGen`, and `checkTsGen` (see [registerTsGenCheck]).
+ */
+internal fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
+    val target = rootProject
     mainConfig?.kt2Ts?.let { config ->
         // Kotlin/JS writes build/js/packages while it assembles a library distribution.
         val jsDistributions = target.allprojects.map { project ->
             project.tasks.named { it.endsWith(JS_DISTRIBUTION_SUFFIX) }
         }
-        // Resolved when a task is realized, not in every project that applies the plugin.
-        val inputDir by lazy {
-            if(config.inputDirectory.isPresent) {
-                config.inputDirectory.get()
-            } else {
-                "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/".also {
-                    target.logger.info("fixers.kt2Ts.inputDirectory is not set. Default value [$it] will be used.")
-                }
-            }
+        // Resolved when a task is realized, not when the plugin is applied.
+        val source by lazy {
+            target.file(
+                config.inputDirectory.orNull ?: "${target.layout.buildDirectory.asFile.get().absolutePath}/js/packages/"
+            )
         }
-        val outputDir by lazy { target.file(config.outputDirectory.get()) }
+        val output by lazy { target.file(config.outputDirectory.get()) }
         val cleaning by lazy { config.buildCleaningRegex() }
         target.tasks {
             register<Delete>("cleanTsGen") {
@@ -42,25 +42,20 @@ fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
             register("tsGen") {
                 dependsOn(jsDistributions)
                 mustRunAfter("cleanTsGen")
-                val source = target.file(inputDir)
-                val output = outputDir
+                val from = source
+                val into = output
                 val rules = cleaning
-                val committed = config.committedFilesOrDefault
-                inputs.files(target.emittedTree(source)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
+                val committed = config.committedFiles
+                inputs.files(target.emittedTree(from)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
                 inputs.property("cleaning", rules.fingerprint())
                 inputs.property("committedFiles", committed)
-                outputs.files(target.packageTree(output))
+                outputs.files(target.packageTree(into))
                 doLast {
-                    output.writeContract(source, rules, committed.get())
+                    into.writeContract(from, rules, committed.get())
                 }
             }
-
-            // Every module that applies the config plugin gets a tsGen, resolving the directories against
-            // itself; the check would fail there on an output directory the module does not have.
-            if (target == target.rootProject) {
-                registerTsGenCheck(config, jsDistributions, { target.file(inputDir) }, { outputDir }, { cleaning })
-            }
         }
+        target.registerTsGenCheck(config, jsDistributions) { Triple(source, output, cleaning) }
     }
 }
 
@@ -73,16 +68,13 @@ private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
 
 /**
  * Makes this directory the contract `tsGen` writes from the Kotlin/JS output under [source]: the
- * files [committed] keeps, cleaned by [rules], and with [Kt2TsFiles.DECLARATIONS] each
- * `package.json` at [Kt2TsFiles.CONTRACT_VERSION].
+ * files [committed] keeps, cleaned by [rules], each `package.json` at [Kt2TsFiles.CONTRACT_VERSION].
  */
 internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex, String>>>, committed: Kt2TsFiles) {
     syncFrom(source) { committed.writes(it) }
     cleanTree(rules)
-    if (committed == Kt2TsFiles.DECLARATIONS) {
-        packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
-            file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
-        }
+    packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
+        file.writeText(packageVersion.replace(file.readText(), "  \"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\""))
     }
 }
 
@@ -102,7 +94,6 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
             Regex("""kotlin.js.""") to "",
             Regex("""org.w3c.dom.url.""") to "",
             Regex("""org.w3c.dom.""") to "",
-            Regex(""" (?:any|Nullable<any>)/\* ([^*/]*) \*/""") to " $1",
             Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
             Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w\.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
             Regex("""kotlin.collections.Map""") to "Record",
@@ -145,7 +136,7 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
                 acc.replace(old, new)
             }
 
-            if (suffix == DMTS) {
+            if (suffix == DMTS || suffix == DTS) {
                 checkDeclarationsCleaned(newContent)
             }
             if (newContent != content) {
@@ -157,16 +148,22 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
 
 private const val DMTS = ".d.mts"
 
+private const val DTS = ".d.ts"
+
 internal const val PACKAGE_JSON = "package.json"
 
 // What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
 private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
+
+// A type the export cannot express, typed `any` with its Kotlin name in a comment.
+private val UNTYPED = Regex("""\bany/\*[^*]*\*/""")
 private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
 /**
  * Fails when a type the rules collapse survives them, nested deeper than they reach: the
- * declarations would reference a type that no longer exists. Every task that cleans a `.d.mts`
- * runs it: `tsGen`, and `npmTsGenTask` before an NPM publication.
+ * declarations would reference a type that no longer exists; and when a type is left `any`. Every
+ * task that cleans declarations runs it: `tsGen`, `checkTsGen`, and `npmTsGen` before an NPM
+ * publication.
  */
 private fun File.checkDeclarationsCleaned(content: String) {
     val code = COMMENT.replace(content) { comment -> comment.value.replace(Regex("[^\n]"), " ") }
@@ -178,6 +175,15 @@ private fun File.checkDeclarationsCleaned(content: String) {
             "kt2Ts left Kotlin collection or Nullable types in the declarations, nested deeper than its rules "
                 + "reach; flatten the exported type or add an additionalCleaning rule:\n"
                 + leftovers.joinToString("\n")
+        )
+    }
+    val untyped = content.lineSequence().withIndex()
+        .mapNotNull { (index, line) -> UNTYPED.find(line)?.let { "$path:${index + 1}: ${it.value}" } }
+        .toList()
+    if (untyped.isNotEmpty()) {
+        throw GradleException(
+            "The declarations type as any what the JS export cannot express; export the type, or mark the "
+                + "member @JsExport.Ignore:\n" + untyped.joinToString("\n")
         )
     }
 }

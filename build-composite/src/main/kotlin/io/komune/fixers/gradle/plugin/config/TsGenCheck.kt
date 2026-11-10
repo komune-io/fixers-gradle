@@ -11,6 +11,7 @@ import org.gradle.api.tasks.TaskProvider
 
 internal const val NODE_MODULES = "node_modules"
 internal const val JS_DISTRIBUTION_SUFFIX = "ProductionLibraryDistribution"
+internal const val TS_GEN_CHECK_TASK = "checkTsGen"
 
 private val NODE_MODULES_PATTERNS = listOf("**/$NODE_MODULES", "**/$NODE_MODULES/**")
 
@@ -27,7 +28,7 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
     }
 
 /**
- * Registers `tsGenCheck`, which regenerates the declarations into the build directory and fails
+ * Registers `checkTsGen`, which regenerates the declarations into the build directory and fails
  * when the output directory differs from them, or when a `.d.mts` exports a name twice: two of its
  * classes, interfaces, functions, constants, variables, enums or type aliases, as named in
  * JavaScript, or two namespaces, the one namespace of a companion and the pair of one type
@@ -37,21 +38,20 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
  * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
  * two declarations of one name that come from dependencies reach the linked declarations
  * unreported. This check reads the declarations of the whole program.
+ *
+ * [contract] gives the Kotlin/JS output, the output directory and the cleaning rules, read when
+ * the task is realized.
  */
 internal fun Project.registerTsGenCheck(
     config: Kt2Ts,
     jsDistributions: List<Any>,
-    inputDir: () -> File,
-    outputDir: () -> File,
-    cleaning: () -> Map<String, List<Pair<Regex, String>>>,
+    contract: () -> Triple<File, File, Map<String, List<Pair<Regex, String>>>>,
 ): TaskProvider<Task> {
     val staging = layout.buildDirectory.dir("kt2ts-check")
-    val tsGenCheck = tasks.register("tsGenCheck") {
-        val source = inputDir()
-        val output = outputDir()
-        val rules = cleaning()
+    val checkTsGen = tasks.register(TS_GEN_CHECK_TASK) {
+        val (source, output, rules) = contract()
         val shownOutput = config.outputDirectory.get()
-        val committed = config.committedFilesOrDefault
+        val committed = config.committedFiles
         val stagingDir = staging.get().asFile
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
@@ -86,25 +86,20 @@ internal fun Project.registerTsGenCheck(
             }
         }
     }
-    // Every project that applies the config plugin has a kt2Ts block; only one that emits Kotlin/JS has a contract.
+    // Only a build that emits Kotlin/JS has a contract.
     val emitsJs = allprojects.any { project -> project.tasks.names.any { it.endsWith(JS_DISTRIBUTION_SUFFIX) } }
     if (emitsJs) {
-        tasks.matching { it.name == "check" }.configureEach { dependsOn(tsGenCheck) }
+        tasks.matching { it.name == "check" }.configureEach { dependsOn(checkTsGen) }
     }
-    return tsGenCheck
+    return checkTsGen
 }
 
-// The build's version, not the contract's. Anchored, so a dependency named `version` still counts.
+// The package's own version, which `tsGen` writes at the contract's. Anchored: a dependency named
+// `version` is not it.
 internal val packageVersion = Regex("^  \"version\": \"[^\"]*\"", RegexOption.MULTILINE)
 
-private fun File.comparable(): String {
-    val text = readText()
-    return when {
-        name == PACKAGE_JSON -> packageVersion.replace(text, "  \"version\": \"\"")
-        name.endsWith(".mjs") -> canonicalMjs(text)
-        else -> text
-    }
-}
+// Only [Kt2TsFiles.ALL] writes a module.
+private fun File.comparable(): String = readText().let { text -> if (name.endsWith(".mjs")) canonicalMjs(text) else text }
 
 /** Every file of a package, by relative path, without the dependencies linked under node_modules. */
 internal fun File.packageFiles(): Map<String, File> =

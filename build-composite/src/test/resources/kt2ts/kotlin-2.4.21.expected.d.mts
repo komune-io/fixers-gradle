@@ -21,7 +21,7 @@ export declare namespace NestedDto {
     }
 }
 export declare class SampleDto {
-    constructor(s: string, sNull: string | null, i: number, iNull: number | null, d: number, bNull: boolean | null, listSNull: (string | null)[], onChange: ((p0: string) => void) | null, listS: string[], listDtoNull: NestedDto[] | null, mapSS: Record<string, string>, mapSDtoNull: Record<string, (NestedDto | null)>, setS: string[], arrS: Array<string>, nested: NestedDto, hidden: any/* Hidden */, dateIso: string);
+    constructor(s: string, sNull: string | null, i: number, iNull: number | null, d: number, bNull: boolean | null, listSNull: (string | null)[], onChange: ((p0: string) => void) | null, listS: string[], listDtoNull: NestedDto[] | null, mapSS: Record<string, string>, mapSDtoNull: Record<string, (NestedDto | null)>, setS: string[], arrS: Array<string>, nested: NestedDto, dateIso: string);
     get s(): string;
     get sNull(): string | null;
     get i(): number;
@@ -37,9 +37,8 @@ export declare class SampleDto {
     get setS(): string[];
     get arrS(): Array<string>;
     get nested(): NestedDto;
-    get hidden(): any/* Hidden */;
     get dateIso(): string;
-    copy(s?: string, sNull?: string | null, i?: number, iNull?: number | null, d?: number, bNull?: boolean | null, listSNull?: (string | null)[], onChange?: ((p0: string) => void) | null, listS?: string[], listDtoNull?: NestedDto[] | null, mapSS?: Record<string, string>, mapSDtoNull?: Record<string, (NestedDto | null)>, setS?: string[], arrS?: Array<string>, nested?: NestedDto, hidden?: any/* Hidden */, dateIso?: string): SampleDto;
+    copy(s?: string, sNull?: string | null, i?: number, iNull?: number | null, d?: number, bNull?: boolean | null, listSNull?: (string | null)[], onChange?: ((p0: string) => void) | null, listS?: string[], listDtoNull?: NestedDto[] | null, mapSS?: Record<string, string>, mapSDtoNull?: Record<string, (NestedDto | null)>, setS?: string[], arrS?: Array<string>, nested?: NestedDto, dateIso?: string): SampleDto;
     toString(): string;
     hashCode(): number;
     equals(other?: any): boolean;

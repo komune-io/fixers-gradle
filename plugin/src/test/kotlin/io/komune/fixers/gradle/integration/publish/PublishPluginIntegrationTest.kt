@@ -23,6 +23,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
     private fun setupMultiProject(subprojectBuildContent: String, rootBuildExtra: String = "") {
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
+            gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
             include("lib")
         """.trimIndent())
 
@@ -424,6 +425,7 @@ class PublishPluginIntegrationTest : BaseIntegrationTest() {
 
         settingsFile.writeText("""
             rootProject.name = "integration-test-project"
+            gradle.extensions.extraProperties["io.komune.fixers.gradle.settings"] = true
             include("catalog")
         """.trimIndent())
 
