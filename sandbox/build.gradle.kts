@@ -1,5 +1,3 @@
-import io.komune.fixers.gradle.config.model.Kt2TsFiles
-
 println(
   """
 TOOL VERSIONS
@@ -17,10 +15,6 @@ plugins {
 allprojects {
   group = "io.komune.gradle.sandbox"
   version = System.getenv("VERSION") ?: "latest"
-  repositories {
-    mavenLocal()
-    mavenCentral()
-  }
 }
 
 fixers {
@@ -31,6 +25,5 @@ fixers {
   }
   kt2Ts {
     outputDirectory = "ts"
-    committedFiles = Kt2TsFiles.DECLARATIONS
   }
 }

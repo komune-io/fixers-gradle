@@ -84,7 +84,7 @@ fixers {
 
   // Kotlin to TypeScript configuration
   kt2Ts {
-    outputDirectory.set("build/generated/kt2ts")
+    outputDirectory.set("platform/web/kotlin")
     inputDirectory.set("build/js/packages/my-project")
   }
   pom {
@@ -120,10 +120,6 @@ fixers {
   }
 
   detekt {
-    disable.set(false)
-    baseline.set("detekt-baseline.xml")
-    config.set("detekt-config.yml")
-    buildUponDefaultConfig.set(true)
     checkstyleReport.set(true)
     htmlReport.set(true)
     sarifReport.set(true)
@@ -248,7 +244,7 @@ fixers {
 
 ### Kt2Ts
 
-The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
+The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation. It is read from the root project only: a `kt2Ts` block in a subproject fails the build. `outputDirectory` is the committed copy, so it lies outside `build/`.
 
 #### Properties
 
@@ -256,23 +252,23 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 |----------|---------------------|------------------|---------------|-------------|
 | outputDirectory | FIXERS_KT2TS_OUTPUT_DIRECTORY | fixers.kt2ts.outputDirectory | "platform/web/kotlin" | The directory where TypeScript files will be generated |
 | inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
-| committedFiles | - | - | `Kt2TsFiles.ALL` | What `tsGen` writes to `outputDirectory` and `tsGenCheck` compares: `ALL`, every file of the Kotlin/JS packages; `DECLARATIONS`, the `.d.mts`, `.d.ts` and `package.json` of each package only, the `package.json` at version `0.0.0`; a subproject that does not set it takes the root's |
+| committedFiles | - | - | `Kt2TsFiles.DECLARATIONS` | What `tsGen` writes to `outputDirectory` and `checkTsGen` compares: `DECLARATIONS`, the `.d.mts`, `.d.ts` and `package.json` of each package only; `ALL`, every file of the Kotlin/JS packages, `.mjs` included, for a front that imports the copy. Every `package.json` is written at version `0.0.0` |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
 
 A Kotlin `T?` is typed `T | null` in the `.d.mts` declarations: `x?: T | null` for a property (`val` or `var`), `(T | null)[]` for a list element, `T | null` for a getter, a return or a parameter. A trailing parameter stays optional, including a parameter of a callback type. Kotlin and its JSON serializers send `null`.
 
-`KtList`, `KtSet` and their mutable variants become arrays and `KtMap`/`KtMutableMap` becomes `Record`, up to three levels of nesting. `tsGen`, and `npmTsGenTask` when NPM cleaning is enabled, fail, naming the file and line, when a `.d.mts` they clean still contains one of these types or `Nullable<` outside a comment: flatten the exported type, or add an `additionalCleaning` rule.
+`KtList`, `KtSet` and their mutable variants become arrays and `KtMap`/`KtMutableMap` becomes `Record`, up to three levels of nesting. `tsGen`, `checkTsGen`, and `npmTsGen` when NPM cleaning is enabled, fail, naming the file and line, when a `.d.mts` or `.d.ts` they clean still contains one of these types or `Nullable<` outside a comment (flatten the exported type, or add an `additionalCleaning` rule), or a type left `any` (`any/* Foo */`, a type the JS export cannot express: export it, or mark the member `@JsExport.Ignore`).
 
-`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It does not wait for a module built with `binaries.executable()`. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched; it never looks under `node_modules`, so a dangling link there does not fail it and an install does not make it stale. `cleanTsGen` deletes `outputDirectory` entirely. It no longer rewrites the `build/packages/js` of subprojects, which `npmTsGenTask` cleans before an NPM publication. The task wiring requires Gradle 8.6 or later.
+`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It does not wait for a module built with `binaries.executable()`. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched; it never looks under `node_modules`, so a dangling link there does not fail it and an install does not make it stale. `cleanTsGen` deletes `outputDirectory` entirely. It does not rewrite the `build/packages/js` of subprojects, which `npmTsGen` cleans after the NPM package is assembled and before it is packed or published. The task wiring requires Gradle 8.6 or later.
 
-`tsGenCheck` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` exports a top-level name twice: any two classes, interfaces, functions, `const`/`let`/`var`, enums (`const enum` included) or type aliases, except one type (interface, type alias) and one value (function, `const`/`let`/`var`), which TypeScript keeps apart; namespaces are counted on their own, one of a name being a companion. With `committedFiles = DECLARATIONS` it compares the `.d.mts`, `.d.ts` and `package.json` only. It ignores `node_modules`, source maps and the `version` of `package.json`, and compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. In a build that emits Kotlin/JS, `check` depends on it: `outputDirectory` is meant to be committed.
+`checkTsGen` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` exports a top-level name twice: any two classes, interfaces, functions, `const`/`let`/`var`, enums (`const enum` included) or type aliases, except one type (interface, type alias) and one value (function, `const`/`let`/`var`), which TypeScript keeps apart; namespaces are counted on their own, one of a name being a companion. With `committedFiles = DECLARATIONS` it compares the `.d.mts`, `.d.ts` and `package.json` only. It ignores `node_modules` and source maps, and with `ALL` compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. In a build that emits Kotlin/JS, `check` depends on it: `outputDirectory` is meant to be committed.
 
 #### Example
 
 ```kotlin
 fixers {
     kt2Ts {
-        outputDirectory.set("build/generated/kt2ts")
+        outputDirectory.set("platform/web/kotlin")
         inputDirectory.set("build/js/packages/my-project")
     }
 }
@@ -390,16 +386,12 @@ fixers {
 
 ### Detekt
 
-The `Detekt` class contains configuration for Detekt code quality checks.
+The `Detekt` class chooses the reports Detekt writes. The rules are fixers' own: every rule, the configuration fixers ships, no baseline, final; a `detekt.yml` at the root of the build fails it (see the README).
 
 #### Properties
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
-| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt, resolved from each module |
-| config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
-| buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
 | checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |
 | htmlReport | FIXERS_DETEKT_REPORT_HTML | fixers.detekt.report.html | true | Whether to enable the HTML report |
 | sarifReport | FIXERS_DETEKT_REPORT_SARIF | fixers.detekt.report.sarif | true | Whether to enable the SARIF report |
@@ -410,9 +402,8 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 ```kotlin
 fixers {
     detekt {
-        disable.set(false)
-        baseline.set("detekt-baseline.xml")
-        config.set("detekt-config.yml")
+        htmlReport.set(false)
+        markdownReport.set(false)
     }
 }
 ```
@@ -504,7 +495,7 @@ plugins {
 
 fixers {
     kt2Ts {
-        outputDirectory.set("build/generated/kt2ts")
+        outputDirectory.set("platform/web/kotlin")
         inputDirectory.set("build/js/packages/my-project")
     }
 }
