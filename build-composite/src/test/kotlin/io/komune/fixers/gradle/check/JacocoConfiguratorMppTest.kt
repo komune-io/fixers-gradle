@@ -68,7 +68,7 @@ class JacocoConfiguratorMppTest {
         val project = ProjectBuilder.builder().buildFixersRoot()
         val configurator = JacocoConfigurator(project)
 
-        configurator.configureJacocoForMultiplatform(Jacoco(project))
+        configurator.configureMppJacoco(Jacoco(project))
 
         assertThat(project.tasks.findByName("jacocoJvmTestReport")).isNull()
     }

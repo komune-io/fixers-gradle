@@ -42,7 +42,7 @@ class JacocoConfigurator(
         // Configure JaCoCo for Kotlin Multiplatform projects (JVM target)
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
             applyJacocoPlugin(jacocoConfig)
-            configureJacocoForMultiplatform(jacocoConfig)
+            configureMppJacoco(jacocoConfig)
         }
     }
 
@@ -77,7 +77,7 @@ class JacocoConfigurator(
     /**
      * Configures JaCoCo for Kotlin Multiplatform projects.
      */
-    fun configureJacocoForMultiplatform(jacocoConfig: Jacoco?) {
+    fun configureMppJacoco(jacocoConfig: Jacoco?) {
         val kmpExtension = project.extensions.findByType(KotlinMultiplatformExtension::class.java) ?: return
         val jvmTarget = kmpExtension.targets.findByName("jvm") ?: return
 

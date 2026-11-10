@@ -23,7 +23,7 @@ class SonarQubeConfigurator(
     fun configure(sonar: Sonar?, bundle: Bundle?) {
         project.plugins.apply("org.sonarqube")
         configureSonarExtension(sonar, bundle)
-        registerGenerateSonarPropertiesTask(sonar)
+        registerSonarPropertiesTask(sonar)
     }
 
     /**
@@ -47,7 +47,7 @@ class SonarQubeConfigurator(
     /**
      * Registers the GenerateSonarPropertiesTask.
      */
-    fun registerGenerateSonarPropertiesTask(sonar: Sonar?) {
+    fun registerSonarPropertiesTask(sonar: Sonar?) {
         project.tasks.register<GenerateSonarPropertiesTask>("generateSonarProperties") {
             group = "verification"
             description = "Generates sonar-project.properties file in build directory"
