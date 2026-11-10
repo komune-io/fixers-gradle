@@ -1,7 +1,5 @@
 package io.komune.fixers.gradle.plugin.publish
 
-import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.config.utils.pom
 import io.komune.fixers.gradle.plugin.kotlin.JvmPlugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -15,23 +13,21 @@ import org.gradle.kotlin.dsl.the
 
 object PublishJvmSetup {
 
-    fun setupJVMPublish(project: Project, config: ConfigExtension) {
+    fun setupJVMPublish(project: Project) {
         project.plugins.withType(JvmPlugin::class.java) {
             project.setupJvmPublishJar()
-            project.setupPublication(config)
-            project.setupExistingPublication(config)
+            project.setupPublication()
+            project.setupExistingPublication()
         }
     }
 
-    private fun Project.setupExistingPublication(config: ConfigExtension) {
+    private fun Project.setupExistingPublication() {
         val variantName = name
         configure<PublishingExtension> {
             publications.configureEach {
                 val mavenPublication = this
                 if (mavenPublication is MavenPublication) {
                     mavenPublication.artifactId = pluginMarkerArtifactId(variantName, name)
-                    val publication = project.pom(config.bundle)
-                    mavenPublication.pom(publication)
                     tasks.findByName("javadocJar")?.let { task -> mavenPublication.artifact(task) }
                     tasks.findByName("sourcesJar")?.let { task -> mavenPublication.artifact(task) }
                 }
@@ -47,9 +43,9 @@ object PublishJvmSetup {
         return projectName
     }
 
-    private fun Project.setupPublication(config: ConfigExtension) {
+    private fun Project.setupPublication() {
         if (extensions.findByType(JavaPluginExtension::class.java) != null) {
-            createMavenPublicationIfAbsent("kotlin", config)
+            createMavenPublicationIfAbsent("kotlin")
         }
     }
 

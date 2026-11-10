@@ -129,7 +129,7 @@ object CentralPortalUploader {
 
         val responseCode = connection.responseCode
         if (responseCode !in HTTP_SUCCESS) {
-            val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            val errorBody = connection.errorStream?.run { bufferedReader().use { it.readText() } }.orEmpty()
             throw GradleException("Central Portal upload failed (HTTP $responseCode): $errorBody")
         }
 

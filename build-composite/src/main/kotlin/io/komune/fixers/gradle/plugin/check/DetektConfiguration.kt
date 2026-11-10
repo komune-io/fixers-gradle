@@ -150,7 +150,7 @@ private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
         "ignoreFailures".takeIf { ignoreFailures.get() },
         "failOnSeverity".takeUnless { failOnSeverity.get() == FailOnSeverity.Info },
         "config".takeUnless { config.files == setOf(fixersConfig) },
-        "baseline".takeIf { baseline.orNull?.asFile?.exists() == true },
+        "baseline".takeIf { baseline.isPresent && baseline.get().asFile.exists() },
     )
     if (weakened.isNotEmpty()) {
         throw GradleException("$path changes what fixers sets on Detekt: ${weakened.joinToString()}.")

@@ -139,7 +139,10 @@ internal fun workspaceDependencies(rootPackageJson: File): Set<Spec> {
             val json = readJson(file)
             DEPENDENCY_FIELDS.flatMap { field ->
                 (json[field] as? Map<*, *>).orEmpty().map { (name, range) ->
-                    Spec(name.toString(), range.toString())
+                    Spec(
+                        name as? String ?: refuse(file, "`$field` holds a key that is not a name"),
+                        range as? String ?: refuse(file, "`$field` gives $name no version range"),
+                    )
                 }
             }
         }

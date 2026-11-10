@@ -23,11 +23,11 @@ class PublishPlatformSetupTest {
 
     @Test
     fun `should create maven publication for java-platform projects`() {
-        val (project, config) = projectWithConfig()
+        val (project, _) = projectWithConfig()
         project.plugins.apply("java-platform")
         project.plugins.apply("maven-publish")
 
-        PublishPlatformSetup.setupPlatformPublish(project, config)
+        PublishPlatformSetup.setupPlatformPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         assertThat(publishing.publications.findByName("maven")).isInstanceOf(MavenPublication::class.java)
@@ -55,11 +55,29 @@ class PublishPlatformSetupTest {
     }
 
     @Test
+    fun `should write one license and one developer into the POM of a JVM module`() {
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(io.komune.fixers.gradle.plugin.config.ConfigPlugin::class.java)
+        val project = ProjectBuilder.builder().withParent(root).withName("jvm-lib").build()
+        project.plugins.apply(io.komune.fixers.gradle.plugin.kotlin.JvmPlugin::class.java)
+        project.plugins.apply(PublishPlugin::class.java)
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+        (root.gradle as org.gradle.api.internal.GradleInternal).let { it.buildListenerBroadcaster.projectsEvaluated(it) }
+
+        val generate = project.tasks.getByName("generatePomFileForMavenPublication")
+        generate.actions.forEach { it.execute(generate) }
+
+        val pom = project.layout.buildDirectory.file("publications/maven/pom-default.xml").get().asFile.readText()
+        assertThat(Regex("<license>").findAll(pom).count()).isEqualTo(1)
+        assertThat(Regex("<developer>").findAll(pom).count()).isEqualTo(1)
+    }
+
+    @Test
     fun `should not create publication when java-platform plugin is missing`() {
-        val (project, config) = projectWithConfig()
+        val (project, _) = projectWithConfig()
         project.plugins.apply("maven-publish")
 
-        PublishPlatformSetup.setupPlatformPublish(project, config)
+        PublishPlatformSetup.setupPlatformPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         assertThat(publishing.publications.findByName("maven")).isNull()
@@ -67,12 +85,12 @@ class PublishPlatformSetupTest {
 
     @Test
     fun `should not duplicate platform publication when called twice`() {
-        val (project, config) = projectWithConfig()
+        val (project, _) = projectWithConfig()
         project.plugins.apply("java-platform")
         project.plugins.apply("maven-publish")
 
-        PublishPlatformSetup.setupPlatformPublish(project, config)
-        PublishPlatformSetup.setupPlatformPublish(project, config)
+        PublishPlatformSetup.setupPlatformPublish(project)
+        PublishPlatformSetup.setupPlatformPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         assertThat(publishing.publications.filter { it.name == "maven" }).hasSize(1)
@@ -80,11 +98,11 @@ class PublishPlatformSetupTest {
 
     @Test
     fun `should create maven publication for version-catalog projects`() {
-        val (project, config) = projectWithConfig()
+        val (project, _) = projectWithConfig()
         project.plugins.apply("version-catalog")
         project.plugins.apply("maven-publish")
 
-        PublishCatalogSetup.setupCatalogPublish(project, config)
+        PublishCatalogSetup.setupCatalogPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         assertThat(publishing.publications.findByName("maven")).isInstanceOf(MavenPublication::class.java)
@@ -92,10 +110,10 @@ class PublishPlatformSetupTest {
 
     @Test
     fun `should not create publication when version-catalog plugin is missing`() {
-        val (project, config) = projectWithConfig()
+        val (project, _) = projectWithConfig()
         project.plugins.apply("maven-publish")
 
-        PublishCatalogSetup.setupCatalogPublish(project, config)
+        PublishCatalogSetup.setupCatalogPublish(project)
 
         val publishing = project.extensions.getByType(PublishingExtension::class.java)
         assertThat(publishing.publications.findByName("maven")).isNull()
