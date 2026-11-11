@@ -11,28 +11,30 @@ private const val SPACE = """\s*"""
 private val IMPORT_ALIAS = Regex("""$UNICODE\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s+as\s+(\w+)""")
 private val IMPORT_STAR = Regex("""$UNICODE\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s*\.\s*\*""")
 
-// Under the star import, `Ignore` anywhere but after a dot: `@Ignore`, `@get:[A Ignore]`, `typealias I = Ignore`.
-private val BARE_IGNORE = Regex("""$UNICODE(?<![.\w])Ignore(?!\w)""")
+// The star import makes `Ignore` usable unqualified (`@Ignore`, `@[Ignore]`, `typealias Skip = Ignore`), which no
+// name match tells apart from `kotlin.test.Ignore` or a class of the same name: the import itself is refused.
+private const val STAR_IMPORT_FIX = "import of every member of JsExport: write JsExport.X qualified"
 
 /**
- * The lines of a Kotlin source that use `@JsExport.Ignore`: the annotation (qualified or not, under a use-site
- * target, across lines), its import, an alias of `JsExport` followed by `.Ignore`, and, once
- * `kotlin.js.JsExport.*` is imported, every unqualified `Ignore` (alone, grouped in `@[…]`, or named by a type
- * alias). Strings and comments are left out, their lines kept so that the numbers hold. Names are matched, not
- * resolved: a declaration of the user's own named `JsExport` with an `Ignore` inside is refused too.
+ * The lines of a Kotlin source that use `@JsExport.Ignore` or could use it unqualified: the annotation qualified
+ * (under a use-site target, across lines), its import, an alias of `JsExport` followed by `.Ignore`, and
+ * `import kotlin.js.JsExport.*`, refused whatever follows it. Strings and comments are left out, their lines kept
+ * so that the numbers hold. Names are matched, not resolved: a declaration of the user's own named `JsExport` with
+ * an `Ignore` inside is refused too.
  */
 internal fun jsExportIgnores(source: String): List<IndexedValue<String>> {
     val code = codeOnly(source)
     val names = listOf("JsExport") + IMPORT_ALIAS.findAll(code).map { it.groupValues[1] }
     val qualified = Regex("""$UNICODE\b(?:${names.joinToString("|")})$SPACE\.$SPACE""" + """Ignore\b""")
-    val bare = BARE_IGNORE.takeIf { IMPORT_STAR.containsMatchIn(code) }
-    val patterns = listOfNotNull(qualified, bare)
+    val starImports = IMPORT_STAR.findAll(code).map { match -> code.lineOf(match.range.first) }.toSet()
     val lines = source.lines()
-    return patterns.asSequence()
-        .flatMap { pattern -> pattern.findAll(code).map { match -> code.lineOf(match.range.first) } }
+    return (qualified.findAll(code).map { match -> code.lineOf(match.range.first) } + starImports)
         .distinct()
         .sorted()
-        .map { line -> IndexedValue(line + 1, lines[line].trim()) }
+        .map { line ->
+            val text = lines[line].trim()
+            IndexedValue(line + 1, if (line in starImports) "$text ($STAR_IMPORT_FIX)" else text)
+        }
         .toList()
 }
 

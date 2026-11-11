@@ -65,23 +65,6 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
-    fun `finds a bare Ignore once JsExport's members are star-imported`() {
-        val found = lines("""
-            import kotlin.js.JsExport.*
-
-            @JsExport
-            class Order {
-                @Ignore
-                fun hidden() = Unit
-                @get:Ignore
-                val alsoHidden: Int get() = 1
-            }
-        """)
-
-        assertThat(found).containsExactly("5: @Ignore", "7: @get:Ignore")
-    }
-
-    @Test
     fun `finds an alias of JsExport spelled in non-ASCII letters or between backticks`() {
         val found = lines("""
             import kotlin.js.JsExport as Éx
@@ -101,44 +84,38 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
-    fun `finds a grouped or aliased bare Ignore once JsExport's members are star-imported`() {
+    fun `refuses the star import of JsExport's members, naming the qualified form`() {
         val found = lines("""
             import kotlin.js.JsExport.*
-
-            typealias Skip = Ignore
+            import kotlin.js . JsExport . *
 
             class Order {
-                @[Ignore]
-                fun hidden() = Unit
-                @[Suppress("x") Ignore] fun alsoHidden() = Unit
-                @get:[ Ignore ]
-                val hiddenToo: Int get() = 1
-                @[Deprecated("m", ReplaceWith("x")) Ignore] fun deprecated() = Unit
-                @`Ignore` fun backticked() = Unit
-                @Skip fun aliased() = Unit
-                @[Other.Ignore] fun qualifiedElsewhere() = Unit
-                fun `Ignore me`() = Unit
+                @[Ignore] fun hidden() = Unit
+                fun shown() = Unit
             }
         """)
 
         assertThat(found).containsExactly(
-            "3: typealias Skip = Ignore",
-            "6: @[Ignore]",
-            "8: @[Suppress(\"x\") Ignore] fun alsoHidden() = Unit",
-            "9: @get:[ Ignore ]",
-            "11: @[Deprecated(\"m\", ReplaceWith(\"x\")) Ignore] fun deprecated() = Unit",
-            "12: @`Ignore` fun backticked() = Unit",
+            "1: import kotlin.js.JsExport.* (import of every member of JsExport: write JsExport.X qualified)",
+            "2: import kotlin.js . JsExport . * (import of every member of JsExport: write JsExport.X qualified)",
         )
     }
 
     @Test
-    fun `leaves a grouped Ignore alone without the star import`() {
+    fun `leaves another Ignore alone, kotlin test's, an enum entry's or a class's`() {
         val found = lines("""
-            import org.junit.Ignore
+            import kotlin.test.Ignore
+            import kotlin.js.JsExport
 
+            enum class Mode { Ignore, Keep }
+            class Ignore2
+            typealias Skip = Ignore
+
+            @JsExport
             class OrderTest {
-                @[Ignore] fun skipped() = Unit
-                typealias Skip = Ignore
+                @Ignore fun skipped() = Unit
+                @[Ignore] fun alsoSkipped() = Unit
+                val mode = Mode.Ignore
             }
         """)
 
