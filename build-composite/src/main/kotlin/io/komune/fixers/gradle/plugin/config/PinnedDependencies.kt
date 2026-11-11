@@ -13,6 +13,6 @@ internal fun pinnedDependencyCleaning(
     val name = path.takeIf { it.startsWith(ANY_DEPTH) }?.removePrefix(ANY_DEPTH)
     val separators = if (name?.startsWith("@") == true) 1 else 0
     name?.takeIf { it.count { char -> char == '/' } == separators }?.let {
-        Regex("""(?<="${Regex.escape(it)}": ")[^"]*(?=")""") to Regex.escapeReplacement(version)
+        Regex("""(?<key>"${Regex.escape(it)}"\s*:\s*")[^"]*(?=")""") to "\${key}" + Regex.escapeReplacement(version)
     }
 }
