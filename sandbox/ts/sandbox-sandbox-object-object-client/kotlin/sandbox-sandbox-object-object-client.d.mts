@@ -6,15 +6,21 @@ export declare interface KtOpaque<N extends string> {
     };
 }
 /**
- * The JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object, a
- * `Long` a number, an enum its name, an opaque value a string, and a nullable property may be
- * absent. The exported types describe the Kotlin objects; a body read from or written to the wire
- * is a `Json<T>`, and the compiled code accepts none.
+ * The JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object
+ * (whose keys are optional when they are an enum's names), a `Long` a number, an enum its name,
+ * an opaque value a string, and a nullable property may be absent. The exported types describe
+ * the Kotlin objects; a body read from or written to the wire is a `Json<T>`, and the compiled
+ * code accepts none.
+ *
+ * What it does not say: a sealed or polymorphic type carries no discriminant here, so a
+ * serializer's `type` field is not typed; a nullable property is absent from the JSON only where
+ * the serializer omits nulls (F2's `explicitNulls = false`, Jackson), a default kotlinx `Json`
+ * writes `null`; and a `Long` beyond 2^53 loses its precision as a JavaScript number.
  */
 export type Json<T> =
     T extends { asJsReadonlyArrayView(): ReadonlyArray<infer E> } ? Json<E>[]
     : T extends { asJsReadonlySetView(): ReadonlySet<infer E> } ? Json<E>[]
-    : T extends { asJsReadonlyMapView(): ReadonlyMap<infer K, infer V> } ? Record<JsonKey<K>, Json<V>>
+    : T extends { asJsReadonlyMapView(): ReadonlyMap<infer K, infer V> } ? JsonMap<JsonKey<K>, Json<V>>
     : T extends { readonly __kotlinOpaque: string } ? string
     : T extends bigint ? number
     : T extends string | number | boolean | null | undefined ? T
@@ -25,6 +31,9 @@ export type Json<T> =
     : T extends object ? JsonObject<T>
     : T;
 type JsonKey<K> = Json<K> extends string | number ? Json<K> : string;
+// A map holds the entries it has: keys out of a finite set, such as an enum's names, are optional.
+type JsonMap<K extends string | number, V> =
+    string extends K ? Record<string, V> : number extends K ? Record<number, V> : { [P in K]?: V };
 type JsonField<T, P extends keyof T> =
     P extends "__doNotUseOrImplementIt" ? never : T[P] extends (...args: never[]) => unknown ? never : P;
 type JsonFields<T> = { [P in keyof T]-?: JsonField<T, P> }[keyof T];
@@ -110,6 +119,7 @@ export declare interface FamilyDTO {
     readonly tags: KtList<string>;
     readonly owners: KtSet<string>;
     readonly counts: KtMap<string, KtList<bigint>>;
+    readonly byShape: KtMap<Shape, number>;
     readonly total: bigint;
     readonly shape: Shape;
     readonly level: Level;
@@ -120,16 +130,17 @@ export declare interface FamilyDTO {
     };
 }
 export declare class Family implements FamilyDTO {
-    constructor(tags: KtList<string>, owners: KtSet<string>, counts: KtMap<string, KtList<bigint>>, total: bigint, shape: Shape, level: Level, createdAt: KtOpaque<"Instant">, note: Nullable<string>);
+    constructor(tags: KtList<string>, owners: KtSet<string>, counts: KtMap<string, KtList<bigint>>, byShape: KtMap<Shape, number>, total: bigint, shape: Shape, level: Level, createdAt: KtOpaque<"Instant">, note: Nullable<string>);
     get tags(): KtList<string>;
     get owners(): KtSet<string>;
     get counts(): KtMap<string, KtList<bigint>>;
+    get byShape(): KtMap<Shape, number>;
     get total(): bigint;
     get shape(): Shape;
     get level(): Level;
     get createdAt(): KtOpaque<"Instant">;
     get note(): Nullable<string>;
-    copy(tags?: KtList<string>, owners?: KtSet<string>, counts?: KtMap<string, KtList<bigint>>, total?: bigint, shape?: Shape, level?: Level, createdAt?: KtOpaque<"Instant">, note?: Nullable<string>): Family;
+    copy(tags?: KtList<string>, owners?: KtSet<string>, counts?: KtMap<string, KtList<bigint>>, byShape?: KtMap<Shape, number>, total?: bigint, shape?: Shape, level?: Level, createdAt?: KtOpaque<"Instant">, note?: Nullable<string>): Family;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<unknown>): boolean;
@@ -155,6 +166,29 @@ export declare namespace Family {
 }
 export declare function describeFamily(family: FamilyDTO): string;
 export declare function sampleFamily(): Family;
+export declare class Page<T> {
+    constructor(total: number, items: KtList<T>);
+    get total(): number;
+    get items(): KtList<T>;
+    copy(total?: number, items?: KtList<T>): Page<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<unknown>): boolean;
+}
+export declare namespace Page {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => Page<T>;
+    }
+}
+export declare function familyPage(): Page<Family>;
+export declare interface Node {
+    readonly name: string;
+    readonly children: KtList<Node>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "io.komune.gradle.sandbox.domain.family.Node": unique symbol;
+    };
+}
 export declare interface ObjectModelDTO {
     readonly id: string;
     readonly name: string;

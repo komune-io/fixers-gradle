@@ -52,6 +52,7 @@ internal fun Project.registerTsGenCheck(
         val (source, output, rules) = contract()
         val shownOutput = config.outputDirectory.get()
         val committed = config.committedFiles
+        val additional = config.additionalCleaning
         val stagingDir = staging.get().asFile
         group = "verification"
         description = "Fails when $shownOutput is stale against the Kotlin/JS output."
@@ -65,7 +66,12 @@ internal fun Project.registerTsGenCheck(
         outputs.dir(stagingDir)
         doLast {
             stagingDir.deleteRecursively()
-            stagingDir.writeContract(source, rules, committed.get())
+            stagingDir.writeContract(
+                source = source,
+                rules = rules,
+                committed = committed.get(),
+                additional = additional.get(),
+            )
             if (stagingDir.walkTopDown().none { it.isFile }) {
                 throw GradleException("No Kotlin/JS output under $source to compare $shownOutput with.")
             }

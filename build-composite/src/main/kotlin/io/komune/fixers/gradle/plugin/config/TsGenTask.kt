@@ -44,12 +44,18 @@ internal fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
             val into = output
             val rules = cleaning
             val committed = config.committedFiles
+            val additional = config.additionalCleaning
             inputs.files(target.emittedTree(from)).withPathSensitivity(PathSensitivity.RELATIVE).skipWhenEmpty()
             inputs.property("cleaning", rules.fingerprint())
             inputs.property("committedFiles", committed)
             outputs.files(target.packageTree(into))
             doLast {
-                into.writeContract(from, rules, committed.get())
+                into.writeContract(
+                    source = from,
+                    rules = rules,
+                    committed = committed.get(),
+                    additional = additional.get(),
+                )
             }
         }
     }
@@ -67,10 +73,28 @@ private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
  * Makes this directory the contract `tsGen` writes from the Kotlin/JS output under [source]: the
  * files [committed] keeps, cleaned by [rules], each `package.json` at [Kt2TsFiles.CONTRACT_VERSION],
  * and without its `main` entry under [Kt2TsFiles.DECLARATIONS]: they ship no module for it to name.
+ * Fails when one of the [additional] rules, the build's own, changes no file of the contract.
  */
-internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex, String>>>, committed: Kt2TsFiles) {
+internal fun File.writeContract(
+    source: File,
+    rules: Map<String, List<Pair<Regex, String>>>,
+    committed: Kt2TsFiles,
+    additional: Map<String, List<Pair<Regex, String>>> = emptyMap(),
+) {
     syncFrom(source) { committed.writes(it) }
-    cleanTree(rules)
+    val applied = cleanTree(rules)
+    val dead = additional.flatMap { (suffix, changes) ->
+        changes.filter { (old, new) -> CleaningRule(suffix, old, new) !in applied }
+            .map { (old, _) -> "$suffix: $old" }
+    }
+    if (dead.isNotEmpty()) {
+        throw GradleException(
+            "kt2Ts additionalCleaning rules matched no file of the contract:\n" + dead.joinToString("\n") +
+                "\nThe declarations keep the Kotlin types since fixers 0.47.0 (KtList, KtMap, bigint, enum " +
+                "classes), so a rule written against the former output (`[]`, `Record<`, `number`) no longer " +
+                "applies: delete it, or rewrite it against the declarations tsGen writes now."
+        )
+    }
     packageFiles().filterKeys { it.substringAfterLast('/') == PACKAGE_JSON }.values.forEach { file ->
         val versioned = packageVersion.replace(
             input = file.readText(),
@@ -87,6 +111,8 @@ internal fun File.writeContract(source: File, rules: Map<String, List<Pair<Regex
 
 private val packageMain = Regex("""^  "main": "[^"]*",\n""", RegexOption.MULTILINE)
 
+// Each NPM package is cleaned alone, so a rule may rightly change none of one package's files;
+// `tsGen` and `checkTsGen`, which see every package, refuse a rule that changes nothing.
 fun cleanProjectDir(folder: String, cleaning: Map<String, List<Pair<Regex, String>>>) {
     File(folder).listFiles()?.forEach { file ->
         file.cleanFile(cleaning)
@@ -112,29 +138,45 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     return cleaning
 }
 
-internal fun File.cleanTree(cleaning: Map<String, List<Pair<Regex, String>>>) {
-    walkTopDown().onEnter { it.name != NODE_MODULES }.filter { it.isFile }.forEach { it.cleanFile(cleaning) }
+// A rule by value: the configuration cache hands a task its own copies of the regexes.
+internal data class CleaningRule(
+    val suffix: String,
+    val pattern: String,
+    val options: Set<RegexOption>,
+    val replacement: String,
+) {
+    constructor(suffix: String, regex: Regex, replacement: String) :
+        this(suffix = suffix, pattern = regex.pattern, options = regex.options, replacement = replacement)
 }
 
-private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
-    cleaning.forEach { (suffix, changes) ->
-        if (name.endsWith(suffix)) {
-            val content = readText()
+/** Cleans every file of this tree with [cleaning], and answers the rules that changed one. */
+internal fun File.cleanTree(cleaning: Map<String, List<Pair<Regex, String>>>): Set<CleaningRule> =
+    walkTopDown().onEnter { it.name != NODE_MODULES }.filter { it.isFile }
+        .flatMap { it.cleanFile(cleaning) }
+        .toSet()
 
-            val cleaned = changes.fold(content) { acc, (old, new) ->
-                acc.replace(old, new)
-            }
-            val isDeclarations = suffix == DMTS
-            val newContent = if (isDeclarations) cleaned.withUnknownForAny() else cleaned
+private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>): Set<CleaningRule> =
+    cleaning.filterKeys { suffix -> name.endsWith(suffix) }
+        .flatMap { (suffix, changes) -> cleanFile(suffix, changes) }
+        .toSet()
 
-            if (isDeclarations) {
-                checkDeclarationsCleaned(newContent)
-            }
-            if (newContent != content) {
-                writeText(newContent)
-            }
-        }
+// Cleans this file with the [changes] of its [suffix], and answers those that matched it.
+private fun File.cleanFile(suffix: String, changes: List<Pair<Regex, String>>): List<CleaningRule> {
+    val content = readText()
+    val applied = mutableListOf<CleaningRule>()
+    val cleaned = changes.fold(content) { acc, (old, new) ->
+        if (old.containsMatchIn(acc)) applied += CleaningRule(suffix, old, new)
+        acc.replace(old, new)
     }
+    val isDeclarations = suffix == DMTS
+    val newContent = if (isDeclarations) cleaned.withUnknownForAny() else cleaned
+    if (isDeclarations) {
+        checkDeclarationsCleaned(newContent)
+    }
+    if (newContent != content) {
+        writeText(newContent)
+    }
+    return applied
 }
 
 private const val DMTS = ".d.mts"
@@ -203,15 +245,21 @@ internal val JSON_DECLARATIONS = """
         };
     }
     /**
-     * The JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object, a
-     * `Long` a number, an enum its name, an opaque value a string, and a nullable property may be
-     * absent. The exported types describe the Kotlin objects; a body read from or written to the wire
-     * is a `Json<T>`, and the compiled code accepts none.
+     * The JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object
+     * (whose keys are optional when they are an enum's names), a `Long` a number, an enum its name,
+     * an opaque value a string, and a nullable property may be absent. The exported types describe
+     * the Kotlin objects; a body read from or written to the wire is a `Json<T>`, and the compiled
+     * code accepts none.
+     *
+     * What it does not say: a sealed or polymorphic type carries no discriminant here, so a
+     * serializer's `type` field is not typed; a nullable property is absent from the JSON only where
+     * the serializer omits nulls (F2's `explicitNulls = false`, Jackson), a default kotlinx `Json`
+     * writes `null`; and a `Long` beyond 2^53 loses its precision as a JavaScript number.
      */
     export type Json<T> =
         T extends { asJsReadonlyArrayView(): ReadonlyArray<infer E> } ? Json<E>[]
         : T extends { asJsReadonlySetView(): ReadonlySet<infer E> } ? Json<E>[]
-        : T extends { asJsReadonlyMapView(): ReadonlyMap<infer K, infer V> } ? Record<JsonKey<K>, Json<V>>
+        : T extends { asJsReadonlyMapView(): ReadonlyMap<infer K, infer V> } ? JsonMap<JsonKey<K>, Json<V>>
         : T extends { readonly __kotlinOpaque: string } ? string
         : T extends bigint ? number
         : T extends string | number | boolean | null | undefined ? T
@@ -222,6 +270,9 @@ internal val JSON_DECLARATIONS = """
         : T extends object ? JsonObject<T>
         : T;
     type JsonKey<K> = Json<K> extends string | number ? Json<K> : string;
+    // A map holds the entries it has: keys out of a finite set, such as an enum's names, are optional.
+    type JsonMap<K extends string | number, V> =
+        string extends K ? Record<string, V> : number extends K ? Record<number, V> : { [P in K]?: V };
     type JsonField<T, P extends keyof T> =
         P extends "__doNotUseOrImplementIt" ? never : T[P] extends (...args: never[]) => unknown ? never : P;
     type JsonFields<T> = { [P in keyof T]-?: JsonField<T, P> }[keyof T];

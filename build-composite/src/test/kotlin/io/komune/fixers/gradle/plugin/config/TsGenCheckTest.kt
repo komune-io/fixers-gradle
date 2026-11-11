@@ -26,12 +26,16 @@ class TsGenCheckTest {
     private val input get() = File(dir, "packages")
     private val output get() = File(dir, "out")
 
-    private fun project(committedFiles: Kt2TsFiles? = null): Project {
+    private fun project(
+        committedFiles: Kt2TsFiles? = null,
+        additionalCleaning: Map<String, List<Pair<Regex, String>>> = emptyMap(),
+    ): Project {
         val project = ProjectBuilder.builder().withProjectDir(File(dir, "project")).buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
         config.kt2Ts.inputDirectory.set(input.absolutePath)
         config.kt2Ts.outputDirectory.set(output.absolutePath)
         committedFiles?.let { config.kt2Ts.committedFiles.set(it) }
+        config.kt2Ts.additionalCleaning.set(additionalCleaning)
         project.configureKt2Ts(config)
         return project
     }
@@ -533,6 +537,53 @@ class TsGenCheckTest {
             )
 
             assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("pkg/package.json")
+        }
+    }
+
+    @Nested
+    inner class AdditionalCleaning {
+
+        private val formerOutput = mapOf(".d.mts" to listOf(Regex("""Record<string, string>""") to "Labels"))
+
+        @Test
+        fun `tsGen should fail on a rule that changes no file of the contract`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function labels(): KtMap<string, string>;\n")
+
+            assertThatThrownBy { project(additionalCleaning = formerOutput).run("tsGen") }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining("additionalCleaning rules matched no file")
+                .hasMessageContaining(".d.mts: Record<string, string>")
+                .hasMessageContaining("delete it, or rewrite it")
+        }
+
+        @Test
+        fun `checkTsGen should fail on a rule that changes no file of the contract`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function labels(): KtMap<string, string>;\n")
+            project().run("tsGen")
+
+            assertThatThrownBy { project(additionalCleaning = formerOutput).run("checkTsGen") }
+                .hasMessageContaining(".d.mts: Record<string, string>")
+        }
+
+        @Test
+        fun `tsGen should apply a rule that matches`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function labels(): KtMap<string, string>;\n")
+            val rule = mapOf(".d.mts" to listOf(Regex("""KtMap<string, string>""") to "Labels"))
+
+            project(additionalCleaning = rule).run("tsGen")
+
+            assertThat(committed("pkg/kotlin/pkg.d.mts").readText())
+                .endsWith("export declare function labels(): Labels;\n")
+        }
+
+        @Test
+        fun `npmTsGen cleaning should accept a rule one package does not need`() {
+            val file = File(dir, "npm/pkg.d.mts").apply { parentFile.mkdirs() }
+            file.writeText("export declare function names(): KtList<string>;\n")
+
+            cleanProjectDir(file.parent, formerOutput)
+
+            assertThat(file.readText()).isEqualTo("export declare function names(): KtList<string>;\n")
         }
     }
 }

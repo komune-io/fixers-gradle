@@ -259,9 +259,12 @@ The exported types describe the Kotlin objects, which is what the compiled modul
 `tsGen` writes two declarations at the head of every `.d.mts`:
 
 - `KtOpaque<N>`, the type of a value the export cannot express and a build lets through with `@Suppress("NON_EXPORTABLE_TYPE")`: an `Instant` or a `LocalDate` (`any/* Instant */`) is typed `KtOpaque<"Instant">`.
-- `Json<T>`, the JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object, a `Long` a number, an enum its name, a `KtOpaque` a string, a nullable property optional and `null`; methods and the marker are dropped. A front reads and writes a body as `Json<ProductDTO>`, and the compiler refuses that value where Kotlin code expects a `ProductDTO`.
+- `Json<T>`, the JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object (with optional keys when they are an enum's names: a map holds the entries it has), a `Long` a number, an enum its name, a `KtOpaque` a string, a nullable property optional and `null`; methods and the marker are dropped. A front reads and writes a body as `Json<ProductDTO>`, and the compiler refuses that value where Kotlin code expects a `ProductDTO`.
+  `Json<T>` does not type three things. A sealed or polymorphic type gets no discriminant, so a serializer's `type` field is untyped. A nullable property is optional, which is true where the serializer omits nulls (F2's `explicitNulls = false`, Jackson), but a default kotlinx `Json` writes `null`. A `Long` becomes a `number`, which loses precision beyond 2^53.
 
 Each `.d.mts` declares the whole program of its package and imports none, so its `Json` is the one its readers see. Two packages' copies agree with each other: `Json` recognises the Kotlin types by their members (`asJsReadonlyArrayView`, `name` and `ordinal`), never by the brand the emitter gives each copy. A Kotlin declaration exported as `Json` or `KtOpaque` makes `checkTsGen` fail on the duplicate.
+
+`tsGen` and `checkTsGen` fail on an `additionalCleaning` rule that changes no file of the contract, naming its suffix and pattern: a rule written against the output before 0.47.0 (`[]`, `Record<`, `number`) matches nothing now. `npmTsGen` cleans one package at a time and does not check this, since a rule may rightly not apply to one of them.
 
 `tsGen`, `checkTsGen`, and `npmTsGen` when NPM cleaning is enabled, type a Kotlin `Any` as `unknown`, and fail, naming the file and line, on a type left `any` (`any/* Foo */`, a type the JS export cannot express: export it, or mark the member `@JsExport.Ignore`). fixers compiles ES modules only: a `.d.ts` is neither cleaned nor kept by `DECLARATIONS`.
 
