@@ -164,9 +164,38 @@ class MppPluginTest {
         listOf("compileKotlinJvm", "compileKotlinJs").forEach { name ->
             val compile = project.tasks.getByName(name) as org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>
             compile.compilerOptions.allWarningsAsErrors.set(false)
-            assertThatThrownBy { compile.actions.first().execute(compile) }
+            assertThatThrownBy { compile.actions.forEach { it.execute(compile) } }
                 .hasMessageContaining("allWarningsAsErrors = false")
         }
+    }
+
+    @Test
+    // The six task names Kotlin/JS 2.4 registers: this test is meant to break on a Kotlin Gradle plugin upgrade
+    // that adds, renames or removes one, so that the refusal is checked to reach the new set.
+    fun `should check the sources of every Kotlin JS compile and link task, breaking on a KGP upgrade`() {
+        val names = mppProject().tasks.withType(Kotlin2JsCompile::class.java).names
+
+        assertThat(names).containsExactlyInAnyOrder(
+            "compileKotlinJs",
+            "compileTestKotlinJs",
+            "compileDevelopmentLibraryKotlinJs",
+            "compileProductionLibraryKotlinJs",
+            "compileTestDevelopmentExecutableKotlinJs",
+            "compileTestProductionExecutableKotlinJs",
+        )
+    }
+
+    @Test
+    fun `should refuse a JS compilation whose sources use JsExport Ignore`() {
+        val project = mppProject()
+        val source = project.file("src/jsMain/kotlin/Order.kt")
+        source.parentFile.mkdirs()
+        source.writeText("@JsExport\nclass Order {\n    @JsExport.Ignore\n    fun hidden() = Unit\n}\n")
+
+        val compile = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        assertThatThrownBy { compile.actions.forEach { it.execute(compile) } }
+            .hasMessageContaining(":mpp-lib:compileKotlinJs: @JsExport.Ignore leaves JS a Kotlin API")
+            .hasMessageContaining("${source.path}:3: @JsExport.Ignore")
     }
 
     @Test
