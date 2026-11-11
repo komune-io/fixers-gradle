@@ -187,6 +187,24 @@ class TsGenTaskTest {
         }
 
         @Test
+        fun `should declare a dependency fixers pins at its pin in package json`() {
+            val result = clean(
+                "package.json",
+                """{"name": "pkg", "devDependencies": {}, "dependencies": {"ws": "8.20.1", "@js-joda/core": "3.2.0"}}"""
+            )
+
+            assertThat(result).contains(""""ws": "${FIXERS_YARN_PINS.getValue("**/ws")}"""")
+            assertThat(result).contains(""""@js-joda/core": "3.2.0"""")
+        }
+
+        @Test
+        fun `should leave a package that only shares a pinned name's suffix`() {
+            val content = """{"name": "pkg", "devDependencies": {}, "dependencies": {"isows": "1.0.7"}}"""
+
+            assertThat(clean("package.json", content)).isEqualTo(content)
+        }
+
+        @Test
         fun `should leave unmatched files untouched`() {
             val content = "kotlin.Long should stay"
             val result = clean("readme.txt", content)

@@ -17,8 +17,9 @@ jacoco = "0.8.15"
 bouncycastle = "1.86"
 
 # Yarn resolutions the published plugin forces on the Kotlin/JS lock of every build
-# (FIXERS_YARN_PINS in YarnResolutionCheck.kt): transitives of the Kotlin and ktor JS dependencies
-# whose declared versions carry an advisory. ktor-client-core 3.6.1 declares ws 8.20.1 (GHSA-96hv-2xvq-fx4p,
+# (FIXERS_YARN_PINS in YarnResolutionCheck.kt), and on the dependencies of the package.json files
+# tsGen and npmTsGen write: transitives of the Kotlin and ktor JS dependencies whose declared
+# versions carry an advisory. ktor-client-core 3.6.1 declares ws 8.20.1 (GHSA-96hv-2xvq-fx4p,
 # fixed in 8.21.0); ajv before 8.18.0 (CVE-2025-69873). Remove a pin once the dependency declares
 # a fixed version.
 npm-ws = "8.22.2"
