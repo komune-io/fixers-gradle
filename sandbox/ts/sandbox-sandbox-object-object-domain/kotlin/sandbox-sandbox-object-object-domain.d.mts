@@ -10,12 +10,16 @@ export declare interface KtOpaque<N extends string> {
  * (whose keys are optional when they are an enum's names), a `Long` a number, an enum its name,
  * an opaque value a string, and a nullable property may be absent. The exported types describe
  * the Kotlin objects; a body read from or written to the wire is a `Json<T>`, and the compiled
- * code accepts none.
+ * code accepts none: an instance of an exported class that implements an exported interface, or
+ * of a data class, is refused at any depth.
  *
  * What it does not say: a sealed or polymorphic type carries no discriminant here, so a
- * serializer's `type` field is not typed; a nullable property is absent from the JSON only where
- * the serializer omits nulls (F2's `explicitNulls = false`, Jackson), a default kotlinx `Json`
- * writes `null`; and a `Long` beyond 2^53 loses its precision as a JavaScript number.
+ * serializer's `type` field is not typed; a nullable property is absent from the JSON where its
+ * writer omits nulls (F2's `explicitNulls = false`; Jackson and a default kotlinx `Json` write
+ * `null`), and a reader that requires it (a default kotlinx `Json`, where Jackson and F2's read
+ * it as `null`) refuses the JSON that omits it; an instance of a class that is neither is not
+ * told apart from a plain object; and a `Long` beyond 2^53 loses its precision as a JavaScript
+ * number.
  */
 export type Json<T> =
     T extends { asJsReadonlyArrayView(): ReadonlyArray<infer E> } ? Json<E>[]
@@ -40,8 +44,10 @@ type JsonFields<T> = { [P in keyof T]-?: JsonField<T, P> }[keyof T];
 type JsonOptional<T> = {
     [P in JsonFields<T>]-?: null extends T[P] ? P : undefined extends T[P] ? P : never
 }[JsonFields<T>];
+// What a Kotlin object has and JSON never does: the brand of an exported interface, the members of a data class.
 type JsonObject<T> =
-    { [P in Exclude<JsonFields<T>, JsonOptional<T>>]: Json<T[P]> } & { [P in JsonOptional<T>]?: Json<T[P]> };
+    { [P in Exclude<JsonFields<T>, JsonOptional<T>>]: Json<T[P]> } & { [P in JsonOptional<T>]?: Json<T[P]> }
+    & { readonly [P in "__doNotUseOrImplementIt" | Exclude<"equals" | "hashCode", JsonFields<T>>]?: never };
 type Nullable<T> = T | null | undefined
 declare function KtSingleton<T>(): T & (abstract new() => object);
 export declare interface KtSet<out E> /* extends Collection<E> */ {
