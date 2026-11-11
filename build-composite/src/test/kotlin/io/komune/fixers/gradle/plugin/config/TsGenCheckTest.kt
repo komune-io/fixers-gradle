@@ -478,6 +478,16 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should read a declaration name to its end, Unicode letters included`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare interface JsonObjectÉ {\n}\nexport declare class Prixé {\n}\n" +
+                "export declare class Prix {\n}\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
         fun `should accept a Kotlin function named like a type the module keeps unexported`() {
             emit("pkg/kotlin/pkg.d.mts", "export declare function JsonObject(): void;\n")
             val project = project()

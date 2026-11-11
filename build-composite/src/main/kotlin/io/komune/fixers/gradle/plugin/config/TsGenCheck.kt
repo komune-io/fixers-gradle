@@ -152,8 +152,9 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
 // clash. Anchored at the start of a line, where the emitter writes the top-level declarations: one
 // nested in a namespace belongs to that namespace. A `const enum` is an enum.
 private val declaredName = Regex(
-    """^(?:export )?(?:declare )?(?:abstract )?""" +
-        """(interface|class|namespace|function|const enum|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
+    // `(?U)`: a JavaScript name holds any Unicode letter, `JsonObjectÉ` is not `JsonObject`.
+    """(?U)^(?:export )?(?:declare )?(?:abstract )?""" +
+        """(interface|class|namespace|function|const enum|const|let|var|enum|type) ([\w$]+)""",
     RegexOption.MULTILINE,
 )
 

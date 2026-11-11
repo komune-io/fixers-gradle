@@ -102,7 +102,7 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
-    fun `leaves another Ignore alone, kotlin test's, an enum entry's or a class's`() {
+    fun `leaves every other Ignore alone in a file without the star import, kotlin test's, an enum entry's, a class's`() {
         val found = lines("""
             import kotlin.test.Ignore
             import kotlin.js.JsExport
