@@ -452,6 +452,51 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should name a Kotlin declaration that takes the name of a declaration the module keeps unexported`() {
+            val helpers = Regex("""^type (\w+)""", RegexOption.MULTILINE).findAll(JSON_DECLARATIONS)
+                .map { it.groupValues[1] }.toList()
+            assertThat(helpers).contains("JsonKey", "JsonMap", "JsonField", "JsonFields", "JsonOptional", "JsonObject")
+            val emitted = "type Nullable<T> = T | null | undefined\n" +
+                "declare function KtSingleton<T>(): T & (abstract new() => any);\n"
+            (helpers + "Nullable").forEach { name ->
+                listOf("export declare interface $name {\n}\n", "export declare class $name {\n}\n").forEach { kotlin ->
+                    emit("pkg/kotlin/pkg.d.mts", emitted + kotlin)
+                    val project = project()
+                    project.run("tsGen")
+
+                    assertThatThrownBy { project.run("checkTsGen") }
+                        .`as`(kotlin)
+                        .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `$name` twice")
+                        .hasMessageContaining("Rename")
+                }
+            }
+            emit("pkg/kotlin/pkg.d.mts", emitted + "export declare class KtSingleton {\n}\n")
+            val project = project()
+            project.run("tsGen")
+
+            assertThatThrownBy { project.run("checkTsGen") }.hasMessageContaining("declares `KtSingleton` twice")
+        }
+
+        @Test
+        fun `should read a declaration name to its end, Unicode letters included`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare interface JsonObjectÉ {\n}\nexport declare class Prixé {\n}\n" +
+                "export declare class Prix {\n}\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
+        fun `should accept a Kotlin function named like a type the module keeps unexported`() {
+            emit("pkg/kotlin/pkg.d.mts", "export declare function JsonObject(): void;\n")
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
         fun `should accept exported declarations of distinct names`() {
             emit(
                 "pkg/kotlin/pkg.d.mts",

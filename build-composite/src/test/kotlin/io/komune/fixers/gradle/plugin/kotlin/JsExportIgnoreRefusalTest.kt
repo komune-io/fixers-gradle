@@ -65,20 +65,61 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
-    fun `finds a bare Ignore once JsExport's members are star-imported`() {
+    fun `finds an alias of JsExport spelled in non-ASCII letters or between backticks`() {
         val found = lines("""
-            import kotlin.js.JsExport.*
+            import kotlin.js.JsExport as Éx
+            import kotlin.js.JsExport as `Ex port`
 
-            @JsExport
             class Order {
-                @Ignore
+                @Éx.Ignore
                 fun hidden() = Unit
-                @get:Ignore
-                val alsoHidden: Int get() = 1
+                @`Ex port`.Ignore
+                fun alsoHidden() = Unit
+                @Éxtra.Ignore
+                fun other() = Unit
             }
         """)
 
-        assertThat(found).containsExactly("5: @Ignore", "7: @get:Ignore")
+        assertThat(found).containsExactly("5: @Éx.Ignore", "7: @`Ex port`.Ignore")
+    }
+
+    @Test
+    fun `refuses the star import of JsExport's members, naming the qualified form`() {
+        val found = lines("""
+            import kotlin.js.JsExport.*
+            import kotlin.js . JsExport . *
+
+            class Order {
+                @[Ignore] fun hidden() = Unit
+                fun shown() = Unit
+            }
+        """)
+
+        assertThat(found).containsExactly(
+            "1: import kotlin.js.JsExport.* (import of every member of JsExport: write JsExport.X qualified)",
+            "2: import kotlin.js . JsExport . * (import of every member of JsExport: write JsExport.X qualified)",
+        )
+    }
+
+    @Test
+    fun `leaves every other Ignore alone in a file without the star import, kotlin test's, an enum entry's, a class's`() {
+        val found = lines("""
+            import kotlin.test.Ignore
+            import kotlin.js.JsExport
+
+            enum class Mode { Ignore, Keep }
+            class Ignore2
+            typealias Skip = Ignore
+
+            @JsExport
+            class OrderTest {
+                @Ignore fun skipped() = Unit
+                @[Ignore] fun alsoSkipped() = Unit
+                val mode = Mode.Ignore
+            }
+        """)
+
+        assertThat(found).isEmpty()
     }
 
     @Test

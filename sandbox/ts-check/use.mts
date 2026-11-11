@@ -1,6 +1,6 @@
 // The contract as a front reads it: the exported types are the Kotlin objects, Json<T> is the JSON.
 // Each @ts-expect-error is a misuse tsc must refuse; an unused one fails the check too.
-import { Family, FamilyDTO, Json, Level, Node, Page, Shape, describeFamily, familyPage, sampleFamily } from "../ts/sandbox-sandbox-object-object-domain/kotlin/sandbox-sandbox-object-object-domain.mjs";
+import { Family, FamilyDTO, Json, Level, Node, ObjectModel, ObjectModelDTO, Page, Shape, describeFamily, familyPage, sampleFamily, sampleObjectModel } from "../ts/sandbox-sandbox-object-object-domain/kotlin/sandbox-sandbox-object-object-domain.mjs";
 import { Json as ClientJson, countTags } from "../ts/sandbox-sandbox-object-object-client/kotlin/sandbox-sandbox-object-object-client.mjs";
 // JSON: every family typed as the wire carries it
 const json: Json<FamilyDTO> = { tags: ["a"], owners: ["o"], counts: { x: [1, 2] }, byShape: { ROUND: 1, SQUARE: 2 }, total: 1, shape: "ROUND", level: "HIGH", createdAt: "1970-01-01T00:00:00Z", note: null };
@@ -53,6 +53,17 @@ describeFamily(json);
 const described: string = describeFamily(sampleFamily());
 // @ts-expect-error JSON passed to another package's Kotlin code
 countTags(json);
+// A Kotlin object is no JSON, even one whose fields all are: refused alone, through its interface, nested, spread
+// @ts-expect-error the Kotlin data class itself
+const kotlinAsJson: Json<ObjectModel> = sampleObjectModel();
+// @ts-expect-error through the DTO interface it implements
+const kotlinAsDto: Json<ObjectModelDTO> = sampleObjectModel();
+// @ts-expect-error nested at any depth
+const kotlinNested: Json<Page<ObjectModel>> = { total: 1, items: [sampleObjectModel()] };
+// @ts-expect-error its spread keeps the Kotlin marker
+const kotlinSpread: Json<ObjectModelDTO> = { ...sampleObjectModel() };
+// The same JSON written by hand is accepted
+const literal: Json<Page<ObjectModel>> = { total: 1, items: [{ id: "id-1", name: "a" }] };
 // Two packages, two copies of the declarations: one's Json applies to the other's types
 const crossed: ClientJson<FamilyDTO> = json;
-export { partial, badKey, badValue, page, badPage, fromKotlin, pageLength, tree, badTree, absent, fromClass, isRound, next, badEnum, badLong, badList, missing, mix, cmp, okCmp, len, tags, at, note, described, crossed };
+export { kotlinAsJson, kotlinAsDto, kotlinNested, kotlinSpread, literal, partial, badKey, badValue, page, badPage, fromKotlin, pageLength, tree, badTree, absent, fromClass, isRound, next, badEnum, badLong, badList, missing, mix, cmp, okCmp, len, tags, at, note, described, crossed };
