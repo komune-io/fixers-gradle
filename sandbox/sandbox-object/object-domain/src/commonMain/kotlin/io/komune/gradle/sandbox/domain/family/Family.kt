@@ -24,6 +24,7 @@ interface FamilyDTO {
     val tags: List<String>
     val owners: Set<String>
     val counts: Map<String, List<Long>>
+    val byShape: Map<Shape, Int>
     val total: Long
     val shape: Shape
     val level: Level
@@ -42,6 +43,7 @@ data class Family(
     override val tags: List<String>,
     override val owners: Set<String>,
     override val counts: Map<String, List<Long>>,
+    override val byShape: Map<Shape, Int>,
     override val total: Long,
     override val shape: Shape,
     override val level: Level,
@@ -68,9 +70,25 @@ fun sampleFamily(): Family = Family(
     tags = listOf("a", "b"),
     owners = setOf("o"),
     counts = mapOf("x" to listOf(1L, 2L)),
+    byShape = mapOf(Shape.ROUND to 1),
     total = 9_007_199_254_740_993L,
     shape = Shape.ROUND,
     level = Level.HIGH,
     createdAt = Instant.fromEpochSeconds(epochSeconds = 0),
     note = null,
 )
+
+/** One page of items: a generic class whose type argument is a Kotlin type. */
+@JsExport
+data class Page<T>(val total: Int, val items: List<T>)
+
+/** A page of the sample family. */
+@JsExport
+fun familyPage(): Page<Family> = Page(total = 1, items = listOf(sampleFamily()))
+
+/** A tree: a type that holds itself. */
+@JsExport
+interface Node {
+    val name: String
+    val children: List<Node>
+}

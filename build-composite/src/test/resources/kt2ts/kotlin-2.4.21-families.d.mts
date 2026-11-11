@@ -75,6 +75,7 @@ export declare interface FamilyDTO {
     readonly tags: KtList<string>;
     readonly owners: KtSet<string>;
     readonly counts: KtMap<string, KtList<bigint>>;
+    readonly byShape: KtMap<Shape, number>;
     readonly total: bigint;
     readonly shape: Shape;
     readonly level: Level;
@@ -85,16 +86,17 @@ export declare interface FamilyDTO {
     };
 }
 export declare class Family implements FamilyDTO {
-    constructor(tags: KtList<string>, owners: KtSet<string>, counts: KtMap<string, KtList<bigint>>, total: bigint, shape: Shape, level: Level, createdAt: any/* Instant */, note: Nullable<string>);
+    constructor(tags: KtList<string>, owners: KtSet<string>, counts: KtMap<string, KtList<bigint>>, byShape: KtMap<Shape, number>, total: bigint, shape: Shape, level: Level, createdAt: any/* Instant */, note: Nullable<string>);
     get tags(): KtList<string>;
     get owners(): KtSet<string>;
     get counts(): KtMap<string, KtList<bigint>>;
+    get byShape(): KtMap<Shape, number>;
     get total(): bigint;
     get shape(): Shape;
     get level(): Level;
     get createdAt(): any/* Instant */;
     get note(): Nullable<string>;
-    copy(tags?: KtList<string>, owners?: KtSet<string>, counts?: KtMap<string, KtList<bigint>>, total?: bigint, shape?: Shape, level?: Level, createdAt?: any/* Instant */, note?: Nullable<string>): Family;
+    copy(tags?: KtList<string>, owners?: KtSet<string>, counts?: KtMap<string, KtList<bigint>>, byShape?: KtMap<Shape, number>, total?: bigint, shape?: Shape, level?: Level, createdAt?: any/* Instant */, note?: Nullable<string>): Family;
     toString(): string;
     hashCode(): number;
     equals(other: Nullable<any>): boolean;
@@ -120,6 +122,29 @@ export declare namespace Family {
 }
 export declare function describeFamily(family: FamilyDTO): string;
 export declare function sampleFamily(): Family;
+export declare class Page<T> {
+    constructor(total: number, items: KtList<T>);
+    get total(): number;
+    get items(): KtList<T>;
+    copy(total?: number, items?: KtList<T>): Page<T>;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<any>): boolean;
+}
+export declare namespace Page {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new <T>() => Page<T>;
+    }
+}
+export declare function familyPage(): Page<Family>;
+export declare interface Node {
+    readonly name: string;
+    readonly children: KtList<Node>;
+    readonly __doNotUseOrImplementIt: {
+        readonly "io.komune.gradle.sandbox.domain.family.Node": unique symbol;
+    };
+}
 export declare interface ObjectModelDTO {
     readonly id: string;
     readonly name: string;

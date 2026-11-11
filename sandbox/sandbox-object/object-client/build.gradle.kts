@@ -25,7 +25,11 @@ val checkTsContract = tasks.register<Exec>("checkTsContract") {
     mustRunAfter(":tsGen", ":checkTsGen")
     inputs.dir(rootProject.layout.projectDirectory.dir("ts"))
     inputs.dir(tsCheck)
+    // tsc --noEmit writes nothing; the stamp lets an unchanged contract and check be up to date.
+    val stamp = layout.buildDirectory.file("ts-contract/checked")
+    outputs.file(stamp)
     executable = node.get()
     args(tsc.get().asFile.absolutePath, "--project", tsCheck.asFile.absolutePath)
+    doLast { stamp.get().asFile.apply { parentFile.mkdirs() }.writeText("tsc --strict passed\n") }
 }
 tasks.named("check") { dependsOn(checkTsContract) }
