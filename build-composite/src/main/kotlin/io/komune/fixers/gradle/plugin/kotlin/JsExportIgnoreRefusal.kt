@@ -5,22 +5,27 @@ import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 
+// `(?U)`: `\w` and `\b` read every Kotlin letter, not ASCII only.
+private const val UNICODE = "(?U)"
 private const val SPACE = """\s*"""
-private val IMPORT_ALIAS = Regex("""\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s+as\s+(\w+)""")
-private val IMPORT_STAR = Regex("""\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s*\.\s*\*""")
+private val IMPORT_ALIAS = Regex("""$UNICODE\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s+as\s+(\w+)""")
+private val IMPORT_STAR = Regex("""$UNICODE\bimport\s+kotlin\s*\.\s*js\s*\.\s*JsExport\s*\.\s*\*""")
+
+// Under the star import, `Ignore` anywhere but after a dot: `@Ignore`, `@get:[A Ignore]`, `typealias I = Ignore`.
+private val BARE_IGNORE = Regex("""$UNICODE(?<![.\w])Ignore(?!\w)""")
 
 /**
  * The lines of a Kotlin source that use `@JsExport.Ignore`: the annotation (qualified or not, under a use-site
- * target, across lines), its import, an alias of `JsExport` followed by `.Ignore`, and a bare `Ignore` annotation
- * once `kotlin.js.JsExport.*` is imported. Strings and comments are left out, their lines kept so that the
- * numbers hold. Names are matched, not resolved: a declaration of the user's own named `JsExport` with an
- * `Ignore` inside is refused too.
+ * target, across lines), its import, an alias of `JsExport` followed by `.Ignore`, and, once
+ * `kotlin.js.JsExport.*` is imported, every unqualified `Ignore` (alone, grouped in `@[…]`, or named by a type
+ * alias). Strings and comments are left out, their lines kept so that the numbers hold. Names are matched, not
+ * resolved: a declaration of the user's own named `JsExport` with an `Ignore` inside is refused too.
  */
 internal fun jsExportIgnores(source: String): List<IndexedValue<String>> {
     val code = codeOnly(source)
     val names = listOf("JsExport") + IMPORT_ALIAS.findAll(code).map { it.groupValues[1] }
-    val qualified = Regex("""\b(?:${names.joinToString("|")})$SPACE\.$SPACE""" + """Ignore\b""")
-    val bare = Regex("""@$SPACE(?:\w+$SPACE:$SPACE)?Ignore\b""").takeIf { IMPORT_STAR.containsMatchIn(code) }
+    val qualified = Regex("""$UNICODE\b(?:${names.joinToString("|")})$SPACE\.$SPACE""" + """Ignore\b""")
+    val bare = BARE_IGNORE.takeIf { IMPORT_STAR.containsMatchIn(code) }
     val patterns = listOfNotNull(qualified, bare)
     val lines = source.lines()
     return patterns.asSequence()
@@ -37,12 +42,11 @@ private fun String.lineOf(offset: Int): Int = (0 until offset).count { this[it] 
  * [source] with every string, character literal and comment blanked, newlines kept: what is left is code. Knows
  * `"…"` with escapes, raw `"""…"""`, templates `${…}` holding code (strings and braces included), multi-dollar
  * strings (`$$"…"`, whose templates are `$${…}`), `'…'`, names between backticks, and nested `/* /* */ */`
- * comments.
+ * comments. A name between backticks is kept as one identifier, each character no identifier holds read as `_`.
  */
 internal fun codeOnly(source: String): String = CodeOnly(source).run()
 
 private const val TRIPLE_QUOTE = "\"\"\""
-private val PLAIN_IDENTIFIER = Regex("""[A-Za-z_][A-Za-z0-9_]*""")
 
 private class CodeOnly(private val source: String) {
     private val out = StringBuilder(source.length)
@@ -132,15 +136,16 @@ private class CodeOnly(private val source: String) {
         }
     }
 
-    // A name between backticks: kept as code when it is a plain identifier (`JsExport` names the annotation as
-    // well), blanked otherwise, as its text may hold quotes or spell `JsExport.Ignore` without being one.
+    // A name between backticks: `JsExport` names the annotation, `Ex port` an alias of it. Read as one identifier,
+    // each character outside one as `_`: its quotes open no string, its dots and spaces spell no `JsExport.Ignore`.
     private fun backticked() {
         val end = (i + 1 until source.length).firstOrNull { at -> source[at] == '`' || source[at] == '\n' }
             ?: source.length
-        val name = source.substring(startIndex = i + 1, endIndex = end)
-        val isIdentifier = source.getOrNull(end) == '`' && PLAIN_IDENTIFIER.matches(name)
         blank(1)
-        repeat(end - i) { if (isIdentifier) keep() else blank(1) }
+        while (i < end) {
+            out.append(source[i].takeIf { it.isLetterOrDigit() || it == '_' } ?: '_')
+            i++
+        }
         if (source.getOrNull(i) == '`') blank(1)
     }
 

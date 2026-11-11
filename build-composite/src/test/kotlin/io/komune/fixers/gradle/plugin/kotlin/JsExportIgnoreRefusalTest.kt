@@ -82,6 +82,70 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
+    fun `finds an alias of JsExport spelled in non-ASCII letters or between backticks`() {
+        val found = lines("""
+            import kotlin.js.JsExport as Éx
+            import kotlin.js.JsExport as `Ex port`
+
+            class Order {
+                @Éx.Ignore
+                fun hidden() = Unit
+                @`Ex port`.Ignore
+                fun alsoHidden() = Unit
+                @Éxtra.Ignore
+                fun other() = Unit
+            }
+        """)
+
+        assertThat(found).containsExactly("5: @Éx.Ignore", "7: @`Ex port`.Ignore")
+    }
+
+    @Test
+    fun `finds a grouped or aliased bare Ignore once JsExport's members are star-imported`() {
+        val found = lines("""
+            import kotlin.js.JsExport.*
+
+            typealias Skip = Ignore
+
+            class Order {
+                @[Ignore]
+                fun hidden() = Unit
+                @[Suppress("x") Ignore] fun alsoHidden() = Unit
+                @get:[ Ignore ]
+                val hiddenToo: Int get() = 1
+                @[Deprecated("m", ReplaceWith("x")) Ignore] fun deprecated() = Unit
+                @`Ignore` fun backticked() = Unit
+                @Skip fun aliased() = Unit
+                @[Other.Ignore] fun qualifiedElsewhere() = Unit
+                fun `Ignore me`() = Unit
+            }
+        """)
+
+        assertThat(found).containsExactly(
+            "3: typealias Skip = Ignore",
+            "6: @[Ignore]",
+            "8: @[Suppress(\"x\") Ignore] fun alsoHidden() = Unit",
+            "9: @get:[ Ignore ]",
+            "11: @[Deprecated(\"m\", ReplaceWith(\"x\")) Ignore] fun deprecated() = Unit",
+            "12: @`Ignore` fun backticked() = Unit",
+        )
+    }
+
+    @Test
+    fun `leaves a grouped Ignore alone without the star import`() {
+        val found = lines("""
+            import org.junit.Ignore
+
+            class OrderTest {
+                @[Ignore] fun skipped() = Unit
+                typealias Skip = Ignore
+            }
+        """)
+
+        assertThat(found).isEmpty()
+    }
+
+    @Test
     fun `finds the annotation cut across two lines, at the line it starts`() {
         val found = lines("""
             class Order {

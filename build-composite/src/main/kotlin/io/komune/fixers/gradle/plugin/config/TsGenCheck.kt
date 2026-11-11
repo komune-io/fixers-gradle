@@ -29,9 +29,10 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
 
 /**
  * Registers `checkTsGen`, which regenerates the declarations into the build directory and fails
- * when the output directory differs from them, or when a `.d.mts` exports a name twice: two of its
- * classes, interfaces, functions, constants, variables, enums or type aliases, as named in
- * JavaScript, or two namespaces, the one namespace of a companion and the pair of one type
+ * when the output directory differs from them, or when a `.d.mts` declares a name twice at its top
+ * level: two of its classes, interfaces, functions, constants, variables, enums or type aliases, as
+ * named in JavaScript, exported or not (the helpers of `Json`, the emitter's `Nullable`), or two
+ * namespaces, the one namespace of a companion and the pair of one type
  * (interface, type alias) and one value (function, constant, variable) being allowed. `check` runs it
  * in a build that emits Kotlin/JS.
  *
@@ -146,11 +147,12 @@ internal fun staleFiles(fresh: File, committed: File): List<String> {
     }
 }
 
-// Every top-level export of a `.d.mts`, under the name JavaScript sees, `@JsName` applied. Anchored
-// at the start of a line, where the emitter writes the top-level declarations: an export nested in a
-// namespace belongs to that namespace. A `const enum` is an enum.
+// Every top-level declaration of a `.d.mts`, exported or not, under the name JavaScript sees, `@JsName`
+// applied: a Kotlin export named like a helper the module keeps to itself (`JsonObject`) is the same
+// clash. Anchored at the start of a line, where the emitter writes the top-level declarations: one
+// nested in a namespace belongs to that namespace. A `const enum` is an enum.
 private val declaredName = Regex(
-    """^export (?:declare )?(?:abstract )?""" +
+    """^(?:export )?(?:declare )?(?:abstract )?""" +
         """(interface|class|namespace|function|const enum|const|let|var|enum|type) ([A-Za-z0-9_$]+)""",
     RegexOption.MULTILINE,
 )

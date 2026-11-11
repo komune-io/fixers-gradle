@@ -60,4 +60,40 @@ class Kt2TsIntegrationTest : BaseIntegrationTest() {
         assertThat(first.task(":checkTsGen")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(second.task(":checkTsGen")?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
     }
+
+    @Test
+    fun `checkTsGen should fail on a Kotlin export named like a helper of Json`() {
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+                id("io.komune.fixers.gradle.kotlin.mpp")
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            fixers {
+                kt2Ts {
+                    outputDirectory = "contract"
+                }
+            }
+        """.trimIndent())
+        createFile(relativePath = "src/commonMain/kotlin/com/example/JsonObject.kt", content = """
+            package com.example
+
+            @kotlin.js.JsExport
+            interface JsonObject {
+                val id: String
+            }
+        """.trimIndent())
+        runGradle("tsGen")
+
+        val result = runGradleAndFail("checkTsGen")
+
+        assertThat(result.task(":checkTsGen")?.outcome).isEqualTo(TaskOutcome.FAILED)
+        assertThat(result.output)
+            .contains("declares `JsonObject` twice: type JsonObject, interface JsonObject")
+            .contains("Rename one of the two Kotlin declarations")
+    }
 }
