@@ -386,11 +386,19 @@ class TsGenTaskTest {
 
             assertThat(result).isEqualTo(
                 JSON_DECLARATIONS +
-                    "declare function KtSingleton<T>(): T & (abstract new() => unknown);\n" +
+                    "declare function KtSingleton<T>(): T & (abstract new() => object);\n" +
                     "/** valid in any module */\n" +
                     "export declare function f(other?: unknown): unknown;\n" +
                     "export declare interface WithId<ID extends unknown> {\n    get name(): \"any\";\n}\n" +
                     "export declare interface Names {\n    readonly any: string;\n    any(): boolean;\n    of(x: Set<unknown>, y: string | unknown): unknown[];\n}\n"
+            )
+        }
+
+        @Test
+        fun `should give a companion's singleton an object instance, which a class can extend`() {
+            assertThat(clean("kotlin-2.4.21-families.d.mts")).contains(
+                "declare function KtSingleton<T>(): T & (abstract new() => object);",
+                "    abstract class Companion extends KtSingleton<Companion.${'$'}metadata${'$'}.constructor>() {",
             )
         }
 

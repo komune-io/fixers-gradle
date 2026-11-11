@@ -48,7 +48,12 @@ data class Family(
     @Suppress("NON_EXPORTABLE_TYPE")
     override val createdAt: Instant,
     override val note: String?,
-) : FamilyDTO
+) : FamilyDTO {
+    companion object {
+        /** The name a family is filed under. */
+        const val KIND: String = "family"
+    }
+}
 
 /** Reads every family of [family], as Kotlin code does. */
 @JsExport

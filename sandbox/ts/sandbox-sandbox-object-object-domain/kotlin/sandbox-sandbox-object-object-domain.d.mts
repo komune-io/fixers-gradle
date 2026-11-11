@@ -34,7 +34,7 @@ type JsonOptional<T> = {
 type JsonObject<T> =
     { [P in Exclude<JsonFields<T>, JsonOptional<T>>]: Json<T[P]> } & { [P in JsonOptional<T>]?: Json<T[P]> };
 type Nullable<T> = T | null | undefined
-declare function KtSingleton<T>(): T & (abstract new() => unknown);
+declare function KtSingleton<T>(): T & (abstract new() => object);
 export declare interface KtSet<out E> /* extends Collection<E> */ {
     asJsReadonlySetView(): ReadonlySet<E>;
     readonly __doNotUseOrImplementIt: {
@@ -139,6 +139,18 @@ export declare namespace Family {
     /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
     namespace $metadata$ {
         const constructor: abstract new () => Family;
+    }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                get KIND(): string;
+                private constructor();
+            }
+        }
     }
 }
 export declare function describeFamily(family: FamilyDTO): string;

@@ -185,6 +185,8 @@ private fun dmtsCleaning(): List<Pair<Regex, String>> = listOf(
     // NON_EXPORTABLE_TYPE: opaque to TypeScript, named so that `Json` sends them as strings.
     Regex("""Nullable<any>/\* Nullable<(Instant|LocalDate)> \*/""") to "Nullable<KtOpaque<\"$1\">>",
     Regex("""any/\* (Instant|LocalDate) \*/""") to "KtOpaque<\"$1\">",
+    // A companion `extends KtSingleton<…>()`, and TypeScript extends an object type only (TS2509).
+    Regex("""(declare function KtSingleton<T>\(\): T & \(abstract new\(\) => )any\)""") to "$1object)",
 )
 
 /**

@@ -105,6 +105,18 @@ export declare namespace Family {
     namespace $metadata$ {
         const constructor: abstract new () => Family;
     }
+    abstract class Companion extends KtSingleton<Companion.$metadata$.constructor>() {
+        private constructor();
+    }
+    namespace Companion {
+        /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+        namespace $metadata$ {
+            abstract class constructor {
+                get KIND(): string;
+                private constructor();
+            }
+        }
+    }
 }
 export declare function describeFamily(family: FamilyDTO): string;
 export declare function sampleFamily(): Family;
