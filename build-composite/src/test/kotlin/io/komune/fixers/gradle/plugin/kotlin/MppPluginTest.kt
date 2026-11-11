@@ -170,6 +170,20 @@ class MppPluginTest {
     }
 
     @Test
+    fun `should check the sources of every Kotlin JS compile and link task`() {
+        val names = mppProject().tasks.withType(Kotlin2JsCompile::class.java).names
+
+        assertThat(names).containsExactlyInAnyOrder(
+            "compileKotlinJs",
+            "compileTestKotlinJs",
+            "compileDevelopmentLibraryKotlinJs",
+            "compileProductionLibraryKotlinJs",
+            "compileTestDevelopmentExecutableKotlinJs",
+            "compileTestProductionExecutableKotlinJs",
+        )
+    }
+
+    @Test
     fun `should refuse a JS compilation whose sources use JsExport Ignore`() {
         val project = mppProject()
         val source = project.file("src/jsMain/kotlin/Order.kt")
