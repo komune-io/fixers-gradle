@@ -10,10 +10,8 @@ mockito = "5.24.0"
 mockito-kotlin = "6.4.0"
 coroutines = "1.11.0"
 jacoco = "0.8.15"
-# Forced on KGP's kotlinBouncyCastleConfiguration by the published plugin (BouncyCastleAlignment.kt):
-# KGP 2.4.21 pins 1.84 (GHSA-9pwp-9qqc-pr26, GHSA-qp49-qgx5-5m26, fixed in 1.85). Remove this version
-# with alignBouncyCastle once KGP's own `bouncyCastleVersion` is 1.85 or later: check
-# `project.properties` in the kotlin-gradle-plugin jar.
+# Forced on KGP's kotlinBouncyCastleConfiguration by the published plugin: BouncyCastleAlignment.kt
+# says why, and when to remove it.
 bouncycastle = "1.86"
 
 # Yarn resolutions the published plugin forces on the Kotlin/JS lock of every build

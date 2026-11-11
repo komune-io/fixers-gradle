@@ -138,14 +138,6 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     return cleaning
 }
 
-// A package fixers pins on the lock is declared at its pin: a consumer installs the package from
-// its package.json, which otherwise names the version a Kotlin dependency declares, advisory included.
-internal fun pinnedDependencyCleaning(
-    pinned: Map<String, String> = fixersPinnedPackages(),
-): List<Pair<Regex, String>> = pinned.map { (name, version) ->
-    Regex("""(?<="${Regex.escape(name)}": ")[^"]*(?=")""") to Regex.escapeReplacement(version)
-}
-
 // A rule by value: the configuration cache hands a task its own copies of the regexes.
 internal data class CleaningRule(
     val suffix: String,

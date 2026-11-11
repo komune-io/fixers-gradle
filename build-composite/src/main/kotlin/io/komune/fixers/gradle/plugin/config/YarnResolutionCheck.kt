@@ -32,12 +32,6 @@ internal val FIXERS_YARN_PINS: Map<String, String> = mapOf(
     "**/ajv" to FixersToolVersions.npmAjv,
 )
 
-/** The packages [FIXERS_YARN_PINS] forces at any depth, name to version. */
-internal fun fixersPinnedPackages(pins: Map<String, String> = FIXERS_YARN_PINS): Map<String, String> =
-    pins.mapNotNull { (path, version) ->
-        packageNames(path.removePrefix(ANY_DEPTH)).singleOrNull()?.let { name -> name to version }
-    }.toMap()
-
 internal const val YARN_RESOLUTION_CHECK_TASK = "checkYarnResolutions"
 
 private const val ANY_DEPTH = "**/"

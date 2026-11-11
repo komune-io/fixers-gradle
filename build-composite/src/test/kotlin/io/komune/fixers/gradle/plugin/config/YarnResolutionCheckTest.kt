@@ -242,12 +242,6 @@ class YarnResolutionCheckTest {
     }
 
     @Test
-    fun `should name the packages pinned at any depth only`() {
-        assertThat(fixersPinnedPackages(mapOf("**/ws" to "8.22.2", "**/@scope/pkg" to "1.0.0", "**/mocha/glob" to "14.0.4")))
-            .isEqualTo(mapOf("ws" to "8.22.2", "@scope/pkg" to "1.0.0"))
-    }
-
-    @Test
     fun `should run the check with the root check task once yarn is in the build`() {
         val root = ProjectBuilder.builder().buildFixersRoot()
         root.plugins.apply(ConfigPlugin::class.java)
