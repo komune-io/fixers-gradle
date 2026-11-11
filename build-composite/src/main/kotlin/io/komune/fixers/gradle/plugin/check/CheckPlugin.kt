@@ -7,6 +7,9 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
@@ -19,10 +22,7 @@ class CheckPlugin : Plugin<Project> {
             val sonarConfigurator = SonarQubeConfigurator(target)
             sonarConfigurator.configure(config?.sonar, config?.bundle)
 
-            // Configure Detekt if not disabled
-            if (config?.detekt?.disable?.orNull != true) {
-                target.configureDetekt()
-            }
+            target.configureDetekt()
 
             // Configure JaCoCo for subprojects
             target.subprojects {
@@ -40,39 +40,39 @@ class CheckPlugin : Plugin<Project> {
 @DisableCachingByDefault(because = "Generates a properties file that depends on project structure")
 abstract class GenerateSonarPropertiesTask : DefaultTask() {
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val organization: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val projectKey: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val sources: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val inclusions: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val exclusions: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val jacoco: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val detekt: Property<String>
 
-    @get:org.gradle.api.tasks.Input
-    @get:org.gradle.api.tasks.Optional
+    @get:Input
+    @get:Optional
     abstract val customProperties: MapProperty<String, String>
 
-    @get:org.gradle.api.tasks.OutputFile
+    @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
     @TaskAction

@@ -1,19 +1,20 @@
 pluginManagement {
+  // The fixers plugins come from the build above, the settings plugin included.
+  includeBuild("../")
   repositories {
-    mavenLocal()
     mavenCentral()
     gradlePluginPortal()
-    google()
   }
 }
+
 plugins {
-//  id("de.fayard.refreshVersions") version "0.40.1"
+  id("io.komune.fixers.gradle.settings")
 }
 
 rootProject.name = "sandbox"
 
-includeBuild("../")
 include(
   ":sandbox-object:object-domain",
   ":sandbox-object:object-api",
+  ":sandbox-object:object-client",
 )

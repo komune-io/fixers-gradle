@@ -1,7 +1,5 @@
 package io.komune.fixers.gradle.plugin.publish
 
-import io.komune.fixers.gradle.config.ConfigExtension
-import io.komune.fixers.gradle.config.utils.pom
 import io.komune.fixers.gradle.plugin.kotlin.JvmPlugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -15,57 +13,57 @@ import org.gradle.kotlin.dsl.the
 
 object PublishJvmSetup {
 
-	fun setupJVMPublish(project: Project, config: ConfigExtension) {
-		project.plugins.withType(JvmPlugin::class.java) {
-			project.setupJvmPublishJar()
-			project.setupPublication(config)
-			project.setupExistingPublication(config)
-		}
-	}
+    fun setupJVMPublish(project: Project) {
+        project.plugins.withType(JvmPlugin::class.java) {
+            project.setupJvmPublishJar()
+            project.setupPublication()
+            project.setupExistingPublication()
+        }
+    }
 
-	private fun Project.setupExistingPublication(config: ConfigExtension) {
-		val variantName = name
-		configure<PublishingExtension> {
-			publications.configureEach {
-				(this as? MavenPublication)?.let { mavenPublication ->
-					mavenPublication.artifactId = pluginMarkerArtifactId(variantName, name)
-					val publication = project.pom(config.bundle)
-					mavenPublication.pom(publication)
-					tasks.findByName("javadocJar")?.let { mavenPublication.artifact(it) }
-					tasks.findByName("sourcesJar")?.let { mavenPublication.artifact(it) }
-				}
-			}
-		}
-	}
+    private fun Project.setupExistingPublication() {
+        val variantName = name
+        configure<PublishingExtension> {
+            publications.configureEach {
+                val mavenPublication = this
+                if (mavenPublication is MavenPublication) {
+                    mavenPublication.artifactId =
+                        pluginMarkerArtifactId(projectName = variantName, publicationName = name)
+                    tasks.findByName("javadocJar")?.let { task -> mavenPublication.artifact(task) }
+                    tasks.findByName("sourcesJar")?.let { task -> mavenPublication.artifact(task) }
+                }
+            }
+        }
+    }
 
 
-	internal fun pluginMarkerArtifactId(projectName: String, publicationName: String): String {
-		if(publicationName.endsWith("PluginMarkerMaven")) {
-			return publicationName.replace("PluginMarkerMaven", ".gradle.plugin")
-		}
-		return projectName
-	}
+    internal fun pluginMarkerArtifactId(projectName: String, publicationName: String): String {
+        if(publicationName.endsWith("PluginMarkerMaven")) {
+            return publicationName.replace(oldValue = "PluginMarkerMaven", newValue = ".gradle.plugin")
+        }
+        return projectName
+    }
 
-	private fun Project.setupPublication(config: ConfigExtension) {
-		extensions.findByType(JavaPluginExtension::class.java)?.let {
-			createMavenPublicationIfAbsent("kotlin", config)
-		}
-	}
+    private fun Project.setupPublication() {
+        if (extensions.findByType(JavaPluginExtension::class.java) != null) {
+            createMavenPublicationIfAbsent("kotlin")
+        }
+    }
 
-	private fun Project.setupJvmPublishJar() {
-		plugins.withType(JvmPlugin::class.java) {
-			tasks.register("javadocJar", Jar::class.java) {
-				val javadoc = tasks.named("javadoc")
-				dependsOn.add(javadoc)
-				archiveClassifier.set("javadoc")
-				from(javadoc)
-			}
+    private fun Project.setupJvmPublishJar() {
+        plugins.withType(JvmPlugin::class.java) {
+            tasks.register("javadocJar", Jar::class.java) {
+                val javadoc = tasks.named("javadoc")
+                dependsOn.add(javadoc)
+                archiveClassifier.set("javadoc")
+                from(javadoc)
+            }
 
-			tasks.register("sourcesJar", Jar::class.java) {
-				archiveClassifier.set("sources")
-				val sourceSets = project.the<SourceSetContainer>()
-				from(sourceSets["main"].allSource)
-			}
-		}
-	}
+            tasks.register("sourcesJar", Jar::class.java) {
+                archiveClassifier.set("sources")
+                val sourceSets = project.the<SourceSetContainer>()
+                from(sourceSets["main"].allSource)
+            }
+        }
+    }
 }

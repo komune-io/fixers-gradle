@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * Configuration for NPM package publishing.
  */
 class Npm(
-    private val project: Project
+    project: Project
 ) {
     /**
      * Whether to publish NPM packages.
@@ -63,15 +63,12 @@ class Npm(
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Npm to merge from
-     * @return This Npm after merging
      */
-    fun mergeFrom(source: Npm): Npm {
+    fun mergeFrom(source: Npm) {
         publish.mergeIfNotPresent(source.publish)
         organization.mergeIfNotPresent(source.organization)
         clean.mergeIfNotPresent(source.clean)
         version.mergeIfNotPresent(source.version)
         tag.mergeIfNotPresent(source.tag)
-
-        return this
     }
 }

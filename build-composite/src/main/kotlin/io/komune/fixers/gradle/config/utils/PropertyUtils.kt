@@ -4,6 +4,7 @@ import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.property
 
 /**
@@ -20,6 +21,7 @@ import org.gradle.kotlin.dsl.property
  *
  * Uses providers.environmentVariable() for configuration cache compatibility.
  *
+ * @param T The type of the property value
  * @param envKey The environment variable key to check for a value
  * @param projectKey The project property key to check for a value
  * @param defaultValue The default value to use if no other value is found
@@ -30,25 +32,15 @@ inline fun <reified T> Project.property(
     projectKey: String? = null,
     defaultValue: T? = null
 ): Property<T> where T : Any {
-    return objects.property<T>().apply {
-        if (envKey != null) {
-            providers.environmentVariable(envKey).orNull?.let { envValue ->
-                extractEnv<T>(envValue)
-                return@apply
-            }
-        }
-
-        if (projectKey != null) {
-            findProperty(projectKey)?.let { projValue ->
-                extractProperties<T>(projValue)
-                return@apply
-            }
-        }
-
-        if (defaultValue != null) {
-            convention(defaultValue)
-        }
+    val property = objects.property<T>()
+    val envValue = envKey?.let { providers.environmentVariable(it).orNull }
+    val projValue = if (envValue == null) projectKey?.let { findProperty(it) } else null
+    when {
+        envValue != null -> property.extractEnv<T>(envValue)
+        projValue != null -> property.extractProperties<T>(projValue)
+        defaultValue != null -> property.convention(defaultValue)
     }
+    return property
 }
 
 inline fun <reified T> Property<T>.extractProperties(projValue: Any) where T : Any {
@@ -71,40 +63,41 @@ inline fun <reified T> Property<T>.extractEnv(envValue: String) where T : Any {
 }
 
 /**
- * Helper function to merge a property from source to target if target is not present and source is present
- * 
+ * Helper function to merge a property from source to target if target is not present and source is present.
+ *
+ * @param T The type of the property value
  * @param sourceProp The source property to merge from
- * @return The target property (this) after merging
  */
-fun <T : Any> Property<T>.mergeIfNotPresent(sourceProp: Property<T>): Property<T> {
+fun <T : Any> Property<T>.mergeIfNotPresent(sourceProp: Property<T>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }
 
 /**
- * Helper function to merge a list property from source to target if target is not present and source is present
- * 
+ * Helper function to merge a list property from source to target if target is not present and source is present.
+ *
+ * @param T The type of the list elements
  * @param sourceProp The source list property to merge from
- * @return The target list property (this) after merging
  */
-fun <T : Any> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>): ListProperty<T> {
+fun <T : Any> ListProperty<T>.mergeIfNotPresent(sourceProp: ListProperty<T>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }
 
 /**
- * Helper function to merge a map property from source to target if target is not present and source is present
- * 
+ * Helper function to merge a map property from source to target if target is not present and source is present.
+ *
+ * @param K The type of the map keys
+ * @param V The type of the map values
  * @param sourceProp The source map property to merge from
- * @return The target map property (this) after merging
  */
-fun <K : Any, V : Any> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>): MapProperty<K, V> {
+fun <K : Any, V : Any> MapProperty<K, V>.mergeIfNotPresent(sourceProp: MapProperty<K, V>) {
     if (!this.isPresent && sourceProp.isPresent) {
         this.set(sourceProp)
     }
-    return this
 }
+
+/** The value as a string, `null` when absent. */
+internal fun Provider<*>.orNullText(): String = orNull?.toString() ?: "null"

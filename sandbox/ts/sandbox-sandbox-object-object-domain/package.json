@@ -1,0 +1,10 @@
+{
+  "name": "sandbox-sandbox-object-object-domain",
+  "version": "0.0.0",
+  "types": "kotlin/sandbox-sandbox-object-object-domain.d.mts",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

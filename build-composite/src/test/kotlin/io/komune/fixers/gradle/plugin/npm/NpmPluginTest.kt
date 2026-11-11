@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.npm
 
+import io.komune.fixers.gradle.buildFixersRoot
 import dev.petuska.npm.publish.NpmPublishPlugin
 import dev.petuska.npm.publish.extension.NpmPublishExtension
 import io.komune.fixers.gradle.config.ConfigExtension
@@ -19,7 +20,7 @@ class NpmPluginTest {
         version: String = "1.0.0",
         configure: (ConfigExtension) -> Unit = {}
     ): Project {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         configure(config)
         val project = ProjectBuilder.builder().withParent(root).withName("npm-lib").build()
@@ -49,10 +50,10 @@ class NpmPluginTest {
     }
 
     @Test
-    fun `should register npmTsGenTask in build group`() {
+    fun `should register npmTsGen in build group`() {
         val project = evaluatedNpmProject()
 
-        val task = project.tasks.findByName("npmTsGenTask")
+        val task = project.tasks.findByName("npmTsGen")
         assertThat(task).isNotNull
         assertThat(task!!.group).isEqualTo("build")
         assertThat(task).isInstanceOf(NpmTsGenTask::class.java)
@@ -63,12 +64,12 @@ class NpmPluginTest {
         val project = evaluatedNpmProject { config -> config.npm.publish.set(false) }
 
         assertThat(project.plugins.hasPlugin(NpmPublishPlugin::class.java)).isFalse()
-        assertThat(project.tasks.findByName("npmTsGenTask")).isNull()
+        assertThat(project.tasks.findByName("npmTsGen")).isNull()
     }
 
     @Test
     fun `should skip configuration when root has no fixers config`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val project = ProjectBuilder.builder().withParent(root).build()
         project.plugins.apply(NpmPlugin::class.java)
 

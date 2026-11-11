@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.model.Bundle
 import io.komune.fixers.gradle.config.model.Sonar
 import io.komune.fixers.gradle.plugin.check.SonarQubeConfigurator
@@ -21,7 +22,7 @@ class SonarQubeConfiguratorTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
         configurator = SonarQubeConfigurator(project)
     }
 
@@ -217,19 +218,6 @@ class SonarQubeConfiguratorTest {
             val properties = configurator.buildSonarProperties(sonar, null)
 
             assertThat(properties["sonar.token"]).isEqualTo("token-from-custom")
-        }
-
-        @Test
-        fun `should include detekt config path`() {
-            val sonar = Sonar(project).apply {
-                detektConfigPath.set("custom-detekt.yml")
-            }
-
-            val properties = configurator.buildSonarProperties(sonar, null)
-
-            assertThat(properties["detekt.sonar.kotlin.config.path"])
-                .asString()
-                .endsWith("custom-detekt.yml")
         }
     }
 

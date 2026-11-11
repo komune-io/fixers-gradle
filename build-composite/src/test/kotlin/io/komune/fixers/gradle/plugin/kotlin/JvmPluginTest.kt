@@ -1,8 +1,10 @@
 package io.komune.fixers.gradle.plugin.kotlin
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.ConfigExtension
 import io.komune.fixers.gradle.plugin.config.ConfigPlugin
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.testing.Test as TestTask
@@ -11,6 +13,7 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.testfixtures.ProjectBuilder
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.jupiter.api.Test
 
 /**
@@ -19,9 +22,9 @@ import org.junit.jupiter.api.Test
 class JvmPluginTest {
 
     private fun jvmProject(configure: (ConfigExtension) -> Unit = {}): Project {
-        val root = ProjectBuilder.builder().build()
-        val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
-        configure(config)
+        val root = ProjectBuilder.builder().buildFixersRoot()
+        root.plugins.apply(ConfigPlugin::class.java)
+        configure(root.extensions.getByType(ConfigExtension::class.java))
         val project = ProjectBuilder.builder().withParent(root).withName("jvm-lib").build()
         project.plugins.apply(JvmPlugin::class.java)
         return project
@@ -58,8 +61,67 @@ class JvmPluginTest {
 
         val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
         assertThat(kotlin.compilerOptions.jvmTarget.get()).isEqualTo(JvmTarget.JVM_17)
-        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict")
-        assertThat(kotlin.compilerOptions.languageVersion.orNull).isNotNull
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Xjsr305=strict", "-Wextra")
+    }
+
+    @Test
+    fun `should treat warnings as errors and check ignored return values`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThat(kotlin.compilerOptions.allWarningsAsErrors.get()).isTrue()
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get())
+            .contains("-Xreturn-value-checker=full", "-Xreport-all-warnings")
+    }
+
+    @Test
+    fun `should lock warnings as errors on the extension and refuse a compile task without them`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
+        assertThatThrownBy { kotlin.compilerOptions.allWarningsAsErrors.set(false) }
+            .hasMessageContaining("cannot be changed")
+        compile.compilerOptions.allWarningsAsErrors.set(false)
+        assertThatThrownBy { compile.actions.first().execute(compile) }
+            .hasMessageContaining("allWarningsAsErrors = false")
+    }
+
+    @Test
+    fun `should lock suppressWarnings off on the extension and refuse a compile task that turns it on`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThatThrownBy { kotlin.compilerOptions.suppressWarnings.set(true) }.hasMessageContaining("cannot be changed")
+        val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
+        compile.compilerOptions.suppressWarnings.set(true)
+        assertThatThrownBy { compile.actions.first().execute(compile) }.hasMessageContaining("suppressWarnings = true")
+    }
+
+    @Test
+    fun `should refuse a compiler argument that silences a warning`() {
+        listOf(
+            "-nowarn",
+            "-Xsuppress-warning=UNUSED_VARIABLE",
+            "-Xwarning-level=UNUSED_VARIABLE:disabled",
+            "-Xsuppress-deprecated-jvm-target-warning",
+        ).forEach { arg ->
+            val project = jvmProject()
+            val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
+            compile.compilerOptions.freeCompilerArgs.add(arg)
+
+            assertThatThrownBy { compile.actions.first().execute(compile) }
+                .hasMessageContaining(":jvm-lib:compileKotlin")
+                .hasMessageContaining(arg)
+        }
+    }
+
+    @Test
+    fun `should leave the kotlin language version to the compiler default`() {
+        val project = jvmProject()
+
+        val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
+        assertThat(kotlin.compilerOptions.languageVersion.orNull).isNull()
     }
 
     @Test
@@ -79,12 +141,31 @@ class JvmPluginTest {
     }
 
     @Test
+    fun `should add the junit platform launcher to the test runtime of junit tests`() {
+        val project = jvmProject()
+        project.dependencies.add("testImplementation", "org.junit.jupiter:junit-jupiter:5.13.4")
+
+        val testRuntime = project.configurations.getByName("testRuntimeClasspath")
+        assertThat(testRuntime.incoming.dependencies.map { "${it.group}:${it.name}" })
+            .contains("org.junit.platform:junit-platform-launcher")
+    }
+
+    @Test
+    fun `should not add the junit platform launcher when nothing brings junit`() {
+        val project = jvmProject()
+
+        val testRuntime = project.configurations.getByName("testRuntimeClasspath")
+        assertThat(testRuntime.incoming.dependencies.map { "${it.group}:${it.name}" })
+            .doesNotContain("org.junit.platform:junit-platform-launcher")
+    }
+
+    @Test
     fun `should add implementation info to jar manifest`() {
         val project = jvmProject()
         project.version = "1.2.3"
 
         val jar = project.tasks.getByName("jar") as Jar
         assertThat(jar.manifest.attributes["Implementation-Title"]).isEqualTo("jvm-lib")
-        assertThat(jar.manifest.attributes["Implementation-Version"]).isEqualTo(project.version)
+        assertThat(jar.manifest.writtenVersion()).isEqualTo("1.2.3")
     }
 }

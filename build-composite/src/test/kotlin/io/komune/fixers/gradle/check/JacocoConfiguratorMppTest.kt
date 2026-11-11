@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.plugin.check.JacocoConfigurator
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test
 class JacocoConfiguratorMppTest {
 
     private fun mppProject(): Project {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val project = ProjectBuilder.builder().withParent(root).withName("mpp-lib").build()
         project.plugins.apply(MppPlugin::class.java)
         return project
@@ -64,17 +65,17 @@ class JacocoConfiguratorMppTest {
 
     @Test
     fun `should return early when project has no multiplatform extension`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val configurator = JacocoConfigurator(project)
 
-        configurator.configureJacocoForMultiplatform(Jacoco(project))
+        configurator.configureMppJacoco(Jacoco(project))
 
         assertThat(project.tasks.findByName("jacocoJvmTestReport")).isNull()
     }
 
     @Test
     fun `should configure tool version from config`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         val configurator = JacocoConfigurator(project)
         val jacoco = Jacoco(project).apply { version.set("0.8.11") }
 
@@ -86,7 +87,7 @@ class JacocoConfiguratorMppTest {
 
     @Test
     fun `should finalize test tasks with jacoco report on jvm projects`() {
-        val project = ProjectBuilder.builder().build()
+        val project = ProjectBuilder.builder().buildFixersRoot()
         project.plugins.apply("java")
         val configurator = JacocoConfigurator(project)
 

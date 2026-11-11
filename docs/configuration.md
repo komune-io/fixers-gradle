@@ -84,7 +84,7 @@ fixers {
 
   // Kotlin to TypeScript configuration
   kt2Ts {
-    outputDirectory.set("build/generated/kt2ts")
+    outputDirectory.set("platform/web/kotlin")
     inputDirectory.set("build/js/packages/my-project")
   }
   pom {
@@ -116,14 +116,9 @@ fixers {
     sources.set(".")
     inclusions.set("**/src/*main*/kotlin/**/*.kt")
     verbose.set(true)
-    detektConfigPath.set("detekt.yml")
   }
 
   detekt {
-    disable.set(false)
-    baseline.set("detekt-baseline.xml")
-    config.set("detekt-config.yml")
-    buildUponDefaultConfig.set(true)
     checkstyleReport.set(true)
     htmlReport.set(true)
     sarifReport.set(true)
@@ -173,7 +168,7 @@ The `Bundle` class contains configuration for project metadata.
 | name | FIXERS_BUNDLE_NAME | fixers.bundle.name | Project name | The name of the project |
 | group | FIXERS_BUNDLE_GROUP | fixers.bundle.group | - | The group (Maven groupId) of the project |
 | description | FIXERS_BUNDLE_DESCRIPTION | fixers.bundle.description | - | The description of the project |
-| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | From VERSION file | The version of the project |
+| version | FIXERS_BUNDLE_VERSION | fixers.bundle.version | The VERSION environment variable, else the VERSION file | The version of the project |
 | url | FIXERS_BUNDLE_URL | fixers.bundle.url | - | The URL of the project |
 | licenseName | FIXERS_BUNDLE_LICENSE_NAME | fixers.bundle.license.name | "The Apache Software License, Version 2.0" | The name of the license |
 | licenseUrl | FIXERS_BUNDLE_LICENSE_URL | fixers.bundle.license.url | "https://www.apache.org/licenses/LICENSE-2.0.txt" | The URL of the license |
@@ -182,8 +177,8 @@ The `Bundle` class contains configuration for project metadata.
 | developerName | FIXERS_BUNDLE_DEVELOPER_NAME | fixers.bundle.developer.name | "Komune Team" | The name of the developer |
 | developerOrganization | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION | fixers.bundle.developer.organization | "Komune" | The organization of the developer |
 | developerOrganizationUrl | FIXERS_BUNDLE_DEVELOPER_ORGANIZATION_URL | fixers.bundle.developer.organizationUrl | "https://komune.io" | The URL of the developer's organization |
-| scmConnection | FIXERS_BUNDLE_SCM_CONNECTION | fixers.bundle.scm.connection | "scm:git:git://github.com/komune-io/fixers-gradle.git" | The connection URL for SCM |
-| scmDeveloperConnection | FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION | fixers.bundle.scm.developerConnection | "scm:git:ssh://github.com/komune-io/fixers-gradle.git" | The developer connection URL for SCM |
+| scmConnection | FIXERS_BUNDLE_SCM_CONNECTION | fixers.bundle.scm.connection | "scm:git:git://github.com/komune-io/<root project name>.git" | The connection URL for SCM |
+| scmDeveloperConnection | FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION | fixers.bundle.scm.developerConnection | "scm:git:ssh://github.com/komune-io/<root project name>.git" | The developer connection URL for SCM |
 
 #### Example
 
@@ -248,7 +243,7 @@ fixers {
 
 ### Kt2Ts
 
-The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
+The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation. It is read from the root project only: a `kt2Ts` block in a subproject fails the build. `outputDirectory` is the committed copy, so it lies outside `build/`.
 
 #### Properties
 
@@ -256,14 +251,33 @@ The `Kt2Ts` class contains configuration for Kotlin to TypeScript generation.
 |----------|---------------------|------------------|---------------|-------------|
 | outputDirectory | FIXERS_KT2TS_OUTPUT_DIRECTORY | fixers.kt2ts.outputDirectory | "platform/web/kotlin" | The directory where TypeScript files will be generated |
 | inputDirectory | FIXERS_KT2TS_INPUT_DIRECTORY | fixers.kt2ts.inputDirectory | - | The directory containing Kotlin JavaScript output to be converted |
+| committedFiles | - | - | `Kt2TsFiles.DECLARATIONS` | What `tsGen` writes to `outputDirectory` and `checkTsGen` compares: `DECLARATIONS`, the `.d.mts` and `package.json` of each package only; `ALL`, every file of the Kotlin/JS packages, `.mjs` included, for a front that imports the copy. Every `package.json` is written at version `0.0.0` |
 | additionalCleaning | - | - | - | Additional cleaning operations to perform |
+
+The exported types describe the Kotlin objects, which is what the compiled module takes and returns, and `tsGen` leaves them as the Kotlin/JS emitter writes them: a `List`/`Set`/`Map` is a `KtList`/`KtSet`/`KtMap` (their declarations and the `__doNotUseOrImplementIt` marker kept), a `Long` a `bigint`, an enum the class with its entries, a `T?` a `Nullable<T>` (`T | null | undefined`). None of them is a JSON value: a `KtList` is no array, a `bigint` does not add to a number, an enum instance is never equal to its name.
+
+`tsGen` writes two declarations at the head of every `.d.mts`:
+
+- `KtOpaque<N>`, the type of a value the export cannot express and a build lets through with `@Suppress("NON_EXPORTABLE_TYPE")`: an `Instant` or a `LocalDate` (`any/* Instant */`) is typed `KtOpaque<"Instant">`.
+- `Json<T>`, the JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object (with optional keys when they are an enum's names: a map holds the entries it has), a `Long` a number, an enum its name, a `KtOpaque` a string, a nullable property optional and `null`; methods and the marker are dropped. A front reads and writes a body as `Json<ProductDTO>`, and the compiler refuses that value where Kotlin code expects a `ProductDTO`, and refuses a Kotlin object where a `Json<ProductDTO>` is expected, at any depth, when it implements an exported interface (its `__doNotUseOrImplementIt` marker) or is a data class (its `equals`, `hashCode`).
+  `Json<T>` does not type four things. A sealed or polymorphic type gets no discriminant, so a serializer's `type` field is untyped. A nullable property is optional. F2's Kotlin client omits nulls (`explicitNulls = false`), Jackson and a default kotlinx `Json` write `null`. A reader that requires the property refuses the JSON that omits it: a default kotlinx `Json` does, Jackson and F2's `Json` read it as `null`. An instance of an exported class that is neither of the two above is not told apart from a plain object. A `Long` becomes a `number`, which loses precision beyond 2^53.
+
+Each `.d.mts` declares the whole program of its package and imports none, so its `Json` is the one its readers see. Two packages' copies agree with each other: `Json` recognises the Kotlin types by their members (`asJsReadonlyArrayView`, `name` and `ordinal`), never by the brand the emitter gives each copy. A Kotlin declaration exported as `Json` or `KtOpaque`, or under the name of a type the module keeps unexported (`JsonKey`, `JsonMap`, `JsonField`, `JsonFields`, `JsonOptional`, `JsonObject`, the emitter's `Nullable` and `KtSingleton`), makes `checkTsGen` fail on the duplicate.
+
+`tsGen` and `checkTsGen` fail on an `additionalCleaning` rule that changes no file of the contract, naming its suffix and pattern: a rule written against the output before 0.47.0 (`[]`, `Record<`, `number`) matches nothing now. `npmTsGen` cleans one package at a time and does not check this, since a rule may rightly not apply to one of them.
+
+`tsGen`, `checkTsGen`, and `npmTsGen` when NPM cleaning is enabled, type a Kotlin `Any` as `unknown`, and fail, naming the file and line, on a type left `any` (`any/* Foo */`, a type the JS export cannot express: export it, or stop exporting the declaration and write its JS form in `jsMain`). fixers compiles ES modules only: a `.d.ts` is neither cleaned nor kept by `DECLARATIONS`.
+
+`tsGen` depends on every `*ProductionLibraryDistribution` task of the build, which writes the Kotlin/JS packages it reads. It does not wait for a module built with `binaries.executable()`. It syncs them into `outputDirectory`, deleting what the Kotlin/JS output no longer has but keeping any `node_modules` a JS package manager linked there, cleans the copy, and leaves the Kotlin/JS build untouched; it never looks under `node_modules`, so a dangling link there does not fail it and an install does not make it stale. `cleanTsGen` deletes `outputDirectory` entirely. It does not rewrite the `build/packages/js` of subprojects, which `npmTsGen` cleans after the NPM package is assembled and before it is packed or published. The task wiring requires Gradle 8.6 or later.
+
+`checkTsGen` regenerates the declarations under `build/kt2ts-check` and fails when `outputDirectory` differs from them, or when a `.d.mts` declares a top-level name twice, exported or not: any two classes, interfaces, functions, `const`/`let`/`var`, enums (`const enum` included) or type aliases, except one type (interface, type alias) and one value (function, `const`/`let`/`var`), which TypeScript keeps apart; namespaces are counted on their own, one of a name being a companion. With `committedFiles = DECLARATIONS` it compares the `.d.mts` and `package.json` only. It ignores `node_modules` and source maps, and with `ALL` compares `.mjs` files once the declarations the Kotlin/JS emitter reorders between two compilations are sorted. In a build that emits Kotlin/JS, `check` depends on it: `outputDirectory` is meant to be committed.
 
 #### Example
 
 ```kotlin
 fixers {
     kt2Ts {
-        outputDirectory.set("build/generated/kt2ts")
+        outputDirectory.set("platform/web/kotlin")
         inputDirectory.set("build/js/packages/my-project")
     }
 }
@@ -354,7 +368,6 @@ The `Sonar` class contains configuration for Sonar analysis.
 | sources | FIXERS_SONAR_SOURCES | fixers.sonar.sources | "." | The sources pattern |
 | inclusions | FIXERS_SONAR_INCLUSIONS | fixers.sonar.inclusions | "**/src/*main*/kotlin/**/*.kt" | The inclusions pattern |
 | verbose | FIXERS_SONAR_VERBOSE | fixers.sonar.verbose | true | Whether to enable verbose output |
-| detektConfigPath | FIXERS_SONAR_DETEKT_CONFIG_PATH | fixers.sonar.detektConfigPath | "detekt.yml" | The path to the Detekt configuration file |
 
 #### Sonar token bridge
 
@@ -381,16 +394,12 @@ fixers {
 
 ### Detekt
 
-The `Detekt` class contains configuration for Detekt code quality checks.
+The `Detekt` class chooses the reports Detekt writes. The rules are fixers' own: every rule, the configuration fixers ships, no baseline, final; a `detekt.yml` at the root of the build fails it (see the README).
 
 #### Properties
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| disable | FIXERS_DETEKT_DISABLE | fixers.detekt.disable | false | Whether to disable Detekt |
-| baseline | FIXERS_DETEKT_BASELINE | fixers.detekt.baseline | - | The baseline file for Detekt |
-| config | FIXERS_DETEKT_CONFIG | fixers.detekt.config | "detekt.yml" | The configuration file for Detekt |
-| buildUponDefaultConfig | FIXERS_DETEKT_BUILD_UPON_DEFAULT_CONFIG | fixers.detekt.buildUponDefaultConfig | true | Whether to build upon the default config |
 | checkstyleReport | FIXERS_DETEKT_REPORT_CHECKSTYLE | fixers.detekt.report.checkstyle | true | Whether to enable checkstyle (XML) report |
 | htmlReport | FIXERS_DETEKT_REPORT_HTML | fixers.detekt.report.html | true | Whether to enable the HTML report |
 | sarifReport | FIXERS_DETEKT_REPORT_SARIF | fixers.detekt.report.sarif | true | Whether to enable the SARIF report |
@@ -401,9 +410,8 @@ The `Detekt` class contains configuration for Detekt code quality checks.
 ```kotlin
 fixers {
     detekt {
-        disable.set(false)
-        baseline.set("detekt-baseline.xml")
-        config.set("detekt-config.yml")
+        htmlReport.set(false)
+        markdownReport.set(false)
     }
 }
 ```
@@ -495,7 +503,7 @@ plugins {
 
 fixers {
     kt2Ts {
-        outputDirectory.set("build/generated/kt2ts")
+        outputDirectory.set("platform/web/kotlin")
         inputDirectory.set("build/js/packages/my-project")
     }
 }

@@ -12,9 +12,6 @@ import org.junit.jupiter.api.Test
  */
 class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
 
-    /**
-     * Creates Kotlin source files for multiplatform project.
-     */
     private fun createMultiplatformSourceFiles() {
         // Create a simple Kotlin source file for common code
         createCommonSourceFile()
@@ -26,24 +23,16 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
         createJsSourceFile()
     }
 
-    /**
-     * Creates a common source file for Kotlin Multiplatform.
-     */
     private fun createCommonSourceFile() {
         val commonSourceDir = testProjectDir.resolve("src/commonMain/kotlin").toFile()
         commonSourceDir.mkdirs()
         File(commonSourceDir, "Sample.kt").writeText("""
             package com.example
 
-            expect class Sample() {
-                fun hello(): String
-            }
+            expect fun hello(): String
         """.trimIndent())
     }
 
-    /**
-     * Creates a JVM source file for Kotlin Multiplatform.
-     */
     private fun createJvmSourceFile() {
         val jvmSourceDir = testProjectDir.resolve("src/jvmMain/kotlin/com/example").toFile()
         jvmSourceDir.mkdirs()
@@ -56,24 +45,16 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
         """.trimIndent())
     }
 
-    /**
-     * Creates a JS source file for Kotlin Multiplatform.
-     */
     private fun createJsSourceFile() {
         val jsSourceDir = testProjectDir.resolve("src/jsMain/kotlin").toFile()
         jsSourceDir.mkdirs()
         File(jsSourceDir, "SampleJs.kt").writeText("""
             package com.example
 
-            actual class Sample {
-                actual fun hello() = "Hello from JS!"
-            }
+            actual fun hello() = "Hello from JS!"
         """.trimIndent())
     }
 
-    /**
-     * Creates a build file for Kotlin Multiplatform project.
-     */
     @Suppress("UnusedParameter")
     private fun createMultiplatformBuildFile(includeNodeJs: Boolean = true) {
         writeBuildFile("""
@@ -127,7 +108,6 @@ class KotlinMppPluginIntegrationTest : BaseIntegrationTest() {
 
     /**
      * Test that the KotlinMppPlugin correctly compiles Kotlin code for JVM platform.
-     * Note: JS compilation test is skipped due to stdlib resolution issues in test environment.
      */
     @Test
     fun `should compile Kotlin code for JVM platform`() {

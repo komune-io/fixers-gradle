@@ -11,9 +11,13 @@ repositories {
 val generateToolVersions = tasks.register("generateToolVersions") {
     val jacocoVersion = libs.versions.jacoco.get()
     val bouncyCastleVersion = libs.versions.bouncycastle.get()
+    val npmWsVersion = libs.versions.npm.ws.get()
+    val npmAjvVersion = libs.versions.npm.ajv.get()
     val outputDir = layout.buildDirectory.dir("generated/fixers/kotlin")
     inputs.property("jacocoVersion", jacocoVersion)
     inputs.property("bouncyCastleVersion", bouncyCastleVersion)
+    inputs.property("npmWsVersion", npmWsVersion)
+    inputs.property("npmAjvVersion", npmAjvVersion)
     outputs.dir(outputDir)
     doLast {
         val file = outputDir.get().file("io/komune/fixers/gradle/config/model/FixersToolVersions.kt").asFile
@@ -28,6 +32,8 @@ val generateToolVersions = tasks.register("generateToolVersions") {
             |object FixersToolVersions {
             |    const val jacoco = "$jacocoVersion"
             |    const val bouncyCastle = "$bouncyCastleVersion"
+            |    const val npmWs = "$npmWsVersion"
+            |    const val npmAjv = "$npmAjvVersion"
             |}
             |""".trimMargin()
         )
@@ -60,8 +66,9 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     // Unit tests must be deterministic regardless of ambient release credentials:
-    // FIXERS_* env vars are read as property conventions by the config models.
-    setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") })
+    // FIXERS_* env vars are read as property conventions by the config models, and VERSION
+    // (exported by CI) wins over the VERSION file the tests write.
+    setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") && it != "VERSION" })
     // Controlled env values for PropertyUtils env-priority tests
     environment("PROPERTY_UTILS_TEST_STRING", "env-value")
     environment("PROPERTY_UTILS_TEST_INT", "42")

@@ -92,9 +92,11 @@ gradlePlugin.plugins.configureEach {
 	}
 }
 
+// The integration tests also run the settings plugin, which is published from its own module.
+tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+	pluginClasspath.from(project(":settings-plugin").tasks.named("jar"))
+}
+
 tasks.withType<Test> {
-	useJUnitPlatform()
-	// Tests must be deterministic regardless of ambient release credentials:
-	// FIXERS_* env vars are read as property conventions by the config models.
-	setEnvironment(environment.filterKeys { !it.startsWith("FIXERS_") })
+	systemProperty("fixers.version", project.version.toString())
 }

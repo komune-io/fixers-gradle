@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.check
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.config.model.Jacoco
 import io.komune.fixers.gradle.plugin.check.JacocoConfigurator
 import org.assertj.core.api.Assertions.assertThat
@@ -19,7 +20,7 @@ class JacocoConfiguratorTest {
 
     @BeforeEach
     fun setup() {
-        project = ProjectBuilder.builder().build()
+        project = ProjectBuilder.builder().buildFixersRoot()
         configurator = JacocoConfigurator(project)
     }
 

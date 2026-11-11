@@ -1,8 +1,9 @@
 package io.komune.fixers.gradle.config.model
 
 import io.komune.fixers.gradle.config.utils.mergeIfNotPresent
+import io.komune.fixers.gradle.config.utils.orNullText
 import io.komune.fixers.gradle.config.utils.property
-import io.komune.fixers.gradle.config.utils.versionFromFile
+import io.komune.fixers.gradle.config.utils.resolveVersion
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 
@@ -44,7 +45,7 @@ class Bundle(
     val version: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_VERSION",
         projectKey = "fixers.bundle.version",
-        defaultValue = project.versionFromFile() ?: project.version.toString()
+        defaultValue = project.resolveVersion() ?: project.version.toString()
     )
 
     /**
@@ -127,7 +128,7 @@ class Bundle(
     val scmConnection: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_SCM_CONNECTION",
         projectKey = "fixers.bundle.scm.connection",
-        defaultValue = "scm:git:git://github.com/komune-io/fixers-gradle.git"
+        defaultValue = "scm:git:git://github.com/komune-io/${project.rootProject.name}.git"
     )
 
     /**
@@ -136,38 +137,35 @@ class Bundle(
     val scmDeveloperConnection: Property<String> = project.property(
         envKey = "FIXERS_BUNDLE_SCM_DEVELOPER_CONNECTION",
         projectKey = "fixers.bundle.scm.developerConnection",
-        defaultValue = "scm:git:ssh://github.com/komune-io/fixers-gradle.git"
+        defaultValue = "scm:git:ssh://github.com/komune-io/${project.rootProject.name}.git"
     )
 
-    override fun toString(): String {
-        return """
-            Bundle(
-                name='${name.orNull}',
-                group=${group.orNull},
-                description=${description.orNull}, 
-                version=${version.orNull}, 
-                url=${url.orNull},
-                licenseName=${licenseName.orNull}, 
-                licenseUrl=${licenseUrl.orNull}, 
-                licenseDistribution=${licenseDistribution.orNull}, 
-                developerId=${developerId.orNull}, 
-                developerName=${developerName.orNull}, 
-                developerOrganization=${developerOrganization.orNull}, 
-                developerOrganizationUrl=${developerOrganizationUrl.orNull}, 
-                scmConnection=${scmConnection.orNull}, 
-                scmDeveloperConnection=${scmDeveloperConnection.orNull}
-            )
-        """.trimIndent()
-    }
+    override fun toString(): String = """
+        Bundle(
+            name='${name.orNullText()}',
+            group=${group.orNullText()},
+            description=${description.orNullText()}, 
+            version=${version.orNullText()}, 
+            url=${url.orNullText()},
+            licenseName=${licenseName.orNullText()}, 
+            licenseUrl=${licenseUrl.orNullText()}, 
+            licenseDistribution=${licenseDistribution.orNullText()}, 
+            developerId=${developerId.orNullText()}, 
+            developerName=${developerName.orNullText()}, 
+            developerOrganization=${developerOrganization.orNullText()}, 
+            developerOrganizationUrl=${developerOrganizationUrl.orNullText()}, 
+            scmConnection=${scmConnection.orNullText()}, 
+            scmDeveloperConnection=${scmDeveloperConnection.orNullText()}
+        )
+    """.trimIndent()
 
     /**
      * Merges properties from the source Bundle into this Bundle.
      * Properties are only merged if the target property is not present and the source property is present.
      *
      * @param source The source Bundle to merge from
-     * @return This Bundle after merging
      */
-    fun mergeFrom(source: Bundle): Bundle {
+    fun mergeFrom(source: Bundle) {
         // Basic properties
         name.mergeIfNotPresent(source.name)
         group.mergeIfNotPresent(source.group)
@@ -188,7 +186,5 @@ class Bundle(
         // SCM properties
         scmConnection.mergeIfNotPresent(source.scmConnection)
         scmDeveloperConnection.mergeIfNotPresent(source.scmDeveloperConnection)
-
-        return this
     }
 }

@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.buildFixersRoot
 import io.komune.fixers.gradle.plugin.kotlin.JvmPlugin
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -47,7 +48,7 @@ class BouncyCastleAlignmentTest {
 
     @Test
     fun `should align a Kotlin subproject that applies no fixers plugin`() {
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val project = ProjectBuilder.builder().withParent(root).withName("plain-kotlin").build()
         root.plugins.apply(ConfigPlugin::class.java)
         project.plugins.apply("org.jetbrains.kotlin.jvm")
@@ -63,7 +64,7 @@ class BouncyCastleAlignmentTest {
 
     private fun kotlinJvmSubproject(): Project {
         // As in a real build, every project exists before the root applies ConfigPlugin.
-        val root = ProjectBuilder.builder().build()
+        val root = ProjectBuilder.builder().buildFixersRoot()
         val project = ProjectBuilder.builder().withParent(root).withName("jvm-lib").build()
         root.plugins.apply(ConfigPlugin::class.java)
         project.plugins.apply(JvmPlugin::class.java)
