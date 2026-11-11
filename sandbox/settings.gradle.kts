@@ -16,4 +16,5 @@ rootProject.name = "sandbox"
 include(
   ":sandbox-object:object-domain",
   ":sandbox-object:object-api",
+  ":sandbox-object:object-client",
 )

@@ -92,8 +92,7 @@ class TsGenTaskTest {
             project.run("cleanTsGen", "tsGen")
 
             assertThat(File(input, "pkg.d.mts").readText()).isEqualTo(raw)
-            assertThat(File(output, "pkg/kotlin/pkg.d.mts").readText())
-                .isEqualTo("export declare function names(): string[];\n")
+            assertThat(File(output, "pkg/kotlin/pkg.d.mts").readText()).isEqualTo(JSON_DECLARATIONS + raw)
         }
 
         @Test
@@ -120,22 +119,21 @@ class TsGenTaskTest {
         private fun kt2Ts(): Kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
 
         @Test
-        fun `should provide cleaning rules for dts dmts and package json`() {
+        fun `should provide cleaning rules for dmts and package json only`() {
             val cleaning = kt2Ts().buildCleaningRegex()
 
-            assertThat(cleaning.keys).contains(".d.ts", ".d.mts", "package.json")
-            assertThat(cleaning[".d.ts"]).isNotEmpty
+            assertThat(cleaning.keys).containsExactlyInAnyOrder(".d.mts", "package.json")
             assertThat(cleaning[".d.mts"]).isNotEmpty
         }
 
         @Test
         fun `should append additional cleaning rules to existing suffix`() {
             val kt2Ts = kt2Ts()
-            kt2Ts.additionalCleaning.set(mapOf(".d.ts" to listOf(Regex("FOO") to "BAR")))
+            kt2Ts.additionalCleaning.set(mapOf(".d.mts" to listOf(Regex("FOO") to "BAR")))
 
             val cleaning = kt2Ts.buildCleaningRegex()
 
-            assertThat(cleaning[".d.ts"]!!.map { it.first.pattern }).contains("FOO")
+            assertThat(cleaning[".d.mts"]!!.map { it.first.pattern }).contains("FOO")
         }
 
         @Test
@@ -164,58 +162,17 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should strip kotlin namespaces in dts files`() {
-            val result = clean(
-                "api.d.ts",
-                "type A = kotlin.js.PromiseLike;\nreadonly items: kotlin.collections.List<string>;\n"
-            )
+        fun `should leave a legacy dts file untouched`() {
+            val content = "readonly items: kotlin.collections.List<string>;\nvalue: kotlin.Long;\n"
 
-            assertThat(result).contains("type A = PromiseLike;")
-            assertThat(result).contains("readonly items: string[];")
+            assertThat(clean("api.d.ts", content)).isEqualTo(content)
         }
 
         @Test
-        fun `should map kotlin collections and numbers in dts files`() {
-            val result = clean(
-                "model.d.ts",
-                "value: kotlin.Long;\nprops: kotlin.collections.Map<string, string>;\n"
-            )
+        fun `should keep KtList KtMap and bigint in dmts files`() {
+            val body = "items: KtList<string>;\nprops: KtMap<string, string>;\ncount: bigint;\n"
 
-            assertThat(result).contains("value: number;")
-            assertThat(result).contains("props: Record<string, string>;")
-        }
-
-        @Test
-        fun `should remove doNotImplementIt markers in dts files`() {
-            val result = clean(
-                "marker.d.ts",
-                "interface A {\n    readonly __doNotUseOrImplementIt: unique symbol;\n    name: string;\n}\n"
-            )
-
-            assertThat(result).doesNotContain("__doNotUseOrImplementIt")
-            assertThat(result).contains("name: string;")
-        }
-
-        @Test
-        fun `should clean KtList KtMap and bigint in dmts files`() {
-            val result = clean(
-                "api.d.mts",
-                "items: KtList<string>;\nprops: KtMap<string, string>;\ncount: bigint;\n"
-            )
-
-            assertThat(result).contains("items: string[];")
-            assertThat(result).contains("props: Record<string, string>;")
-            assertThat(result).contains("count: number;")
-        }
-
-        @Test
-        fun `should rewrite nullable properties in dmts files`() {
-            val result = clean(
-                "nullable.d.mts",
-                "interface A {\n    readonly label: Nullable<string>;\n}\n"
-            )
-
-            assertThat(result).contains("readonly label?: string | null;")
+            assertThat(clean("api.d.mts", body)).isEqualTo(JSON_DECLARATIONS + body)
         }
 
         @Test
@@ -246,10 +203,12 @@ class TsGenTaskTest {
     }
 
     /**
-     * `kotlin-2.4.21.d.mts` is the output of Kotlin/JS 2.4.21 (ES modules, `es2015`,
-     * `-Xes-long-as-bigint`, production library) for a sample of DTOs, enums and functions;
-     * the expected files are what the rules make of it. Its member of a non-exported type was taken
-     * out: under fixers it no longer compiles (`NON_EXPORTABLE_TYPE`), and kt2Ts refuses its `any`.
+     * `kotlin-2.4.21.d.mts`, `kotlin-2.4.21-mutable.d.mts` and `kotlin-2.4.21-families.d.mts` are the
+     * output of Kotlin/JS 2.4.21 (ES modules, `es2015`, `-Xes-long-as-bigint`, production library):
+     * a sample of DTOs, enums and functions, the mutable collections, and the sandbox's
+     * `object-domain` (one declaration per family whose Kotlin object and JSON differ). The exported
+     * types describe the Kotlin objects, so the rules leave every family as the emitter wrote it,
+     * add `Json` and `KtOpaque`, and type `any` as `unknown`.
      */
     @Nested
     inner class Kotlin2421DeclarationsTest {
@@ -257,16 +216,17 @@ class TsGenTaskTest {
         @TempDir
         lateinit var dir: File
 
-        private fun clean(): String {
-            val file = File(dir, "api.d.mts")
-            file.writeText(resource("kotlin-2.4.21.d.mts"))
-            val kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
-            cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
+        private fun resource(name: String): String =
+            javaClass.getResource("/kt2ts/$name")!!.readText()
+
+        private fun cleanText(content: String, name: String = "api.d.mts"): String {
+            val file = File(dir, name)
+            file.writeText(content)
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
             return file.readText()
         }
 
-        private fun resource(name: String): String =
-            javaClass.getResource("/kt2ts/$name")!!.readText()
+        private fun clean(resourceName: String = "kotlin-2.4.21.d.mts"): String = cleanText(resource(resourceName))
 
         @Test
         fun `should match the expected declarations`() {
@@ -274,145 +234,159 @@ class TsGenTaskTest {
         }
 
         @Test
-        fun `should drop the collection interop declared with variance`() {
-            val result = clean()
-
-            assertThat(result).doesNotContain("interface out", "Record<K, out V>", "KtList", "KtMap", "KtSet")
-        }
-
-        @Test
-        fun `should collapse a Set like a List`() {
-            assertThat(clean()).contains("get setS(): string[];")
-        }
-
-        @Test
-        fun `should leave no Nullable outside comments`() {
-            val result = clean()
-
-            assertThat(Regex("""(?<!/\* )Nullable<""").findAll(result).toList()).isEmpty()
-            assertThat(result).contains("get onChange(): ((p0: string) => void) | null;")
-            assertThat(result).contains("mapSDtoNull: Record<string, (NestedDto | null)>")
-        }
-
-        @Test
-        fun `should keep a nullable constructor parameter required`() {
-            assertThat(clean()).contains("constructor(s: string, sNull: string | null, i: number,")
-        }
-
-        private fun cleanSnippet(content: String): String {
-            val file = File(dir, "snippet.d.mts")
-            file.writeText(content)
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
-            return file.readText()
-        }
-
-        @Test
-        fun `should strip the marker of an interface with a two parameter parent and keep what follows`() {
-            val result = cleanSnippet(
-                "export declare interface Dto extends Two<string, number> {\n"
-                    + "    readonly __doNotUseOrImplementIt: {\n"
-                    + "        readonly \"exp.Dto\": unique symbol;\n"
-                    + "    } & Two<any, any>[\"__doNotUseOrImplementIt\"];\n"
-                    + "}\n"
-                    + "export declare interface Keep {\n    readonly id: string;\n}\n"
-            )
-
-            assertThat(result).isEqualTo(
-                "export declare interface Dto extends Two<string, number> {\n}\n"
-                    + "export declare interface Keep {\n    readonly id: string;\n}\n"
+        fun `should keep the collection interop with its declarations and marker`() {
+            assertThat(clean()).contains(
+                "export declare interface KtList<out E> /* extends Collection<E> */ {\n" +
+                    "    asJsReadonlyArrayView(): ReadonlyArray<E>;\n" +
+                    "    readonly __doNotUseOrImplementIt: {\n" +
+                    "        readonly \"kotlin.collections.KtList\": unique symbol;\n",
+                "export declare namespace KtSet {\n    function fromJsSet<E>(set: ReadonlySet<E>): KtSet<E>;\n}",
+                "export declare interface KtMap<K, out V> {",
             )
         }
 
         @Test
-        fun `should keep the parameter of a nullable setter required`() {
-            assertThat(cleanSnippet("    set name(value: Nullable<string>);\n"))
-                .isEqualTo("    set name(value: string | null);\n")
+        fun `should keep a Kotlin collection in a constructor parameter`() {
+            assertThat(clean()).contains(
+                "constructor(s: string, sNull: Nullable<string>, i: number, iNull: Nullable<number>, d: number, " +
+                    "bNull: Nullable<boolean>, listSNull: KtList<Nullable<string>>,"
+            )
         }
 
         @Test
-        fun `should collapse a list of functions`() {
-            assertThat(cleanSnippet("    get cbs(): KtList<(p0: string) => void>;\n"))
-                .isEqualTo("    get cbs(): ((p0: string) => void)[];\n")
-        }
-
-        private fun cleanResource(name: String): String {
-            val file = File(dir, "resource.d.mts")
-            file.writeText(resource(name))
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
-            return file.readText()
+        fun `should keep a Kotlin collection in a copy parameter`() {
+            assertThat(clean()).contains("copy(s?: string, sNull?: Nullable<string>,", "mapSS?: KtMap<string, string>,", "setS?: KtSet<string>,")
         }
 
         @Test
-        fun `should strip the marker of a class with two parents`() {
-            val result = cleanResource("kotlin-2.4.21-mutable.d.mts")
-
-            assertThat(result).doesNotContain("__doNotUseOrImplementIt")
-            assertThat(result).contains("export declare class TwoParents implements Base1, Base2 {\n    constructor(one: string, two: string);")
+        fun `should keep a Kotlin collection in a function parameter`() {
+            assertThat(clean()).contains("export declare function sumLongs(m: KtMap<string, bigint>): bigint;")
         }
 
         @Test
-        fun `should collapse the mutable collections and drop their declarations`() {
-            val result = cleanResource("kotlin-2.4.21-mutable.d.mts")
+        fun `should keep a Kotlin collection in a return type`() {
+            assertThat(clean()).contains("export declare function listDtos(): KtList<NestedDto>;")
+        }
 
-            assertThat(result).doesNotContain("KtMutable")
+        @Test
+        fun `should keep a Kotlin collection in a class getter`() {
+            assertThat(clean()).contains("    get setS(): KtSet<string>;", "    get listDtoNull(): Nullable<KtList<NestedDto>>;")
+        }
+
+        @Test
+        fun `should keep a Kotlin collection in an interface property`() {
+            assertThat(clean("kotlin-2.4.21-families.d.mts")).contains(
+                "    readonly tags: KtList<string>;",
+                "    readonly owners: KtSet<string>;",
+                "    readonly counts: KtMap<string, KtList<bigint>>;",
+            )
+        }
+
+        @Test
+        fun `should keep the mutable collections and a nullable map key`() {
+            assertThat(clean("kotlin-2.4.21-mutable.d.mts")).contains(
+                "export declare interface KtMutableList<E> extends KtList<E>/*, MutableCollection<E> */ {",
+                "    get ml(): KtMutableList<string>;",
+                "    get mm(): KtMutableMap<string, number>;",
+                "    get nullKey(): KtMap<Nullable<string>, number>;",
+            )
+        }
+
+        @Test
+        fun `should keep a Long a bigint`() {
+            val result = clean()
+
+            assertThat(result).contains("    get l(): bigint;", "    get lNull(): Nullable<bigint>;", "    get lList(): KtList<bigint>;")
+            assertThat(clean("kotlin-2.4.21-families.d.mts")).contains("    readonly total: bigint;")
+        }
+
+        @Test
+        fun `should keep a simple enum the class the emitter declares`() {
+            val result = clean("kotlin-2.4.21-families.d.mts")
+
             assertThat(result).contains(
-                "    get ml(): string[];",
-                "    get ms(): string[];",
-                "    get mm(): Record<string, number>;",
+                "export declare abstract class Shape {\n    private constructor();\n    static get ROUND(): Shape & {",
+                "    get name(): \"ROUND\" | \"SQUARE\";",
+                "    readonly shape: Shape;",
+            )
+            assertThat(result).doesNotContain("export type Shape")
+        }
+
+        @Test
+        fun `should keep an enum with members the class the emitter declares`() {
+            assertThat(clean("kotlin-2.4.21-families.d.mts"))
+                .contains("export declare abstract class Level {", "    heavierThan(other: Level): boolean;", "    readonly level: Level;")
+            assertThat(clean()).contains("export declare abstract class XState implements S2State {")
+        }
+
+        @Test
+        fun `should type an Instant and a LocalDate as a named opaque value`() {
+            assertThat(clean("kotlin-2.4.21-families.d.mts")).contains(
+                "    readonly createdAt: KtOpaque<\"Instant\">;",
+                "    get createdAt(): KtOpaque<\"Instant\">;",
+                "createdAt: KtOpaque<\"Instant\">, note: Nullable<string>);",
+            )
+            assertThat(cleanText("    get day(): any/* LocalDate */;\n    get at(): Nullable<any>/* Nullable<Instant> */;\n"))
+                .isEqualTo(JSON_DECLARATIONS + "    get day(): KtOpaque<\"LocalDate\">;\n    get at(): Nullable<KtOpaque<\"Instant\">>;\n")
+        }
+
+        @Test
+        fun `should keep Nullable as the emitter writes it`() {
+            val result = clean()
+
+            assertThat(result).startsWith(JSON_DECLARATIONS + "type Nullable<T> = T | null | undefined\n")
+            assertThat(result).contains(
+                "    get sNull(): Nullable<string>;",
+                "    get onChange(): Nullable<(p0: string) => void>;",
+                "    get mapSDtoNull(): KtMap<string, Nullable<NestedDto>>;",
+                "    readonly name: Nullable<string>;",
+            )
+            assertThat(cleanText("    set name(value: Nullable<string>);\n"))
+                .isEqualTo(JSON_DECLARATIONS + "    set name(value: Nullable<string>);\n")
+        }
+
+        @Test
+        fun `should keep the marker of interfaces and classes`() {
+            assertThat(clean("kotlin-2.4.21-mutable.d.mts")).contains(
+                "    readonly __doNotUseOrImplementIt: {\n        readonly \"exp.Base1\": unique symbol;\n    };",
+                "    readonly __doNotUseOrImplementIt: Base2[\"__doNotUseOrImplementIt\"] & Base1[\"__doNotUseOrImplementIt\"];",
+                "    } & KtList<unknown>[\"__doNotUseOrImplementIt\"];",
             )
         }
 
         @Test
-        fun `should drop Nullable from a map key`() {
-            assertThat(cleanResource("kotlin-2.4.21-mutable.d.mts")).contains("    get nullKey(): Record<string, number>;")
+        fun `should accept a collection nested at any depth`() {
+            val body = "export declare interface Deep {\n    readonly cube: KtList<KtList<KtList<KtList<string>>>>;\n}\n"
+
+            assertThat(cleanText(body, "deep.d.mts")).isEqualTo(JSON_DECLARATIONS + body)
         }
 
         @Test
-        fun `should make a nullable var of an interface optional`() {
-            assertThat(cleanSnippet("export declare interface VarDto {\n    label: Nullable<string>;\n}\n"))
-                .isEqualTo("export declare interface VarDto {\n    label?: string | null;\n}\n")
-        }
+        fun `should write Json and KtOpaque once at the head of every declarations file`() {
+            val once = cleanText("export declare function names(): KtList<string>;\n")
+            val file = File(dir, "api.d.mts")
 
-        @Test
-        fun `should fail on a collection nested deeper than the rules reach`() {
-            val file = File(dir, "deep.d.mts")
-            file.writeText("export declare interface Deep {\n    readonly cube: KtList<KtList<KtList<KtList<string>>>>;\n}\n")
-            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
+            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
 
-            assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
-                .isInstanceOf(GradleException::class.java)
-                .hasMessageContaining("deep.d.mts:2")
-                .hasMessageContaining("KtList<")
-        }
-
-        @Test
-        fun `should fail on a Nullable the rules leave behind`() {
-            val file = File(dir, "left.d.mts")
-            file.writeText("export declare interface Left {\n    readonly x: Nullable<Record<string, Record<string, Record<string, Record<string, string>>>>>;\n}\n")
-            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
-
-            assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
-                .isInstanceOf(GradleException::class.java)
-                .hasMessageContaining("left.d.mts:2")
-                .hasMessageContaining("Nullable<")
+            assertThat(file.readText()).isEqualTo(once)
+            assertThat(Regex("""^export type Json<T> =""", RegexOption.MULTILINE).findAll(once).count()).isEqualTo(1)
+            assertThat(Regex("""^export declare interface KtOpaque<""", RegexOption.MULTILINE).findAll(once).count()).isEqualTo(1)
         }
 
         @Test
         fun `should type a Kotlin Any as unknown where a type goes, outside comments and string literals`() {
-            val file = File(dir, "any.d.mts")
-            file.writeText(
+            val result = cleanText(
                 "declare function KtSingleton<T>(): T & (abstract new() => any);\n" +
                     "/** valid in any module */\n" +
                     "export declare function f(other?: any): any;\n" +
                     "export declare interface WithId<ID extends any> {\n    get name(): \"any\";\n}\n" +
-                    "export declare interface Names {\n    readonly any: string;\n    any(): boolean;\n    of(x: Set<any>, y: string | any): any[];\n}\n"
+                    "export declare interface Names {\n    readonly any: string;\n    any(): boolean;\n    of(x: Set<any>, y: string | any): any[];\n}\n",
+                "any.d.mts",
             )
-            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
 
-            cleanProjectDir(dir.absolutePath, cleaning)
-
-            assertThat(file.readText()).isEqualTo(
-                "declare function KtSingleton<T>(): T & (abstract new() => unknown);\n" +
+            assertThat(result).isEqualTo(
+                JSON_DECLARATIONS +
+                    "declare function KtSingleton<T>(): T & (abstract new() => unknown);\n" +
                     "/** valid in any module */\n" +
                     "export declare function f(other?: unknown): unknown;\n" +
                     "export declare interface WithId<ID extends unknown> {\n    get name(): \"any\";\n}\n" +
@@ -422,121 +396,15 @@ class TsGenTaskTest {
 
         @Test
         fun `should fail on a type the export left as any`() {
-            listOf("left.d.mts", "left.d.ts").forEach { name ->
-                val file = File(dir, name)
-                file.writeText("export declare interface Left {\n    readonly x: any/* Foo.Companion */;\n}\n")
-                val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
+            val file = File(dir, "left.d.mts")
+            file.writeText("export declare interface Left {\n    readonly x: any/* Foo.Companion */;\n}\n")
+            val cleaning = Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex()
+            val line = JSON_DECLARATIONS.lines().size + 1
 
-                assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
-                    .isInstanceOf(GradleException::class.java)
-                    .hasMessageContaining("$name:2")
-                    .hasMessageContaining("any/* Foo.Companion */")
-                file.delete()
-            }
-        }
-
-        @Test
-        fun `should collapse three nested lists`() {
-            assertThat(cleanSnippet("    get cube(): KtList<KtList<KtSet<string>>>;\n"))
-                .isEqualTo("    get cube(): string[][][];\n")
-        }
-
-        @Test
-        fun `should map every Long to number`() {
-            assertThat(cleanSnippet("    get ids(): KtList<Nullable<bigint>>;\n    readonly bigint: bigint;\n"))
-                .isEqualTo("    get ids(): (number | null)[];\n    readonly bigint: number;\n")
-        }
-
-        @Test
-        fun `should keep the declaration of an enum that declares a function`() {
-            val result = cleanSnippet(
-                "export declare abstract class Mode {\n"
-                    + "    private constructor();\n"
-                    + "    static get ON(): Mode & {\n        get name(): \"ON\";\n        get ordinal(): 0;\n    };\n"
-                    + "    static values(): [typeof Mode.ON];\n"
-                    + "    static valueOf(value: string): Mode;\n"
-                    + "    get name(): \"ON\";\n"
-                    + "    get ordinal(): 0;\n"
-                    + "    describe(): string;\n"
-                    + "}\n"
-            )
-
-            assertThat(result).contains("export declare abstract class Mode {", "static valueOf(value: string): Mode;", "describe(): string;")
-            assertThat(result).doesNotContain("export type Mode")
-        }
-
-        @Test
-        fun `should keep trailing nullable parameters optional`() {
-            val file = File(dir, "fn.d.mts")
-            file.writeText("export declare function f(a: Nullable<string>, b: string, c: Nullable<KtMap<string, number>>, d: Nullable<string>): void;\n")
-            cleanProjectDir(dir.absolutePath, Kt2Ts(ProjectBuilder.builder().buildFixersRoot()).buildCleaningRegex())
-
-            assertThat(file.readText())
-                .isEqualTo("export declare function f(a: string | null, b: string, c?: Record<string, number> | null, d?: string | null): void;\n")
-        }
-
-        @Test
-        fun `should map a Long inside a generic type`() {
-            assertThat(clean()).contains("sumLongs(m: Record<string, number>): number;")
-        }
-
-        @Test
-        fun `should keep the exported values of enums that implement an interface or carry members`() {
-            val result = clean()
-
-            // The .mjs still exports these classes: their entries and valueOf stay declared.
-            assertThat(result).contains(
-                "export declare abstract class XState implements S2State {",
-                "    static get CREATED(): XState & {",
-                "    static valueOf(value: string): XState;",
-                "    get position(): number;",
-                "export declare abstract class ProductStatus implements S2State {",
-                "    static valueOf(value: string): ProductStatus;",
-                "    get label(): string;",
-            )
-            assertThat(result).doesNotContain("export type XState", "export type ProductStatus")
-        }
-
-        @Test
-        fun `should still collapse an enum without members`() {
-            val result = cleanSnippet(
-                "export declare abstract class Mode {\n"
-                    + "    private constructor();\n"
-                    + "    static get ON(): Mode & {\n        get name(): \"ON\";\n        get ordinal(): 0;\n    };\n"
-                    + "    static values(): [typeof Mode.ON];\n"
-                    + "    static valueOf(value: string): Mode;\n"
-                    + "    get name(): \"ON\";\n"
-                    + "    get ordinal(): 0;\n"
-                    + "}\n"
-            )
-
-            assertThat(result).isEqualTo("export type Mode = \"ON\";\n")
-        }
-
-        @Test
-        fun `should type nullable values as null`() {
-            val result = clean()
-
-            assertThat(result).contains("readonly name?: string | null;")
-            assertThat(result).contains("get sNull(): string | null;")
-            assertThat(result).contains("listSNull: (string | null)[]")
-            assertThat(result).contains("sNull: string | null, i: number")
-            assertThat(result).doesNotContain("| undefined")
-        }
-    }
-
-    @Nested
-    inner class NullabilityTest {
-
-        @TempDir
-        lateinit var dir: File
-
-        private fun clean(content: String): String {
-            val file = File(dir, "api.d.mts")
-            file.writeText(content)
-            val kt2Ts = Kt2Ts(ProjectBuilder.builder().buildFixersRoot())
-            cleanProjectDir(dir.absolutePath, kt2Ts.buildCleaningRegex())
-            return file.readText()
+            assertThatThrownBy { cleanProjectDir(dir.absolutePath, cleaning) }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining("left.d.mts:$line")
+                .hasMessageContaining("any/* Foo.Companion */")
         }
     }
 }

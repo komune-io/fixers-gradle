@@ -24,7 +24,7 @@ The umbrella for static analysis: **Detekt** (linting), **SonarQube** (analysis 
 
 ### Kt2Ts
 
-Kotlin-to-TypeScript declaration handling: the `kt2Ts` sub-block of the root's Fixers Config plus the `tsGen`/`cleanTsGen`/`checkTsGen` tasks the root registers, which copy the declarations (`.d.mts`) and `package.json` of the packages emitted by the Kotlin/JS build into an output directory (default `platform/web/kotlin`), clean them with regex rewrites, and check the committed copy. The `npm` plugin reuses the same cleaning before NPM publication.
+Kotlin-to-TypeScript declaration handling: the `kt2Ts` sub-block of the root's Fixers Config plus the `tsGen`/`cleanTsGen`/`checkTsGen` tasks the root registers, which copy the declarations (`.d.mts`) and `package.json` of the packages emitted by the Kotlin/JS build into an output directory (default `platform/web/kotlin`), leave the Kotlin types as the emitter writes them, add `Json<T>` (the JSON a Kotlin type is sent as) and `KtOpaque`, type `any` as `unknown`, and check the committed copy. The `npm` plugin reuses the same cleaning before NPM publication.
 
 ### Publish target
 

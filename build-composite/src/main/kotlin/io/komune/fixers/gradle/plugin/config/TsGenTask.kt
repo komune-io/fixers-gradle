@@ -60,7 +60,7 @@ internal fun Project.configureKt2Ts(mainConfig: ConfigExtension?) {
 private fun Kt2TsFiles.writes(path: String): Boolean = when (this) {
     Kt2TsFiles.ALL -> true
     Kt2TsFiles.DECLARATIONS ->
-        path.endsWith(DMTS) || path.endsWith(DTS) || path.substringAfterLast('/') == PACKAGE_JSON
+        path.endsWith(DMTS) || path.substringAfterLast('/') == PACKAGE_JSON
 }
 
 /**
@@ -96,27 +96,7 @@ fun cleanProjectDir(folder: String, cleaning: Map<String, List<Pair<Regex, Strin
 fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
     val additionalCleaningMap = additionalCleaning.get()
     val cleaning = mutableMapOf(
-        DTS to listOf(
-            Regex("""(?m).*__doNotImplementIt.*\n""") to "",
-            Regex(""".*readonly __doNotUseOrImplementIt.*;\n""") to "",
-            Regex(""".*__doNotUseOrImplementIt:*[\s\S].*\n.*\n.*;""") to "",
-            Regex("""kotlin.js.""") to "",
-            Regex("""org.w3c.dom.url.""") to "",
-            Regex("""org.w3c.dom.""") to "",
-            Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
-            Regex("""(?<=\(|, |readonly )(\w*)(\?)?: Nullable<([\w\.<>, \[\]]*)>(?=\)|, |;|/*)""") to "$1?: $3",
-            Regex("""kotlin.collections.Map""") to "Record",
-            Regex(""", kotlin\.collections\.List<(.*?)>""") to ", $1[]", // handles Record<string, List<T>>,
-            Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]",
-            Regex("""kotlin\.collections\.List<(.*?>?)>""") to "$1[]", // in case of List<List<T>>
-            Regex("""kotlin.Long""") to "number",
-            Regex("""static get Companion(.*\n)*?(\s)*}( &.*)?;""") to "",
-            Regex("""abstract class (\w+)(?: implements [\w.]*?)? \{[\s\S]*?(?:\1)"""
-                    + """;[\s]*get name\(\): ((?:\"\w+\" \| )*\"(\w+)\")[\s\S]*?\}""") to "type $1 = $2;",
-        ) + additionalCleaningMap[DTS].orEmpty(),
-        // Modern Kotlin/JS ESM exporter output (KtList / KtMap / bigint), emitted as `.d.mts`.
-        // The `.d.ts` block above targets the legacy exporter names and never matches these files
-        // (a name ending in `.d.mts` does not end with `.d.ts`), so the whole set is restated here.
+        // The ES module exporter writes `.d.mts`; fixers compiles no other JS module kind.
         DMTS to dmtsCleaning()
             + additionalCleaningMap[DMTS].orEmpty(),
         PACKAGE_JSON to listOf(
@@ -144,7 +124,7 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
             val cleaned = changes.fold(content) { acc, (old, new) ->
                 acc.replace(old, new)
             }
-            val isDeclarations = suffix == DMTS || suffix == DTS
+            val isDeclarations = suffix == DMTS
             val newContent = if (isDeclarations) cleaned.withUnknownForAny() else cleaned
 
             if (isDeclarations) {
@@ -159,12 +139,7 @@ private fun File.cleanFile(cleaning: Map<String, List<Pair<Regex, String>>>) {
 
 private const val DMTS = ".d.mts"
 
-private const val DTS = ".d.ts"
-
 internal const val PACKAGE_JSON = "package.json"
-
-// What the rules must not leave behind: its declaration is gone, so TypeScript cannot resolve it.
-private val LEFTOVER = Regex("""\bKt(?:Mutable)?(?:List|Set|Map)<|\bNullable<""")
 
 // `any` where a type goes: after `:`, `<`, `,`, `|`, `&`, `(`, `=>` or `extends`; not a name, which
 // `(`, `.` or `:` follows.
@@ -182,22 +157,10 @@ private fun String.withUnknownForAny(): String {
 }
 private val COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
-// Fails when a type the rules collapse survives them, nested deeper than they reach: the
-// declarations would reference a type that no longer exists; and when a type is left `any`. Every
-// task that cleans declarations runs it: `tsGen`, `checkTsGen`, and `npmTsGen` before an NPM
-// publication.
+// Fails when a type is left `any`, which lets every value through. Every task that cleans
+// declarations runs it: `tsGen`, `checkTsGen`, and `npmTsGen` before an NPM publication.
 private fun File.checkDeclarationsCleaned(content: String) {
     val code = COMMENT.replace(content) { comment -> comment.value.replace(Regex("[^\n]"), " ") }
-    val leftovers = code.lineSequence().withIndex()
-        .mapNotNull { (index, line) -> LEFTOVER.find(line)?.let { "$path:${index + 1}: ${it.value}" } }
-        .toList()
-    if (leftovers.isNotEmpty()) {
-        throw GradleException(
-            "kt2Ts left Kotlin collection or Nullable types in the declarations, nested deeper than its rules "
-                + "reach; flatten the exported type or add an additionalCleaning rule:\n"
-                + leftovers.joinToString("\n")
-        )
-    }
     val lines = content.lines()
     val untyped = code.lineSequence().withIndex()
         .filter { (_, line) -> UNTYPED.containsMatchIn(line) }
@@ -211,80 +174,58 @@ private fun File.checkDeclarationsCleaned(content: String) {
     }
 }
 
-private const val TRAILING_NULLABLE_PASSES = 4
+// The exported types describe the Kotlin objects, which is what the compiled module takes and
+// returns: a `KtList`, a `bigint`, an enum instance, `T | null | undefined`. The emitter writes them
+// so, and the rules leave them so. What the JSON of a type is, `Json<T>` says.
+private fun dmtsCleaning(): List<Pair<Regex, String>> = listOf(
+    // Written first, once: `npmTsGen` cleans a package in place, and may clean it twice.
+    Regex("""\A(?![\s\S]*^export type Json<T> =)""", RegexOption.MULTILINE) to
+        Regex.escapeReplacement(JSON_DECLARATIONS),
+    // kotlinx-datetime and kotlin.time values reach the export only where a build suppresses
+    // NON_EXPORTABLE_TYPE: opaque to TypeScript, named so that `Json` sends them as strings.
+    Regex("""Nullable<any>/\* Nullable<(Instant|LocalDate)> \*/""") to "Nullable<KtOpaque<\"$1\">>",
+    Regex("""any/\* (Instant|LocalDate) \*/""") to "KtOpaque<\"$1\">",
+)
 
-private const val LIST_PASSES = 3
-
-// `name?: type/* comment */ | null`, from the name, type and comment groups of the parameter rules.
-private const val OPTIONAL_OR_NULL = "$1?: $2$3 | null"
-
-// A type nested at most three levels deep. `=>` is matched first so that the `>` of an arrow
-// never closes a type argument.
-private const val TYPE = """(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n]|<(?:=>|[^<>\n])*>)*>)*>)*"""
-
-// Rules for the declarations of the Kotlin/JS ES module exporter. A Kotlin `T?` is typed
-// `T | null`: Kotlin and its JSON serializers send `null`, not an absent value.
-private fun dmtsCleaning(): List<Pair<Regex, String>> {
-    // Repeated rules are compiled once and applied once per pass.
-    val collapseList = Regex("""Kt(?:Mutable)?(?:List|Set)<($TYPE)>""") to "$1[]"
-    val trailingNullable =
-        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, \w+\?: )""") to OPTIONAL_OR_NULL
-    return listOf(
-        // The marker body is matched exactly: a lazy body would run on to the next `};` of the file.
-        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: \{\n(?: +readonly [^:\n]+: unique symbol;\n)+ *\}"""
-                + """(?:\s*&\s*[\w.<>, ]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
-        Regex("""(?m)^ *readonly __doNotUseOrImplementIt: [\w.<>, ]*\["__doNotUseOrImplementIt"\]"""
-                + """(?:\s*&\s*[\w.<>, ]*\["__doNotUseOrImplementIt"\])*;\n""") to "",
-        Regex("""type Nullable<T> = T \| null \| undefined\n""") to "",
-        // The emitter declares the collections with their variance (`KtList<out E>`) since Kotlin 2.4.
-        Regex("""export declare interface (Kt(?:Mutable)?(?:List|Set|Map))<(?:K, )?(?:out )?[EV]>[\s\S]*?\n"""
-                + """export declare namespace \1 \{[\s\S]*?\n\}\n""") to "",
-        // A function type has to be parenthesised before a union or `[]` is appended to it.
-        Regex("""(Nullable|Kt(?:Mutable)?(?:List|Set))<(\((?:[^()\n]|\([^()\n]*\))*\) => $TYPE)>""") to "$1<($2)>",
-        // `null` is not a valid record key.
-        Regex("""(Kt(?:Mutable)?Map)<Nullable<($TYPE)>, """) to "$1<$2, ",
-        // A nullable element type has to become a union inside the array; unwrap it before the
-        // collapse below, otherwise the property rule further down turns it into an optional
-        // property instead (`x?: T[]`, which says the property may be absent, not the elements).
-        Regex("""(Kt(?:Mutable)?(?:List|Set))<Nullable<($TYPE)>>""") to "$1<($2 | null)>",
-        // Collapses one level of nesting per pass, the outermost first: three passes cover
-        // `KtList<KtList<KtList<T>>>`, as deep as TYPE reaches.
-        *Array(LIST_PASSES) { collapseList },
-        Regex("""Kt(?:Mutable)?Map<""") to "Record<",
-        // Coupled to the exact enum layout the Kotlin/JS emitter produces, so a Kotlin bump can
-        // break it. Keep the inner static-get block matched precisely: a lazy `[\s\S]*?` next to
-        // the `\1` backref makes a failed match backtrack exponentially and pegs tsGen at 100% CPU.
-        // An enum that implements an interface or declares members is left a class: its consumers
-        // read its entries and members, which the .mjs still exports.
-        Regex("""export declare abstract class (\w+) \{\n    private constructor\(\);\n"""
-                + """(?:    static get \w+\(\): \1 & \{\n        get name\(\): "\w+";\n"""
-                + """        get ordinal\(\): \d+;\n    \};\n)*"""
-                + """    static values\(\): \[[^\]]*\];\n    static valueOf\(value: string\): \1;\n"""
-                + """    get name\(\): ((?:"\w+" \| )*"\w+");\n    get ordinal\(\): [\d \|]+;\n\}\n"""
-        ) to "export type $1 = $2;\n",
-        // kotlinx-datetime Instant / LocalDate serialize as ISO strings over the wire.
-        Regex("""Nullable<any>/\* Nullable<(?:Instant|LocalDate)> \*/""") to "Nullable<string>",
-        Regex("""any/\* (?:Instant|LocalDate) \*/""") to "string",
-        // A property the JSON may omit is optional, `val` or `var`; a parameter keeps the arity
-        // Kotlin gave it.
-        Regex("""(?m)^( +(?:readonly )?)(\w+)\??: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to
-                "$1$2?: $3$4 | null",
-        Regex("""(?<=\(|, )(\w+)\?: Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to
-                OPTIONAL_OR_NULL,
-        // A parameter with a default value arrives as `x: Nullable<T> | undefined`.
-        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?) \| undefined(?=\)|, )""") to
-                "$1: $2$3 | null | undefined",
-        // A setter parameter can never be optional (TS1051).
-        Regex("""(set \w+\()(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\))""") to "$1$2: $3$4 | null",
-        // A trailing nullable parameter stays optional; one that a required parameter follows
-        // cannot be (TS1016). One pass per trailing parameter, from the last.
-        *Array(TRAILING_NULLABLE_PASSES) { trailingNullable },
-        Regex("""(?<=\(|, )(\w+): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=\)|, )""") to "$1: $2$3 | null",
-        Regex("""get (\w+)\(\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "get $1(): $2$3 | null",
-        Regex("""\): Nullable<($TYPE)>((?:/\*[^*]*\*/)?)(?=;)""") to "): $1$2 | null",
-        // What is left sits inside another type, such as the values of a map.
-        Regex("""(?<!/\* )Nullable<($TYPE)>""") to "($1 | null)",
-        Regex("""\bbigint\b(?!\??:)""") to "number",
-        Regex("""(?<=: )any \| (?:null|undefined)(?=[;,)])""") to "any",
-    )
-}
+/**
+ * What `tsGen` writes at the head of every `.d.mts`. Each one declares the whole program of its
+ * package, so this is the one copy its readers see; two packages' copies agree, since `Json` matches
+ * the Kotlin types by their members, never by the brand the emitter gives each copy.
+ */
+internal val JSON_DECLARATIONS = """
+    /** A Kotlin value the export cannot express, such as an `Instant`: opaque to TypeScript. */
+    export declare interface KtOpaque<N extends string> {
+        readonly __kotlinOpaque: N;
+        readonly __doNotUseOrImplementIt: {
+            readonly "kotlin.Opaque": unique symbol;
+        };
+    }
+    /**
+     * The JSON a Kotlin value of type `T` is sent as: a list or a set is an array, a map an object, a
+     * `Long` a number, an enum its name, an opaque value a string, and a nullable property may be
+     * absent. The exported types describe the Kotlin objects; a body read from or written to the wire
+     * is a `Json<T>`, and the compiled code accepts none.
+     */
+    export type Json<T> =
+        T extends { asJsReadonlyArrayView(): ReadonlyArray<infer E> } ? Json<E>[]
+        : T extends { asJsReadonlySetView(): ReadonlySet<infer E> } ? Json<E>[]
+        : T extends { asJsReadonlyMapView(): ReadonlyMap<infer K, infer V> } ? Record<JsonKey<K>, Json<V>>
+        : T extends { readonly __kotlinOpaque: string } ? string
+        : T extends bigint ? number
+        : T extends string | number | boolean | null | undefined ? T
+        : T extends { readonly name: infer N extends string; readonly ordinal: infer O extends number }
+            ? string extends N ? JsonObject<T> : number extends O ? JsonObject<T> : N
+        : T extends ReadonlyArray<infer E> ? Json<E>[]
+        : T extends (...args: never[]) => unknown ? never
+        : T extends object ? JsonObject<T>
+        : T;
+    type JsonKey<K> = Json<K> extends string | number ? Json<K> : string;
+    type JsonField<T, P extends keyof T> =
+        P extends "__doNotUseOrImplementIt" ? never : T[P] extends (...args: never[]) => unknown ? never : P;
+    type JsonFields<T> = { [P in keyof T]-?: JsonField<T, P> }[keyof T];
+    type JsonOptional<T> = {
+        [P in JsonFields<T>]-?: null extends T[P] ? P : undefined extends T[P] ? P : never
+    }[JsonFields<T>];
+    type JsonObject<T> =
+        { [P in Exclude<JsonFields<T>, JsonOptional<T>>]: Json<T[P]> } & { [P in JsonOptional<T>]?: Json<T[P]> };
+""".trimIndent() + "\n"

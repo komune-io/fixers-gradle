@@ -68,6 +68,8 @@ class TsGenCheckTest {
             emit("pkg/kotlin/legacy.d.ts", "export declare function legacy(): string;\n")
         }
 
+        private val names = JSON_DECLARATIONS + "export declare function names(): KtList<string>;"
+
         @Test
         fun `tsGen should write only the declarations and the package json`() {
             emitPackage()
@@ -78,8 +80,8 @@ class TsGenCheckTest {
             val written = File(output, "pkg").walkTopDown().filter { it.isFile }
                 .map { it.relativeTo(output).invariantSeparatorsPath }.toList()
             assertThat(written)
-                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts", "pkg/kotlin/legacy.d.ts")
-            assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): string[];")
+                .containsExactlyInAnyOrder("pkg/package.json", "pkg/kotlin/pkg.d.mts")
+            assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent(names)
             assertThat(committed("pkg/package.json").readText()).contains("\"version\": \"${Kt2TsFiles.CONTRACT_VERSION}\"")
         }
 
@@ -157,7 +159,8 @@ class TsGenCheckTest {
             project.run("tsGen")
 
             assertThat(committed("pkg/node_modules/dep/index.js")).exists()
-            assertThat(committed("pkg/kotlin/pkg.d.mts")).hasContent("export declare function names(): string[];")
+            assertThat(committed("pkg/kotlin/pkg.d.mts"))
+                .hasContent(JSON_DECLARATIONS + "export declare function names(): KtList<string>;")
         }
 
         @Test
@@ -427,6 +430,20 @@ class TsGenCheckTest {
                 assertThatThrownBy { project.run("checkTsGen") }
                     .`as`(declarations)
                     .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `same` twice")
+            }
+        }
+
+        @Test
+        fun `should name a Kotlin declaration that takes the name of Json or KtOpaque`() {
+            listOf("export declare interface Json {\n}\n", "export declare class KtOpaque {\n}\n").forEach { declarations ->
+                emit("pkg/kotlin/pkg.d.mts", declarations)
+                val project = project()
+                project.run("tsGen")
+
+                assertThatThrownBy { project.run("checkTsGen") }
+                    .`as`(declarations)
+                    .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `")
+                    .hasMessageContaining("Rename")
             }
         }
 
