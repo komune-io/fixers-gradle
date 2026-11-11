@@ -19,7 +19,9 @@ bouncycastle = "1.86"
 # tsGen and npmTsGen write: transitives of the Kotlin and ktor JS dependencies whose declared
 # versions carry an advisory. ktor-client-core 3.6.1 declares ws 8.20.1 (GHSA-96hv-2xvq-fx4p,
 # fixed in 8.21.0); ajv before 8.18.0 (CVE-2025-69873). Remove a pin once the dependency declares
-# a fixed version.
+# a fixed version. The manifest rewrite is unconditional: a pin left behind lowers what a newer
+# dependency declares (ws 8.23 or 9.x back to 8.22.2, major included), so review these at every
+# Ktor bump.
 npm-ws = "8.22.2"
 npm-ajv = "8.20.0"
 

@@ -160,6 +160,15 @@ class TsGenTaskTest {
             assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
                 .isEqualTo("""{"ws":"8.22.2", "@scope/pkg": "1.0.0", "glob": "10.4.5", "@other/x": "1.0.0"}""")
         }
+
+        @Test
+        fun `should rewrite every declaration of a pinned package`() {
+            val rules = pinnedDependencyCleaning(mapOf("**/ws" to "8.22.2"))
+            val json = """{"dependencies": {"ws": "8.20.1"}, "peerDependencies": {"ws": "^8.0.0"}}"""
+
+            assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
+                .isEqualTo("""{"dependencies": {"ws": "8.22.2"}, "peerDependencies": {"ws": "8.22.2"}}""")
+        }
     }
 
     @Nested
