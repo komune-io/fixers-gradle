@@ -11,6 +11,7 @@ class MppJsPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
         configureJsCompilation(target)
+        target.refuseJsExportIgnore()
     }
 
     private fun configureJsCompilation(project: Project) {

@@ -65,7 +65,31 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
     }
 
     @Test
-    fun `should compile an export once the type is exported, the member ignored and the name changed`() {
+    fun `should fail on JsExport Ignore, naming the file and line`() {
+        writeMppBuild()
+        createFile(relativePath = "src/commonMain/kotlin/com/example/Order.kt", content = """
+            package com.example
+
+            class Hidden
+
+            @kotlin.js.JsExport
+            class Order(val id: String) {
+                @kotlin.js.JsExport.Ignore
+                fun hidden(): Hidden = Hidden()
+            }
+        """.trimIndent())
+
+        val result = runGradleAndFail("compileKotlinJs")
+
+        assertThat(result.task(":compileKotlinJs")?.outcome).isEqualTo(TaskOutcome.FAILED)
+        assertThat(result.output)
+            .contains(":compileKotlinJs: @JsExport.Ignore leaves JS a Kotlin API with its members taken out")
+            .contains("Write the JS form in jsMain")
+            .contains("src/commonMain/kotlin/com/example/Order.kt:7: @kotlin.js.JsExport.Ignore")
+    }
+
+    @Test
+    fun `should compile an export once the type is exported, the member kept out and the name changed`() {
         writeMppBuild()
         createFile(relativePath = "src/commonMain/kotlin/com/example/Order.kt", content = """
             package com.example
@@ -75,11 +99,11 @@ class JsExportIntegrationTest : BaseIntegrationTest() {
             @kotlin.js.JsExport
             class Shown
 
+            /** Its hidden part is no member: not exported, and no @JsExport.Ignore. */
             @kotlin.js.JsExport
-            class Order(val shown: Shown) {
-                @kotlin.js.JsExport.Ignore
-                fun hidden(): Hidden = Hidden()
-            }
+            class Order(val shown: Shown)
+
+            fun Order.hidden(): Hidden = Hidden()
         """.trimIndent())
         createFile(relativePath = "src/commonMain/kotlin/com/example/a/Same.kt", content = """
             package com.example.a

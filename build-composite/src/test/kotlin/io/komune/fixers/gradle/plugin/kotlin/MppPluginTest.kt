@@ -164,9 +164,22 @@ class MppPluginTest {
         listOf("compileKotlinJvm", "compileKotlinJs").forEach { name ->
             val compile = project.tasks.getByName(name) as org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>
             compile.compilerOptions.allWarningsAsErrors.set(false)
-            assertThatThrownBy { compile.actions.first().execute(compile) }
+            assertThatThrownBy { compile.actions.forEach { it.execute(compile) } }
                 .hasMessageContaining("allWarningsAsErrors = false")
         }
+    }
+
+    @Test
+    fun `should refuse a JS compilation whose sources use JsExport Ignore`() {
+        val project = mppProject()
+        val source = project.file("src/jsMain/kotlin/Order.kt")
+        source.parentFile.mkdirs()
+        source.writeText("@JsExport\nclass Order {\n    @JsExport.Ignore\n    fun hidden() = Unit\n}\n")
+
+        val compile = project.tasks.getByName("compileKotlinJs") as Kotlin2JsCompile
+        assertThatThrownBy { compile.actions.forEach { it.execute(compile) } }
+            .hasMessageContaining(":mpp-lib:compileKotlinJs: @JsExport.Ignore leaves JS a Kotlin API")
+            .hasMessageContaining("${source.path}:3: @JsExport.Ignore")
     }
 
     @Test

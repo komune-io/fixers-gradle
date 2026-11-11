@@ -168,8 +168,8 @@ private fun File.checkDeclarationsCleaned(content: String) {
         .toList()
     if (untyped.isNotEmpty()) {
         throw GradleException(
-            "The declarations type as any what the JS export cannot express; export the type, or mark the "
-                + "member @JsExport.Ignore:\n" + untyped.joinToString("\n")
+            "The declarations type as any what the JS export cannot express; export the type, or stop "
+                + "exporting the declaration and write its JS form in jsMain:\n" + untyped.joinToString("\n")
         )
     }
 }
