@@ -170,7 +170,9 @@ class MppPluginTest {
     }
 
     @Test
-    fun `should check the sources of every Kotlin JS compile and link task`() {
+    // The six task names Kotlin/JS 2.4 registers: this test is meant to break on a Kotlin Gradle plugin upgrade
+    // that adds, renames or removes one, so that the refusal is checked to reach the new set.
+    fun `should check the sources of every Kotlin JS compile and link task, breaking on a KGP upgrade`() {
         val names = mppProject().tasks.withType(Kotlin2JsCompile::class.java).names
 
         assertThat(names).containsExactlyInAnyOrder(

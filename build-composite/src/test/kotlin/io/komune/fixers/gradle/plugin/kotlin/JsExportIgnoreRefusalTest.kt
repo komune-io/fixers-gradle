@@ -151,4 +151,33 @@ class JsExportIgnoreRefusalTest {
             "1: /* outer /* inner @JsExport.Ignore */ still a comment @JsExport.Ignore */ @JsExport.Ignore val a = 1",
         )
     }
+
+    @Test
+    fun `reads a backticked name holding quotes as a name, and the code after it`() {
+        val found = lines("""
+            fun `a "quoted" name`() = Unit ; @JsExport.Ignore val a = 1
+            fun `it's`() = Unit ; @JsExport.Ignore val b = 2
+            @kotlin.js.`JsExport`.Ignore val c = 3
+        """)
+
+        assertThat(found).containsExactly(
+            "1: fun `a \"quoted\" name`() = Unit ; @JsExport.Ignore val a = 1",
+            "2: fun `it's`() = Unit ; @JsExport.Ignore val b = 2",
+            "3: @kotlin.js.`JsExport`.Ignore val c = 3",
+        )
+    }
+
+    @Test
+    fun `reads a multi-dollar string, whose single-dollar braces are text`() {
+        val found = lines("""
+            val literal = ${'$'}${'$'}${"\"\"\""}text ${'$'}{ not "a template } JsExport.Ignore${"\"\"\""}
+            @JsExport.Ignore val a = 1
+            val templated = ${'$'}${'$'}"${'$'}${'$'}{ run { @JsExport.Ignore val x = 1; x } } ${'$'}{ JsExport.Ignore }"
+        """)
+
+        assertThat(found).containsExactly(
+            "2: @JsExport.Ignore val a = 1",
+            "3: val templated = ${'$'}${'$'}\"${'$'}${'$'}{ run { @JsExport.Ignore val x = 1; x } } ${'$'}{ JsExport.Ignore }\"",
+        )
+    }
 }

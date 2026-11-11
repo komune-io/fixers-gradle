@@ -35,8 +35,9 @@ private fun String.lineOf(offset: Int): Int = (0 until offset).count { this[it] 
 
 /**
  * [source] with every string, character literal and comment blanked, newlines kept: what is left is code. Knows
- * `"…"` with escapes, raw `"""…"""`, templates `${…}` holding code (strings and braces included), `'…'`, and
- * nested `/* /* */ */` comments.
+ * `"…"` with escapes, raw `"""…"""`, templates `${…}` holding code (strings and braces included), multi-dollar
+ * strings (`$$"…"`, whose templates are `$${…}`), `'…'`, names between backticks, and nested `/* /* */ */`
+ * comments.
  */
 internal fun codeOnly(source: String): String = CodeOnly(source).run()
 
@@ -55,8 +56,7 @@ private class CodeOnly(private val source: String) {
             when (val current = mode) {
                 is Mode.Code -> if (!opensNonCode(current)) braceOrKeep(current)
                 is Mode.Block -> block(current)
-                Mode.Plain -> plain()
-                Mode.Raw -> raw()
+                is Mode.Text -> text(current)
             }
         }
         return out.toString()
@@ -64,21 +64,24 @@ private class CodeOnly(private val source: String) {
 
     private fun startsWith(text: String) = source.startsWith(text, i)
 
-    // A comment, a string or a character literal starting here, entered and blanked.
+    // A comment, a string, a character literal or a backticked name starting here, entered and blanked.
     private fun opensNonCode(current: Mode.Code): Boolean {
+        // `$$"…"` interpolates `$${…}` only: the dollars before a string's opening quote.
+        val dollars = maxOf(a = 1, b = (i - 1 downTo 0).takeWhile { at -> source[at] == '$' }.count())
         when {
             startsWith("//") -> blank(source.indexOf('\n', i).let { end -> if (end < 0) source.length else end } - i)
             startsWith("/*") -> enter(Mode.Block(1), current, length = 2)
-            startsWith(TRIPLE_QUOTE) -> enter(Mode.Raw, current, length = TRIPLE_QUOTE.length)
-            startsWith("\"") -> enter(Mode.Plain, current, length = 1)
+            startsWith(TRIPLE_QUOTE) -> enter(Mode.Text(dollars, isRaw = true), current, TRIPLE_QUOTE.length)
+            startsWith("\"") -> enter(Mode.Text(dollars, isRaw = false), current, length = 1)
             startsWith("'") -> blank(charLiteralLength(source, i))
+            startsWith("`") -> backticked()
             else -> return false
         }
         return true
     }
 
     private fun braceOrKeep(current: Mode.Code) {
-        val isInTemplate = stack.lastOrNull().let { outer -> outer == Mode.Plain || outer == Mode.Raw }
+        val isInTemplate = stack.lastOrNull() is Mode.Text
         when {
             startsWith("{") -> {
                 mode = Mode.Code(current.depth + 1)
@@ -116,22 +119,23 @@ private class CodeOnly(private val source: String) {
         }
     }
 
-    private fun plain() {
+    private fun text(current: Mode.Text) {
+        val template = "$".repeat(current.dollars) + "{"
         when {
-            startsWith("\\") -> blank(minOf(a = 2, b = source.length - i))
-            startsWith("\"") -> leave(1)
-            startsWith("\${") -> enter(Mode.Code(0), Mode.Plain, length = 2)
+            current.isRaw && startsWith(TRIPLE_QUOTE) ->
+                leave(generateSequence(TRIPLE_QUOTE.length) { it + 1 }.first { source.getOrNull(i + it) != '"' })
+            !current.isRaw && startsWith("\\") -> blank(minOf(a = 2, b = source.length - i))
+            !current.isRaw && startsWith("\"") -> leave(1)
+            startsWith(template) -> enter(Mode.Code(0), current, length = template.length)
             else -> blank(1)
         }
     }
 
-    private fun raw() {
-        when {
-            startsWith(TRIPLE_QUOTE) ->
-                leave(generateSequence(TRIPLE_QUOTE.length) { it + 1 }.first { source.getOrNull(i + it) != '"' })
-            startsWith("\${") -> enter(Mode.Code(0), Mode.Raw, length = 2)
-            else -> blank(1)
-        }
+    // A name between backticks may hold quotes: its text is kept as code, its backticks blanked.
+    private fun backticked() {
+        blank(1)
+        while (i < source.length && source[i] != '`' && source[i] != '\n') keep()
+        if (source.getOrNull(i) == '`') blank(1)
     }
 
     private fun enter(inner: Mode, outer: Mode, length: Int) {
@@ -167,8 +171,7 @@ private fun charLiteralLength(source: String, start: Int): Int {
 private sealed interface Mode {
     data class Code(val depth: Int) : Mode
     data class Block(val depth: Int) : Mode
-    data object Plain : Mode
-    data object Raw : Mode
+    data class Text(val dollars: Int, val isRaw: Boolean) : Mode
 }
 
 /**
