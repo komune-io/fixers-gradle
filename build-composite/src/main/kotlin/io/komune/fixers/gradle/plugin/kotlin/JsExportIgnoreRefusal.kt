@@ -42,6 +42,7 @@ private fun String.lineOf(offset: Int): Int = (0 until offset).count { this[it] 
 internal fun codeOnly(source: String): String = CodeOnly(source).run()
 
 private const val TRIPLE_QUOTE = "\"\"\""
+private val PLAIN_IDENTIFIER = Regex("""[A-Za-z_][A-Za-z0-9_]*""")
 
 private class CodeOnly(private val source: String) {
     private val out = StringBuilder(source.length)
@@ -131,10 +132,15 @@ private class CodeOnly(private val source: String) {
         }
     }
 
-    // A name between backticks may hold quotes: its text is kept as code, its backticks blanked.
+    // A name between backticks: kept as code when it is a plain identifier (`JsExport` names the annotation as
+    // well), blanked otherwise, as its text may hold quotes or spell `JsExport.Ignore` without being one.
     private fun backticked() {
+        val end = (i + 1 until source.length).firstOrNull { at -> source[at] == '`' || source[at] == '\n' }
+            ?: source.length
+        val name = source.substring(startIndex = i + 1, endIndex = end)
+        val isIdentifier = source.getOrNull(end) == '`' && PLAIN_IDENTIFIER.matches(name)
         blank(1)
-        while (i < source.length && source[i] != '`' && source[i] != '\n') keep()
+        repeat(end - i) { if (isIdentifier) keep() else blank(1) }
         if (source.getOrNull(i) == '`') blank(1)
     }
 

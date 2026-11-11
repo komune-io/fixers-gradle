@@ -168,6 +168,18 @@ class JsExportIgnoreRefusalTest {
     }
 
     @Test
+    fun `leaves a backticked name spelling JsExport Ignore alone`() {
+        val found = lines("""
+            fun probe(): Int {
+                val `local JsExport.Ignore name` = 1
+                return `local JsExport.Ignore name`
+            }
+        """)
+
+        assertThat(found).isEmpty()
+    }
+
+    @Test
     fun `reads a multi-dollar string, whose single-dollar braces are text`() {
         val found = lines("""
             val literal = ${'$'}${'$'}${"\"\"\""}text ${'$'}{ not "a template } JsExport.Ignore${"\"\"\""}
