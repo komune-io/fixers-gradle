@@ -44,8 +44,9 @@ class Kt2TsIntegrationTest : BaseIntegrationTest() {
         assertThat(first.task(":tsGen")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
         assertThat(second.task(":tsGen")?.outcome).isEqualTo(TaskOutcome.UP_TO_DATE)
         assertThat(Files.isSymbolicLink(link)).isTrue()
-        assertThat(testProjectDir.resolve("contract/pkg/kotlin/pkg.d.mts").toFile())
-            .hasContent("export declare function names(): string[];")
+        assertThat(testProjectDir.resolve("contract/pkg/kotlin/pkg.d.mts").toFile().readText())
+            .contains("export type Json<T> =")
+            .endsWith("export declare function names(): KtList<string>;\n")
     }
 
     @Test

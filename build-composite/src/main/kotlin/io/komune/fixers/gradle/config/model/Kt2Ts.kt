@@ -13,8 +13,8 @@ enum class Kt2TsFiles {
     ALL,
 
     /**
-     * The declarations (`.d.mts`, and the legacy `.d.ts`) and the `package.json` of each package
-     * only: the TypeScript contract a library commits to review it.
+     * The declarations (`.d.mts`) and the `package.json` of each package only: the TypeScript
+     * contract a library commits to review it.
      */
     DECLARATIONS;
 

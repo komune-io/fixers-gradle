@@ -270,9 +270,9 @@ fixers {
 }
 ```
 
-`kt2Ts` is read from the root project only, which registers `tsGen`, `cleanTsGen` and `checkTsGen`; a `kt2Ts` block in a subproject fails the build. `tsGen` copies every package under the input directory into the output directory and cleans its declarations; it fails when a type is left `any` (`any/* Foo */`, a type the JS export cannot express) or a Kotlin collection or `Nullable` survives the rules.
+`kt2Ts` is read from the root project only, which registers `tsGen`, `cleanTsGen` and `checkTsGen`; a `kt2Ts` block in a subproject fails the build. `tsGen` copies every package under the input directory into the output directory and writes `Json<T>` and `KtOpaque` at the head of each `.d.mts`; it fails when a type is left `any` (`any/* Foo */`, a type the JS export cannot express). The exported types describe the Kotlin objects (`KtList`, `bigint`, enum classes, `Nullable<T>`, as the emitter writes them); `Json<T>` describes their JSON.
 
-`committedFiles` chooses what `tsGen` writes and `checkTsGen` compares. `DECLARATIONS`, the default, keeps the declarations (`.d.mts`, and the legacy `.d.ts`) and each `package.json` only: the TypeScript contract a library commits to review it. `ALL` copies every file of the Kotlin/JS packages, `.mjs` included, for a front that imports the copy. In both modes each `package.json` carries version `0.0.0` instead of the build's, so a release rewrites none of them.
+`committedFiles` chooses what `tsGen` writes and `checkTsGen` compares. `DECLARATIONS`, the default, keeps the declarations (`.d.mts`) and each `package.json` only: the TypeScript contract a library commits to review it. `ALL` copies every file of the Kotlin/JS packages, `.mjs` included, for a front that imports the copy. In both modes each `package.json` carries version `0.0.0` instead of the build's, so a release rewrites none of them.
 
 ### SonarQube
 
