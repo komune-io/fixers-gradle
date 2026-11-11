@@ -14,12 +14,12 @@ export declare interface KtOpaque<N extends string> {
  * of a data class, is refused at any depth.
  *
  * What it does not say: a sealed or polymorphic type carries no discriminant here, so a
- * serializer's `type` field is not typed; a nullable property is absent from the JSON where its
- * writer omits nulls (F2's `explicitNulls = false`; Jackson and a default kotlinx `Json` write
- * `null`), and a reader that requires it (a default kotlinx `Json`, where Jackson and F2's read
- * it as `null`) refuses the JSON that omits it; an instance of a class that is neither is not
- * told apart from a plain object; and a `Long` beyond 2^53 loses its precision as a JavaScript
- * number.
+ * serializer's `type` field is not typed. A nullable property may be absent: F2's Kotlin client
+ * omits nulls (`explicitNulls = false`), Jackson and a default kotlinx `Json` write `null`. A
+ * reader that requires the property refuses the JSON that omits it: a default kotlinx `Json`
+ * does, Jackson and F2's `Json` read it as `null`. An instance of a class that is neither of the
+ * two above is not told apart from a plain object, and a `Long` beyond 2^53 loses its precision
+ * as a JavaScript number.
  */
 export type Json<T> =
     T extends { asJsReadonlyArrayView(): ReadonlyArray<infer E> } ? Json<E>[]
@@ -202,3 +202,20 @@ export declare interface ObjectModelDTO {
         readonly "io.komune.gradle.sandbox.domain.model.ObjectModelDTO": unique symbol;
     };
 }
+export declare class ObjectModel implements ObjectModelDTO {
+    constructor(id: string, name: string);
+    get id(): string;
+    get name(): string;
+    copy(id?: string, name?: string): ObjectModel;
+    toString(): string;
+    hashCode(): number;
+    equals(other: Nullable<unknown>): boolean;
+    readonly __doNotUseOrImplementIt: ObjectModelDTO["__doNotUseOrImplementIt"];
+}
+export declare namespace ObjectModel {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        const constructor: abstract new () => ObjectModel;
+    }
+}
+export declare function sampleObjectModel(): ObjectModel;
