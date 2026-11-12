@@ -1,6 +1,7 @@
 package io.komune.fixers.gradle.plugin.config
 
 import io.komune.fixers.gradle.buildFixersRoot
+import io.komune.fixers.gradle.config.model.FixersToolVersions
 import io.komune.fixers.gradle.plugin.kotlin.MppPlugin
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -231,6 +232,13 @@ class YarnResolutionCheckTest {
         assertThat(yarn.resolutionsProperty.get().associate { it.path to it.includedVersions.toList() })
             .containsAllEntriesOf(FIXERS_YARN_PINS.mapValues { (_, version) -> listOf(version) })
         assertThat(FIXERS_YARN_PINS.keys).containsExactlyInAnyOrder("**/ws", "**/ajv")
+    }
+
+    @Test
+    fun `should read the pins from the version catalog`() {
+        assertThat(FIXERS_YARN_PINS)
+            .containsEntry("**/ws", FixersToolVersions.npmWs)
+            .containsEntry("**/ajv", FixersToolVersions.npmAjv)
     }
 
     @Test

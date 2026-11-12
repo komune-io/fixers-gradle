@@ -2,6 +2,7 @@ package io.komune.fixers.gradle.plugin.config
 
 import groovy.json.JsonException
 import groovy.json.JsonSlurper
+import io.komune.fixers.gradle.config.model.FixersToolVersions
 import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -23,14 +24,12 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
 /**
- * Versions fixers forces on the Kotlin/JS lock of every build: transitive packages of the Kotlin
- * and ktor JS dependencies whose declared versions carry an advisory. `ws` 8.20.1 is pinned by
- * ktor-client-core (GHSA-96hv-2xvq-fx4p); `ajv` before 8.18.0 (CVE-2025-69873). Remove a pin once
- * the dependency declares a fixed version.
+ * Versions fixers forces on the Kotlin/JS lock of every build, baked in at build time from the
+ * `npm-*` versions of gradle/libs.versions.toml, where each one says why it is needed.
  */
 internal val FIXERS_YARN_PINS: Map<String, String> = mapOf(
-    "**/ws" to "8.22.2",
-    "**/ajv" to "8.20.0",
+    "**/ws" to FixersToolVersions.npmWs,
+    "**/ajv" to FixersToolVersions.npmAjv,
 )
 
 internal const val YARN_RESOLUTION_CHECK_TASK = "checkYarnResolutions"

@@ -127,7 +127,7 @@ fun Kt2Ts.buildCleaningRegex(): Map<String, List<Pair<Regex, String>>> {
             + additionalCleaningMap[DMTS].orEmpty(),
         PACKAGE_JSON to listOf(
             Regex("""("devDependencies": \{)(.|\n)*?(},)""") to "$1$3"
-        ) + additionalCleaningMap[PACKAGE_JSON].orEmpty()
+        ) + pinnedDependencyCleaning() + additionalCleaningMap[PACKAGE_JSON].orEmpty()
     )
 
     // Add any additional cleaning patterns not already included

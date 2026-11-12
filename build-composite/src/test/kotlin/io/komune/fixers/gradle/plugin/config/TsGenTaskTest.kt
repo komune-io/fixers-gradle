@@ -148,6 +148,30 @@ class TsGenTaskTest {
     }
 
     @Nested
+    inner class PinnedDependencyCleaningTest {
+
+        @Test
+        fun `should rewrite the packages pinned at any depth only`() {
+            val rules = pinnedDependencyCleaning(
+                mapOf("**/ws" to "8.22.2", "**/@scope/pkg" to "1.0.0", "**/mocha/glob" to "14.0.4", "@other/x" to "2.0.0")
+            )
+            val json = """{"ws":"8.20.1", "@scope/pkg": "^0.9.0", "glob": "10.4.5", "@other/x": "1.0.0"}"""
+
+            assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
+                .isEqualTo("""{"ws":"8.22.2", "@scope/pkg": "1.0.0", "glob": "10.4.5", "@other/x": "1.0.0"}""")
+        }
+
+        @Test
+        fun `should rewrite every declaration of a pinned package`() {
+            val rules = pinnedDependencyCleaning(mapOf("**/ws" to "8.22.2"))
+            val json = """{"dependencies": {"ws": "8.20.1"}, "peerDependencies": {"ws": "^8.0.0"}}"""
+
+            assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
+                .isEqualTo("""{"dependencies": {"ws": "8.22.2"}, "peerDependencies": {"ws": "8.22.2"}}""")
+        }
+    }
+
+    @Nested
     inner class CleanProjectDirTest {
 
         @TempDir
@@ -184,6 +208,24 @@ class TsGenTaskTest {
 
             assertThat(result).contains(""""devDependencies": {},""")
             assertThat(result).doesNotContain("typescript")
+        }
+
+        @Test
+        fun `should declare a dependency fixers pins at its pin in package json`() {
+            val result = clean(
+                "package.json",
+                """{"name": "pkg", "devDependencies": {}, "dependencies": {"ws": "8.20.1", "@js-joda/core": "3.2.0"}}"""
+            )
+
+            assertThat(result).contains(""""ws": "${FIXERS_YARN_PINS.getValue("**/ws")}"""")
+            assertThat(result).contains(""""@js-joda/core": "3.2.0"""")
+        }
+
+        @Test
+        fun `should leave a package that only shares a pinned name's suffix`() {
+            val content = """{"name": "pkg", "devDependencies": {}, "dependencies": {"isows": "1.0.7"}}"""
+
+            assertThat(clean("package.json", content)).isEqualTo(content)
         }
 
         @Test
