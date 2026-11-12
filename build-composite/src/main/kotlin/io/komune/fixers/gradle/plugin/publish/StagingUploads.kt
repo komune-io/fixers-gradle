@@ -22,6 +22,7 @@ internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtens
     repositoryName = "Maven Central Snapshots",
     stagingDir = stagingDir,
     url = fixersConfig.publish.mavenSnapshotsUrl.get(),
+    minRequestIntervalMillis = fixersConfig.publish.mavenSnapshotsMinRequestIntervalMillis.get().toLong(),
     username = requireCredential(
         value = fixersConfig.publish.mavenCentralUsername.orNull,
         envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME",
@@ -62,10 +63,12 @@ private fun uploadTo(
     url: String,
     username: String,
     password: String,
+    minRequestIntervalMillis: Long = 0,
 ) {
     MavenRepositoryUploader.toRepository(repositoryName)
         .from(stagingDir)
         .atUrl(url)
         .withCredentials(user = username, tok = password)
+        .withMinRequestInterval(minRequestIntervalMillis)
         .upload()
 }

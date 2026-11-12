@@ -19,7 +19,7 @@ import org.gradle.api.logging.Logging
  * its siblings keep sending only spends its own retries. So the first transient failure of an
  * *epoch* closes the gate for everyone, and the failures of the uploads that were already in
  * flight wait on that same pause instead of starting their own. A 429 also halves how many
- * uploads run at once. The pauses add up against [PausePolicy.budgetMillis]; past it the
+ * uploads run at once. The pauses add up against [PausePolicy.rateLimitBudgetMillis]; past it the
  * gate stays shut and the remaining files are reported as not attempted.
  */
 internal class UploadGate(
@@ -75,9 +75,9 @@ internal class UploadGate(
         logger.lifecycle(
             "  ⏸ ${error.describe()} on $label: pausing every upload for ${formatDuration(pause.millis)} " +
                 "(${pause.source}), $concurrency at once from now on; " +
-                "${formatDuration(pausedMillis)} of the ${formatDuration(policy.budgetMillis)} pause budget used"
+                "${formatDuration(pausedMillis)} of the ${formatDuration(policy.rateLimitBudgetMillis)} pause budget used"
         )
-        clock.sleep(pause.millis)
+        clock.pause(pause.millis)
         mutex.withLock { opened.complete(Unit) }
     }
 
@@ -90,13 +90,13 @@ internal class UploadGate(
     private fun nextPause(error: HttpPutResult.Error): Pause? {
         val requested = retryAfterMillis(error.retryAfter, clock.nowMillis())
         val pause = requested?.let { Pause(it, "Retry-After") } ?: Pause(backoff(error), "backoff")
-        val remaining = policy.budgetMillis - pausedMillis
+        val remaining = policy.rateLimitBudgetMillis - pausedMillis
         if (pause.millis > remaining) {
             exhaustion = if (requested != null) {
                 "the server's Retry-After of ${formatDuration(requested)} exceeds the " +
                     "${formatDuration(remaining)} left of the pause budget"
             } else {
-                "pause budget of ${formatDuration(policy.budgetMillis)} exhausted " +
+                "pause budget of ${formatDuration(policy.rateLimitBudgetMillis)} exhausted " +
                     "(${formatDuration(pausedMillis)} paused, last answer ${error.describe()})"
             }
             opened.complete(Unit)

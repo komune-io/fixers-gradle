@@ -1,16 +1,19 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import java.io.File
+import java.time.Duration
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.GradleException
+import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
@@ -23,19 +26,50 @@ class MavenRepositoryUploaderPacingTest {
     @TempDir
     lateinit var stagingDir: File
 
-    /** Virtual time: [sleep] moves it forward instead of waiting, and records each pause. */
+    /**
+     * Virtual time: waiting moves it forward instead of waiting. Records each shared [pauses] entry
+     * and each time an upload start was spaced to ([spacedUntil]).
+     */
     class FakeClock(start: Long = 0) : UploadClock {
         private val now = AtomicLong(start)
         val pauses = ConcurrentLinkedQueue<Long>()
-        val onSleep = ConcurrentLinkedQueue<() -> Unit>()
+        val spacedUntil = ConcurrentLinkedQueue<Long>()
+        val onPause = ConcurrentLinkedQueue<() -> Unit>()
 
         override fun nowMillis(): Long = now.get()
         override suspend fun sleep(millis: Long) {
-            pauses.add(millis)
-            onSleep.forEach { it() }
-            val target = now.get() + millis
-            now.accumulateAndGet(target, ::maxOf)
+            now.accumulateAndGet(now.get() + millis, ::maxOf)
             yield()
+        }
+        override suspend fun sleepUntil(epochMillis: Long) {
+            spacedUntil.add(epochMillis)
+            now.accumulateAndGet(epochMillis, ::maxOf)
+            yield()
+        }
+        override suspend fun pause(millis: Long) {
+            pauses.add(millis)
+            onPause.forEach { it() }
+            sleep(millis)
+        }
+    }
+
+    /** Counts the calls running at once, holding each until one more than [limit] join or 200 ms pass. */
+    private class ConcurrencyProbe(private val limit: Int) {
+        private val live = AtomicInteger(0)
+        val peak = AtomicInteger(0)
+
+        fun <T> measure(block: () -> T): T {
+            val current = live.incrementAndGet()
+            peak.updateAndGet { maxOf(it, current) }
+            val until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200)
+            while (live.get() <= limit && System.nanoTime() < until) Thread.sleep(2)
+            val joined = live.get()
+            peak.updateAndGet { maxOf(it, joined) }
+            try {
+                return block()
+            } finally {
+                live.decrementAndGet()
+            }
         }
     }
 
@@ -74,7 +108,7 @@ class MavenRepositoryUploaderPacingTest {
     fun `a 429 pauses every upload, not only the one that got it`() {
         val clock = FakeClock()
         val gateClosed = CountDownLatch(1)
-        clock.onSleep.add { gateClosed.countDown() }
+        clock.onPause.add { gateClosed.countDown() }
         val first429 = AtomicInteger(0)
         val client = RecordingClient(clock) { path, _ ->
             if (path == "a.jar" && first429.getAndIncrement() == 0) {
@@ -185,37 +219,52 @@ class MavenRepositoryUploaderPacingTest {
     @Test
     fun `after a 429 fewer uploads run at once`() {
         val clock = FakeClock()
-        // The four first calls are all in flight before the 429 is answered, and finish only once
-        // the pause began: a worker past the lowered limit then retires instead of taking a file.
+        val probe = ConcurrencyProbe(limit = 2)
         val firstWave = CountDownLatch(4)
-        val gateClosed = CountDownLatch(1)
-        clock.onSleep.add { gateClosed.countDown() }
-        val startedAfterPause = AtomicInteger(0)
-        val peakAfterPause = AtomicInteger(0)
         val calls = AtomicInteger(0)
         val client = HttpPutClient { _, _, _ ->
-            val call = calls.getAndIncrement()
-            val afterPause = clock.nowMillis() >= 30_000L
-            firstWave.countDown()
-            if (call == 0) {
+            if (calls.getAndIncrement() < 4) {
+                // Four uploads in flight, all refused: the limit halves, the workers past it retire.
+                firstWave.countDown()
                 firstWave.await(2, TimeUnit.SECONDS)
-                return@HttpPutClient HttpPutResult.Error(429, "error code: 1015")
-            }
-            if (call < 4) gateClosed.await(2, TimeUnit.SECONDS)
-            if (afterPause) peakAfterPause.updateAndGet { maxOf(it, startedAfterPause.incrementAndGet()) }
-            try {
-                Thread.sleep(20)
-                HttpPutResult.Success
-            } finally {
-                if (afterPause) startedAfterPause.decrementAndGet()
+                HttpPutResult.Error(429, "error code: 1015")
+            } else {
+                probe.measure { HttpPutResult.Success }
             }
         }
-        repeat(24) { createFile("artifact-$it.jar") }
+        repeat(8) { createFile("artifact-$it.jar") }
 
         val summary = uploader(client, clock).withConcurrency(4).upload()
 
-        assertThat(summary.uploaded).isEqualTo(24)
-        assertThat(peakAfterPause.get()).isBetween(1, 2)
+        assertThat(summary.uploaded).isEqualTo(8)
+        assertThat(clock.pauses).containsExactly(30_000L)
+        assertThat(probe.peak.get()).isBetween(1, 2)
+    }
+
+    @Test
+    fun `the metadata uploads run at the concurrency the artifacts left`() {
+        val clock = FakeClock()
+        val probe = ConcurrencyProbe(limit = 2)
+        val firstWave = CountDownLatch(4)
+        val calls = AtomicInteger(0)
+        val client = RecordingClient(clock) { path, _ ->
+            when {
+                path.substringAfterLast('/').startsWith("maven-metadata.xml") -> probe.measure { HttpPutResult.Success }
+                calls.getAndIncrement() < 4 -> {
+                    firstWave.countDown()
+                    firstWave.await(2, TimeUnit.SECONDS)
+                    HttpPutResult.Error(429, "error code: 1015")
+                }
+                else -> HttpPutResult.Success
+            }
+        }
+        repeat(4) { createFile("io/komune/m$it/1.0-SNAPSHOT/m$it-1.0-1.jar") }
+        repeat(6) { createFile("io/komune/m$it/1.0-SNAPSHOT/maven-metadata.xml") }
+
+        val summary = uploader(client, clock).withConcurrency(4).upload()
+
+        assertThat(summary.uploaded).isEqualTo(10)
+        assertThat(probe.peak.get()).isBetween(1, 2)
     }
 
     @Test
@@ -234,7 +283,7 @@ class MavenRepositoryUploaderPacingTest {
         createFile("io/komune/test/1.0-SNAPSHOT/maven-metadata.xml")
         createFile("io/komune/test/1.0-SNAPSHOT/maven-metadata.xml.sha1")
         createFile("io/komune/test/maven-metadata.xml")
-        val policy = PausePolicy(budgetMillis = 100_000L)
+        val policy = PausePolicy(rateLimitBudgetMillis = 100_000L)
 
         assertThatThrownBy { uploader(client, clock, policy).withConcurrency(1).upload() }
             .isInstanceOf(GradleException::class.java)
@@ -344,6 +393,299 @@ class MavenRepositoryUploaderPacingTest {
             assertThat(client.calls).describedAs("calls on HTTP $code").hasSize(1)
             assertThat(clock.pauses).describedAs("pauses on HTTP $code").isEmpty()
         }
+    }
+
+    @Test
+    fun `a Retry-After of 0 still pauses for the backoff`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, call ->
+            if (call == 0) HttpPutResult.Error(429, "slow down", retryAfter = "0") else HttpPutResult.Success
+        }
+        createFile("a.jar")
+
+        uploader(client, clock).upload()
+
+        assertThat(clock.pauses).containsExactly(30_000L)
+    }
+
+    @Test
+    fun `a Retry-After date already past still pauses for the backoff`() {
+        // Thu, 12 Nov 2026 01:27:45 GMT, a clock ahead of the server's
+        val clock = FakeClock(start = 1_794_446_865_000L)
+        val client = RecordingClient(clock) { _, call ->
+            if (call == 0) {
+                HttpPutResult.Error(429, "slow down", retryAfter = "Thu, 12 Nov 2026 01:00:00 GMT")
+            } else {
+                HttpPutResult.Success
+            }
+        }
+        createFile("a.jar")
+
+        uploader(client, clock).upload()
+
+        assertThat(clock.pauses).containsExactly(30_000L)
+    }
+
+    @Test
+    fun `a Retry-After too large to count in milliseconds fails at once`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, _ ->
+            HttpPutResult.Error(429, "slow down", retryAfter = "9223372036854776")
+        }
+        createFile("a.jar")
+
+        assertThatThrownBy { uploader(client, clock).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("Retry-After")
+
+        assertThat(clock.pauses).isEmpty()
+    }
+
+    @Test
+    fun `a 429 on a file's last attempt still pauses the others`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { path, _ ->
+            if (path == "a.jar") HttpPutResult.Error(429, "error code: 1015") else HttpPutResult.Success
+        }
+        createFile("a.jar")
+        createFile("b.jar")
+
+        assertThatThrownBy { uploader(client, clock).withConcurrency(1).withRetry(attempts = 1).upload() }
+            .isInstanceOf(GradleException::class.java)
+
+        assertThat(clock.pauses).containsExactly(30_000L)
+        assertThat(client.calls.single { it.path == "b.jar" }.at).isEqualTo(30_000L)
+    }
+
+    @Test
+    fun `a server that keeps failing with 5xx stops the run within the 5xx budget`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, _ -> HttpPutResult.Error(503, "Service Unavailable") }
+        createFile("a.jar")
+        createFile("b.jar")
+
+        assertThatThrownBy { uploader(client, clock).withConcurrency(1).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("5xx and I/O pause budget of 2m0s exhausted")
+            .hasMessageContaining("1 failed, 1 not attempted")
+
+        // 1+2+4+8+16+32 s = 63 s fit in 2 min; the seventh pause (64 s) would not.
+        assertThat(clock.pauses).containsExactly(1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 32_000L)
+        assertThat(clock.nowMillis()).isEqualTo(63_000L)
+    }
+
+    @Test
+    fun `uploads to a spaced repository never start closer than the interval`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, _ -> HttpPutResult.Success }
+        repeat(10) { createFile("artifact-$it.jar") }
+
+        uploader(client, clock).withConcurrency(10).withMinRequestInterval(250).upload()
+
+        assertThat(client.calls).hasSize(10)
+        assertThat(clock.spacedUntil.sorted()).containsExactlyElementsOf((1..9).map { it * 250L })
+    }
+
+    @Test
+    fun `a 429 widens the spacing`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, call ->
+            if (call == 0) HttpPutResult.Error(429, "error code: 1015") else HttpPutResult.Success
+        }
+        listOf("a.jar", "b.jar", "c.jar").forEach(::createFile)
+
+        uploader(client, clock).withConcurrency(1).withMinRequestInterval(250).upload()
+
+        assertThat(clock.pauses).containsExactly(30_000L)
+        assertThat(clock.spacedUntil).containsExactly(30_500L, 31_000L)
+    }
+
+    @Test
+    fun `a 429 spaces an unspaced repository too`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, call ->
+            if (call == 0) HttpPutResult.Error(429, "error code: 1015") else HttpPutResult.Success
+        }
+        listOf("a.jar", "b.jar").forEach(::createFile)
+
+        uploader(client, clock).withConcurrency(1).upload()
+
+        assertThat(clock.spacedUntil).containsExactly(30_250L)
+    }
+
+    @Test
+    fun `a small upload is slowed by the spacing and nothing else`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, _ -> HttpPutResult.Success }
+        listOf("a.jar", "b.jar", "c.jar").forEach(::createFile)
+
+        uploader(client, clock).withConcurrency(10).withMinRequestInterval(250).upload()
+
+        assertThat(clock.spacedUntil.sorted()).containsExactly(250L, 500L)
+        assertThat(clock.pauses).isEmpty()
+        assertThat(clock.nowMillis()).isEqualTo(500L)
+    }
+
+    @Test
+    fun `an unspaced repository sends without waiting`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { _, _ -> HttpPutResult.Success }
+        repeat(5) { createFile("artifact-$it.jar") }
+
+        uploader(client, clock).withConcurrency(10).upload()
+
+        assertThat(clock.spacedUntil).isEmpty()
+        assertThat(clock.nowMillis()).isZero()
+    }
+
+    @Test
+    fun `version-level metadata goes first, and artifact-level metadata waits for it`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { path, _ ->
+            if (path.endsWith("1.0-SNAPSHOT/maven-metadata.xml")) HttpPutResult.Error(403, "Forbidden") else HttpPutResult.Success
+        }
+        createFile("io/komune/a/1.0-SNAPSHOT/a-1.0-1.jar")
+        createFile("io/komune/a/1.0-SNAPSHOT/maven-metadata.xml")
+        createFile("io/komune/a/maven-metadata.xml")
+
+        assertThatThrownBy { uploader(client, clock).withConcurrency(3).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("partially published: 0 of 2 maven-metadata file(s) uploaded")
+
+        assertThat(client.calls.map { it.path }).doesNotContain("io/komune/a/maven-metadata.xml")
+    }
+
+    @Test
+    fun `for a fixed version the failure says the uploaded files are already visible`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { path, _ ->
+            if (path.endsWith(".pom")) HttpPutResult.Error(400, "Bad Request") else HttpPutResult.Success
+        }
+        createFile("io/komune/test/1.0.0/test-1.0.0.jar")
+        createFile("io/komune/test/1.0.0/test-1.0.0.pom")
+        createFile("io/komune/test/maven-metadata.xml")
+
+        assertThatThrownBy { uploader(client, clock).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("No maven-metadata.xml was uploaded")
+            .hasMessageContaining("can already be fetched by path")
+    }
+
+    @Test
+    fun `zero concurrency is refused rather than reported as a clean upload`() {
+        createFile("a.jar")
+
+        assertThatThrownBy { uploader(HttpPutClient { _, _, _ -> HttpPutResult.Success }, FakeClock()).withConcurrency(0) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
+    fun `a failure that outlived the pause is retried at once, and pauses again if it repeats`() {
+        val clock = FakeClock()
+        val aCalls = AtomicInteger(0)
+        val bCalls = AtomicInteger(0)
+        val bInFlight = CountDownLatch(1)
+        val client = RecordingClient(clock) { path, _ ->
+            if (path == "a.jar") {
+                if (aCalls.getAndIncrement() == 0) {
+                    bInFlight.await(2, TimeUnit.SECONDS)
+                    HttpPutResult.Error(429, "error code: 1015")
+                } else {
+                    HttpPutResult.Success
+                }
+            } else {
+                val call = bCalls.getAndIncrement()
+                if (call == 0) {
+                    bInFlight.countDown()
+                    // In flight for the whole pause: its 429 arrives once the pause is over.
+                    val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(2)
+                    while (clock.nowMillis() < 30_000L && System.nanoTime() < until) Thread.sleep(2)
+                }
+                if (call < 2) HttpPutResult.Error(429, "error code: 1015") else HttpPutResult.Success
+            }
+        }
+        createFile("a.jar")
+        createFile("b.jar")
+
+        val summary = uploader(client, clock).withConcurrency(2).upload()
+
+        assertThat(summary.uploaded).isEqualTo(2)
+        assertThat(clock.pauses).hasSize(2)
+        assertThat(clock.pauses.first()).isEqualTo(30_000L)
+        // b's late 429 waits for no pause of its own: it goes at one of the next two spaced starts.
+        val bStarts = client.calls.filter { it.path == "b.jar" }.map { it.at }
+        assertThat(bStarts.first()).isZero()
+        assertThat(bStarts[1]).isBetween(30_000L, 30_250L)
+    }
+
+    @Test
+    fun `an unexpected error cancels the uploads waiting on a pause`() {
+        val pauseStarted = CountDownLatch(1)
+        val bInFlight = CountDownLatch(1)
+        val clock = object : UploadClock {
+            override fun nowMillis(): Long = 0
+            override suspend fun sleep(millis: Long) = delay(millis)
+            override suspend fun pause(millis: Long) {
+                pauseStarted.countDown()
+                delay(TimeUnit.MINUTES.toMillis(10))
+            }
+        }
+        val client = HttpPutClient { url, _, _ ->
+            if (url.endsWith("/a.jar")) {
+                bInFlight.await(2, TimeUnit.SECONDS)
+                HttpPutResult.Error(429, "error code: 1015")
+            } else {
+                bInFlight.countDown()
+                pauseStarted.await(2, TimeUnit.SECONDS)
+                error("boom")
+            }
+        }
+        createFile("a.jar")
+        createFile("b.jar")
+
+        assertTimeoutPreemptively(Duration.ofSeconds(10)) {
+            assertThatThrownBy { uploader(client, clock).withConcurrency(2).upload() }
+                .isInstanceOf(IllegalStateException::class.java)
+                .hasMessage("boom")
+        }
+    }
+
+    @Test
+    fun `the budget running out while several uploads are in flight ends the run`() {
+        val clock = FakeClock()
+        val firstWave = CountDownLatch(3)
+        val client = RecordingClient(clock) { _, call ->
+            if (call < 3) {
+                firstWave.countDown()
+                firstWave.await(2, TimeUnit.SECONDS)
+            }
+            HttpPutResult.Error(429, "error code: 1015")
+        }
+        repeat(9) { createFile("artifact-$it.jar") }
+        val policy = PausePolicy(rateLimitBudgetMillis = 100_000L)
+
+        assertTimeoutPreemptively(Duration.ofSeconds(10)) {
+            assertThatThrownBy { uploader(client, clock, policy).withConcurrency(3).upload() }
+                .isInstanceOf(GradleException::class.java)
+                .hasMessageContaining("upload failed for 9 file(s): 0 of 9 file(s) uploaded")
+        }
+        assertThat(clock.pauses).containsExactly(30_000L, 60_000L)
+    }
+
+    @Test
+    fun `a file that keeps failing gives up alone while the others go on`() {
+        val clock = FakeClock()
+        val client = RecordingClient(clock) { path, _ ->
+            if (path == "x.jar") HttpPutResult.Error(503, "Service Unavailable") else HttpPutResult.Success
+        }
+        listOf("a.jar", "b.jar", "c.jar", "x.jar", "maven-metadata.xml").forEach(::createFile)
+
+        assertThatThrownBy { uploader(client, clock).withConcurrency(2).withRetry(attempts = 3).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("3 of 5 file(s) uploaded, 0 already existed, 1 failed, 1 not attempted")
+            .hasMessageContaining("x.jar → HTTP 503")
+
+        assertThat(client.calls.count { it.path == "x.jar" }).isEqualTo(3)
     }
 
     private fun createFile(relativePath: String): File {

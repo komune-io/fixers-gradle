@@ -46,6 +46,7 @@ object MavenRepositoryUploader {
         private var pausePolicy: PausePolicy = PausePolicy()
         private var clock: UploadClock = UploadClock.SYSTEM
         private var random: Random = Random.Default
+        private var minRequestIntervalMillis: Long = 0
 
         fun from(dir: File) = apply { stagingDir = dir }
         fun atUrl(url: String) = apply { baseUrl = url }
@@ -65,6 +66,9 @@ object MavenRepositoryUploader {
         }
 
         internal fun withPausePolicy(policy: PausePolicy) = apply { pausePolicy = policy }
+
+        /** The least time between two upload starts; `0` sends as fast as the concurrency allows. */
+        fun withMinRequestInterval(millis: Long) = apply { minRequestIntervalMillis = millis }
         internal fun withClock(uploadClock: UploadClock, jitter: Random = Random.Default) =
             apply { clock = uploadClock; random = jitter }
 
