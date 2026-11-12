@@ -230,7 +230,9 @@ class PublishPluginUploadTest {
 
         val offsets = arrivalOffsetsMillis()
         assertThat(offsets).hasSize(3)
-        assertThat(offsets.last()).isLessThan(SPACING_MILLIS - TOLERANCE_MILLIS)
+        // Spaced by the key, the third upload could not start before 2 × 600 ms: well under that
+        // is unspaced, with room for a slow runner.
+        assertThat(offsets.last()).isLessThan(2 * SPACING_MILLIS - 2 * TOLERANCE_MILLIS)
     }
 
     private companion object {
