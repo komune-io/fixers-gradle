@@ -10,6 +10,7 @@ This document provides comprehensive documentation for the build-composite confi
 - [Configuration Models](#configuration-models)
   - [Bundle](#bundle)
   - [JDK](#jdk)
+  - [StrictCompilation](#strictcompilation)
   - [NPM](#npm)
   - [Kt2Ts](#kt2ts)
   - [Publication](#publication)
@@ -74,6 +75,11 @@ fixers {
     version.set(17)
   }
 
+  // Strict compilation: the test compilations may ignore return values
+  strictCompilation {
+    returnValueCheckerInTests.set(false)
+  }
+
   // NPM configuration
   npm {
     publish.set(true)
@@ -134,6 +140,7 @@ The `fixers` extension provides several configuration methods:
 
 - `bundle(Action<Bundle>)`: Configure project metadata
 - `jdk(Action<Jdk>)`: Configure JDK settings
+- `strictCompilation(Action<StrictCompilation>)`: Exempt the test compilations from the return value checker
 - `npm(Action<Npm>)`: Configure NPM package publishing
 - `kt2Ts(Action<Kt2Ts>)`: Configure Kotlin to TypeScript generation
 - `pom(Action<MavenPom>)`: Configure Maven publication
@@ -211,6 +218,26 @@ The `Jdk` class contains configuration for JDK version.
 fixers {
     jdk {
         version.set(11)
+    }
+}
+```
+
+### StrictCompilation
+
+The `StrictCompilation` class holds what the strict Kotlin compilation lets a repository decide for itself. Every compilation fails on an ignored return value (`-Xreturn-value-checker=full`), and a compile task given its own value (`check`, `disable`) refuses to run: a breaking change for a build that passed one. A repository whose tests call functions for their effect can exempt its test compilations, a decision for the whole repository, read from the root project (a `strictCompilation {}` in a subproject is ignored). Production code stays checked, and so do test fixtures, which other modules call. `-Wextra`, `-Xreport-all-warnings` and warnings as errors stay on in the tests. The project property is read only when the root project applies the fixers config plugin.
+
+#### Properties
+
+| Property | Environment Variable | Project Property | Default Value | Description |
+|----------|---------------------|------------------|---------------|-------------|
+| returnValueCheckerInTests | — | fixers.strictCompilation.returnValueCheckerInTests | true | Whether the test compilations fail on an ignored return value: the compilations named `test` (JVM `test`; `jvmTest`, `jsTest` with `commonTest` in a multiplatform module) and those of a JVM test suite. A test source set named otherwise (Android `debugUnitTest`, a hand-made one) stays checked. `false` compiles them with `-Xreturn-value-checker=disable` |
+
+#### Example
+
+```kotlin
+fixers {
+    strictCompilation {
+        returnValueCheckerInTests = false
     }
 }
 ```

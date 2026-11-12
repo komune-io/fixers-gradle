@@ -7,10 +7,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.jvm.JvmTestSuite
 import org.gradle.api.tasks.testing.Test as TestTask
 import org.gradle.api.tasks.testing.junitplatform.JUnitPlatformOptions
 import org.gradle.jvm.tasks.Jar
 import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.testing.base.TestingExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -65,13 +67,58 @@ class JvmPluginTest {
     }
 
     @Test
-    fun `should treat warnings as errors and check ignored return values`() {
+    fun `should treat warnings as errors with the extra checkers`() {
         val project = jvmProject()
 
         val kotlin = project.extensions.getByType(KotlinJvmProjectExtension::class.java)
         assertThat(kotlin.compilerOptions.allWarningsAsErrors.get()).isTrue()
-        assertThat(kotlin.compilerOptions.freeCompilerArgs.get())
-            .contains("-Xreturn-value-checker=full", "-Xreport-all-warnings")
+        assertThat(kotlin.compilerOptions.freeCompilerArgs.get()).contains("-Wextra", "-Xreport-all-warnings")
+    }
+
+    @Test
+    fun `should check ignored return values in every compilation by default`() {
+        val project = jvmProject()
+        project.plugins.apply("java-test-fixtures")
+
+        listOf("compileKotlin", "compileTestKotlin", "compileTestFixturesKotlin").forEach { name ->
+            val compile = project.tasks.getByName(name) as KotlinCompile
+            assertThat(compile.compilerOptions.freeCompilerArgs.get()).describedAs(name)
+                .contains("-Xreturn-value-checker=full", "-Wextra", "-Xreport-all-warnings")
+                .doesNotContain("-Xreturn-value-checker=disable")
+        }
+    }
+
+    @Test
+    fun `should leave ignored return values to the test compilations a repository exempts`() {
+        val project = jvmProject { config -> config.strictCompilation.returnValueCheckerInTests.set(false) }
+        project.plugins.apply("java-test-fixtures")
+        project.extensions.getByType(TestingExtension::class.java).suites
+            .register("integrationTest", JvmTestSuite::class.java)
+
+        listOf("compileTestKotlin", "compileIntegrationTestKotlin").forEach { name ->
+            val compile = project.tasks.getByName(name) as KotlinCompile
+            assertThat(compile.compilerOptions.allWarningsAsErrors.get()).isTrue()
+            assertThat(compile.compilerOptions.freeCompilerArgs.get()).describedAs(name)
+                .contains("-Xreturn-value-checker=disable", "-Wextra", "-Xreport-all-warnings")
+                .doesNotContain("-Xreturn-value-checker=full")
+        }
+        listOf("compileKotlin", "compileTestFixturesKotlin").forEach { name ->
+            val compile = project.tasks.getByName(name) as KotlinCompile
+            assertThat(compile.compilerOptions.freeCompilerArgs.get()).describedAs(name)
+                .contains("-Xreturn-value-checker=full")
+                .doesNotContain("-Xreturn-value-checker=disable")
+        }
+    }
+
+    @Test
+    fun `should refuse a compile task given another return value checker`() {
+        val project = jvmProject()
+        val compile = project.tasks.getByName("compileKotlin") as KotlinCompile
+        compile.compilerOptions.freeCompilerArgs.add("-Xreturn-value-checker=disable")
+
+        assertThatThrownBy { compile.actions.forEach { it.execute(compile) } }
+            .hasMessageContaining(":jvm-lib:compileKotlin changes the return value checker fixers sets")
+            .hasMessageContaining("-Xreturn-value-checker=disable")
     }
 
     @Test

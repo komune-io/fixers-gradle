@@ -147,6 +147,22 @@ class ConfigModelsTest {
     }
 
     @Nested
+    inner class StrictCompilationModelTest {
+
+        @Test
+        fun `should check return values in tests by default`() {
+            assertThat(StrictCompilation(project).returnValueCheckerInTests.get()).isTrue()
+        }
+
+        @Test
+        fun `should read the project property`() {
+            project.extensions.extraProperties["fixers.strictCompilation.returnValueCheckerInTests"] = "false"
+
+            assertThat(StrictCompilation(project).returnValueCheckerInTests.get()).isFalse()
+        }
+    }
+
+    @Nested
     inner class PublicationModelTest {
 
         @Test
