@@ -101,13 +101,49 @@ class DetektConfigurationTest {
     }
 
     @Test
-    fun `should refuse a detekt configuration of the project`(@TempDir dir: File) {
-        File(dir, "detekt.yml").writeText("build:\n  maxIssues: 0\n")
+    fun `should read the detekt configuration of the root after the fixers one in every detekt task`(
+        @TempDir dir: File
+    ) {
+        File(dir, "detekt.yml").writeText("style:\n  MagicNumber:\n    active: false\n")
         val (root, _) = rootWithConfig(dir)
+        val projectConfig = root.file("detekt.yml")
+        val child = ProjectBuilder.builder()
+            .withParent(root)
+            .withName("child")
+            .withProjectDir(File(dir, "child").apply { mkdirs() })
+            .build()
 
-        assertThatThrownBy { root.configureDetekt() }
-            .hasMessageContaining("detekt.yml")
-            .hasMessageContaining("fixers ships the Detekt configuration")
+        root.configureDetekt()
+        child.tasks.register("detektJvmMain", Detekt::class.java)
+
+        val fixersConfig = root.layout.buildDirectory.file("fixers/detekt.yml").get().asFile
+        assertThat(root.extensions.getByType(DetektExtension::class.java).config.files.toList())
+            .containsExactly(fixersConfig, projectConfig)
+        val tasks = listOf(root, child).flatMap { project -> project.tasks.withType(Detekt::class.java) }
+        assertThat(tasks.map { it.path }).contains(":detekt", ":child:detekt", ":child:detektJvmMain")
+        tasks.forEach { task ->
+            assertThat(task.config.files.toList()).containsExactly(fixersConfig, projectConfig)
+            task.actions.first().execute(task)
+        }
+    }
+
+    @Test
+    fun `should refuse a configuration a build script adds next to the detekt configuration of the root`(
+        @TempDir dir: File
+    ) {
+        File(dir, "detekt.yml").writeText("style:\n  MagicNumber:\n    active: false\n")
+        val (root, _) = rootWithConfig(dir)
+        val projectConfig = root.file("detekt.yml")
+
+        root.configureDetekt()
+
+        val task = root.tasks.withType(Detekt::class.java).getByName("detekt")
+        task.config.from(root.file("detekt-other.yml"))
+        assertThatThrownBy { task.actions.first().execute(task) }
+            .hasMessageContaining(":detekt changes what fixers sets on Detekt: config")
+        task.config.setFrom(projectConfig, root.layout.buildDirectory.file("fixers/detekt.yml"))
+        assertThatThrownBy { task.actions.first().execute(task) }
+            .hasMessageContaining(":detekt changes what fixers sets on Detekt: config")
     }
 
     @Test

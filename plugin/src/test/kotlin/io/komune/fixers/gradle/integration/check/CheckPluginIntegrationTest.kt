@@ -54,6 +54,215 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
     }
 
     /**
+     * A `detekt.yml` at the root of the build holds the exceptions the repository decides, read by
+     * every Detekt task after the fixers configuration.
+     */
+    @Nested
+    inner class RepositoryDetektConfigurationTests {
+
+        private val disableMagicNumber = """
+            style:
+              MagicNumber:
+                active: false
+
+        """.trimIndent()
+
+        private fun jvmBuild(applyKotlin: Boolean = true) = """
+            plugins {
+                kotlin("jvm") version "$TEST_KOTLIN_VERSION"${if (applyKotlin) "" else " apply false"}
+                id("io.komune.fixers.gradle.config")
+                id("io.komune.fixers.gradle.check")
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+        """.trimIndent()
+
+        private fun writeMagicNumberSource(directory: String, name: String, packageName: String = "com.example") =
+            createFile(
+                relativePath = "$directory/$name.kt",
+                content = """
+                    package $packageName
+
+                    internal class $name {
+                        fun scaled(width: Int): Int = width * 37
+                    }
+
+                """.trimIndent(),
+            )
+
+        @Test
+        fun `should pass a rule the root detekt yml disables, and fail it again once re-enabled`() {
+            writeBuildFile(jvmBuild())
+            writeMagicNumberSource(directory = "src/main/kotlin/com/example", name = "Area")
+
+            val withoutFile = runGradleAndFail("detektMain")
+            assertThat(withoutFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(withoutFile.output).contains("MagicNumber").doesNotContain("on top of the fixers configuration")
+
+            val projectConfig = createFile(relativePath = "detekt.yml", content = disableMagicNumber)
+            val withFile = runGradle("detektMain")
+            assertThat(withFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+            assertThat(withFile.output)
+                .containsOnlyOnce("Detekt reads ${projectConfig.canonicalFile} on top of the fixers configuration.")
+
+            projectConfig.writeText(disableMagicNumber.replace(oldValue = "active: false", newValue = "active: true"))
+            val reEnabled = runGradleAndFail("detektMain")
+            assertThat(reEnabled.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(reEnabled.output).contains("MagicNumber")
+        }
+
+        @Test
+        fun `should let the root detekt yml win over a key the fixers configuration sets`() {
+            writeBuildFile(jvmBuild())
+            createFile(
+                relativePath = "src/main/kotlin/com/example/Undocumented.kt",
+                content = """
+                    package com.example
+
+                    class Undocumented
+
+                """.trimIndent(),
+            )
+
+            val withoutFile = runGradle("detektMain")
+            assertThat(withoutFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            // The fixers configuration switches this rule off.
+            createFile(
+                relativePath = "detekt.yml",
+                content = """
+                    comments:
+                      UndocumentedPublicClass:
+                        active: true
+
+                """.trimIndent(),
+            )
+            val withFile = runGradleAndFail("detektMain")
+            assertThat(withFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(withFile.output).contains("[UndocumentedPublicClass]")
+        }
+
+        @Test
+        fun `should apply the detekt yml example of the README`() {
+            val readme = File("../README.md").readText()
+            val example = Regex(
+                pattern = """```yaml\n(# detekt.yml, at the root of the build\n.*?)```""",
+                option = RegexOption.DOT_MATCHES_ALL,
+            ).find(readme)
+            assertThat(example).describedAs("the detekt.yml example of the README").isNotNull
+            writeBuildFile(jvmBuild())
+            val parameters = (1..8).joinToString { index -> "p$index: Int" }
+            val sum = (1..8).joinToString(separator = " + ") { index -> "p$index" }
+            createFile(
+                relativePath = "src/main/kotlin/com/example/Command.kt",
+                content = """
+                    |package com.example
+                    |
+                    |internal class Command($parameters) {
+                    |    val total: Int = $sum
+                    |}
+                    |
+                """.trimMargin(),
+            )
+            // Each line keeps the margin and indentation of the raw string it lands in.
+            val steps = (1..70).joinToString(separator = "\n" + " ".repeat(n = 20)) { index ->
+                """|        steps.add("step $index")"""
+            }
+            createFile(
+                relativePath = "src/main/kotlin/com/example/migration/Steps.kt",
+                content = """
+                    |package com.example.migration
+                    |
+                    |internal class Steps {
+                    |    fun all(): List<String> {
+                    |        val steps = mutableListOf<String>()
+                    $steps
+                    |        return steps
+                    |    }
+                    |}
+                    |
+                """.trimMargin(),
+            )
+
+            val withoutFile = runGradleAndFail("detektMain")
+            assertThat(withoutFile.output).contains("[LongParameterList]").contains("[LongMethod]")
+
+            createFile(relativePath = "detekt.yml", content = example!!.groupValues[1])
+            val withFile = runGradle("detektMain")
+            assertThat(withFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        }
+
+        @Test
+        fun `should exclude a path from a rule in a subproject`() {
+            settingsFile.appendText("""
+
+                include("subproject")
+            """.trimIndent())
+            writeBuildFile(jvmBuild(applyKotlin = false))
+            createFile(
+                relativePath = "subproject/build.gradle.kts",
+                content = """
+                    plugins {
+                        kotlin("jvm")
+                    }
+
+                    repositories {
+                        mavenCentral()
+                    }
+
+                """.trimIndent(),
+            )
+            writeMagicNumberSource(
+                directory = "subproject/src/main/kotlin/com/example/legacy",
+                name = "Legacy",
+                packageName = "com.example.legacy",
+            )
+            createFile(
+                relativePath = "detekt.yml",
+                content = """
+                    style:
+                      MagicNumber:
+                        excludes:
+                          - '**/legacy/**'
+
+                """.trimIndent(),
+            )
+
+            val excluded = runGradle(":subproject:detektMain")
+            assertThat(excluded.task(":subproject:detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            writeMagicNumberSource(directory = "subproject/src/main/kotlin/com/example", name = "Area")
+            val outside = runGradleAndFail(":subproject:detektMain")
+            assertThat(outside.task(":subproject:detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(outside.output).contains("MagicNumber").contains("Area.kt")
+        }
+
+        @Test
+        fun `should refuse a configuration file a build script adds`() {
+            writeBuildFile(jvmBuild() + """
+
+                // After the check plugin's own configuration, which would otherwise replace it.
+                gradle.projectsEvaluated {
+                    tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+                        config.from(file("other.yml"))
+                    }
+                }
+            """.trimIndent())
+            writeMagicNumberSource(directory = "src/main/kotlin/com/example", name = "Sample")
+            createFile(relativePath = "detekt.yml", content = disableMagicNumber)
+            createFile(relativePath = "other.yml", content = disableMagicNumber)
+
+            val result = runGradleAndFail("detektMain")
+
+            assertThat(result.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(result.output).contains(":detektMain changes what fixers sets on Detekt: config")
+        }
+    }
+
+    /**
      * Test that the SonarQube plugin is applied and configured correctly.
      *
      * Note: This test only verifies that the SonarQube plugin is applied,
