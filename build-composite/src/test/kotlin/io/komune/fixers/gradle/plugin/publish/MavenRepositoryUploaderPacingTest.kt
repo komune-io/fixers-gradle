@@ -624,7 +624,8 @@ class MavenRepositoryUploaderPacingTest {
     @Test
     fun `an unexpected error cancels the uploads waiting on a pause`() {
         val pauseStarted = CountDownLatch(1)
-        val bInFlight = CountDownLatch(1)
+        val othersInFlight = CountDownLatch(2)
+        val cRefused = CountDownLatch(1)
         val clock = object : UploadClock {
             override fun nowMillis(): Long = 0
             override suspend fun sleep(millis: Long) = delay(millis)
@@ -633,21 +634,32 @@ class MavenRepositoryUploaderPacingTest {
                 delay(TimeUnit.MINUTES.toMillis(10))
             }
         }
+        // a's 429 starts a long pause; c's 429 lands during it, so c's worker parks on the shut
+        // gate; then b fails unexpectedly: both the pauser and the parked worker must be cancelled.
         val client = HttpPutClient { url, _, _ ->
-            if (url.endsWith("/a.jar")) {
-                bInFlight.await(2, TimeUnit.SECONDS)
-                HttpPutResult.Error(429, "error code: 1015")
-            } else {
-                bInFlight.countDown()
-                pauseStarted.await(2, TimeUnit.SECONDS)
-                error("boom")
+            when {
+                url.endsWith("/a.jar") -> {
+                    othersInFlight.await(2, TimeUnit.SECONDS)
+                    HttpPutResult.Error(429, "error code: 1015")
+                }
+                url.endsWith("/c.jar") -> {
+                    othersInFlight.countDown()
+                    pauseStarted.await(2, TimeUnit.SECONDS)
+                    cRefused.countDown()
+                    HttpPutResult.Error(429, "error code: 1015")
+                }
+                else -> {
+                    othersInFlight.countDown()
+                    cRefused.await(2, TimeUnit.SECONDS)
+                    Thread.sleep(PARK_MARGIN_MILLIS)
+                    error("boom")
+                }
             }
         }
-        createFile("a.jar")
-        createFile("b.jar")
+        listOf("a.jar", "b.jar", "c.jar").forEach(::createFile)
 
         assertTimeoutPreemptively(Duration.ofSeconds(10)) {
-            assertThatThrownBy { uploader(client, clock).withConcurrency(2).upload() }
+            assertThatThrownBy { uploader(client, clock).withConcurrency(3).upload() }
                 .isInstanceOf(IllegalStateException::class.java)
                 .hasMessage("boom")
         }
@@ -736,5 +748,10 @@ class MavenRepositoryUploaderPacingTest {
         file.parentFile.mkdirs()
         file.writeText("test-content")
         return file
+    }
+
+    private companion object {
+        // Time for a worker whose 429 just landed to reach the shut gate and park on it.
+        const val PARK_MARGIN_MILLIS = 200L
     }
 }
