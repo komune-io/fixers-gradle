@@ -115,6 +115,87 @@ class CheckPluginIntegrationTest : BaseIntegrationTest() {
         }
 
         @Test
+        fun `should let the root detekt yml win over a key the fixers configuration sets`() {
+            writeBuildFile(jvmBuild())
+            createFile(
+                relativePath = "src/main/kotlin/com/example/Undocumented.kt",
+                content = """
+                    package com.example
+
+                    class Undocumented
+
+                """.trimIndent(),
+            )
+
+            val withoutFile = runGradle("detektMain")
+            assertThat(withoutFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            // The fixers configuration switches this rule off.
+            createFile(
+                relativePath = "detekt.yml",
+                content = """
+                    comments:
+                      UndocumentedPublicClass:
+                        active: true
+
+                """.trimIndent(),
+            )
+            val withFile = runGradleAndFail("detektMain")
+            assertThat(withFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.FAILED)
+            assertThat(withFile.output).contains("[UndocumentedPublicClass]")
+        }
+
+        @Test
+        fun `should apply the detekt yml example of the README`() {
+            val readme = File("../README.md").readText()
+            val example = Regex(
+                pattern = """```yaml\n(# detekt.yml, at the root of the build\n.*?)```""",
+                option = RegexOption.DOT_MATCHES_ALL,
+            ).find(readme)
+            assertThat(example).describedAs("the detekt.yml example of the README").isNotNull
+            writeBuildFile(jvmBuild())
+            val parameters = (1..8).joinToString { index -> "p$index: Int" }
+            val sum = (1..8).joinToString(separator = " + ") { index -> "p$index" }
+            createFile(
+                relativePath = "src/main/kotlin/com/example/Command.kt",
+                content = """
+                    |package com.example
+                    |
+                    |internal class Command($parameters) {
+                    |    val total: Int = $sum
+                    |}
+                    |
+                """.trimMargin(),
+            )
+            // Each line keeps the margin and indentation of the raw string it lands in.
+            val steps = (1..70).joinToString(separator = "\n" + " ".repeat(n = 20)) { index ->
+                """|        steps.add("step $index")"""
+            }
+            createFile(
+                relativePath = "src/main/kotlin/com/example/migration/Steps.kt",
+                content = """
+                    |package com.example.migration
+                    |
+                    |internal class Steps {
+                    |    fun all(): List<String> {
+                    |        val steps = mutableListOf<String>()
+                    $steps
+                    |        return steps
+                    |    }
+                    |}
+                    |
+                """.trimMargin(),
+            )
+
+            val withoutFile = runGradleAndFail("detektMain")
+            assertThat(withoutFile.output).contains("[LongParameterList]").contains("[LongMethod]")
+
+            createFile(relativePath = "detekt.yml", content = example!!.groupValues[1])
+            val withFile = runGradle("detektMain")
+            assertThat(withFile.task(":detektMain")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        }
+
+        @Test
         fun `should exclude a path from a rule in a subproject`() {
             settingsFile.appendText("""
 
