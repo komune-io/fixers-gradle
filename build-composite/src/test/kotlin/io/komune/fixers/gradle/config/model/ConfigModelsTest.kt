@@ -147,6 +147,32 @@ class ConfigModelsTest {
     }
 
     @Nested
+    inner class StrictCompilationModelTest {
+
+        @Test
+        fun `should check return values in tests by default`() {
+            assertThat(StrictCompilation(project).returnValueCheckerInTests.get()).isTrue()
+        }
+
+        @Test
+        fun `should read the project property`() {
+            project.extensions.extraProperties["fixers.strictCompilation.returnValueCheckerInTests"] = "false"
+
+            assertThat(StrictCompilation(project).returnValueCheckerInTests.get()).isFalse()
+        }
+
+        @Test
+        fun `should keep explicitly set value on merge`() {
+            val source = StrictCompilation(project).apply { returnValueCheckerInTests.set(true) }
+            val target = StrictCompilation(project).apply { returnValueCheckerInTests.set(false) }
+
+            target.mergeFrom(source)
+
+            assertThat(target.returnValueCheckerInTests.get()).isFalse()
+        }
+    }
+
+    @Nested
     inner class PublicationModelTest {
 
         @Test

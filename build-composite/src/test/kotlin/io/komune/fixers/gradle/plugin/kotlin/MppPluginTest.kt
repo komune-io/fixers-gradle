@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.junit.jupiter.api.Test
 
@@ -151,6 +152,25 @@ class MppPluginTest {
         listOf(compileJvm.compilerOptions, compileJs.compilerOptions).forEach { options ->
             assertThat(options.allWarningsAsErrors.get()).isTrue()
             assertThat(options.freeCompilerArgs.get()).contains("-Xreturn-value-checker=full", "-Xreport-all-warnings")
+        }
+    }
+
+    @Test
+    fun `should leave ignored return values to the test compilations of every target a repository exempts`() {
+        val project = mppProject { config -> config.strictCompilation.returnValueCheckerInTests.set(false) }
+
+        listOf("compileTestKotlinJvm", "compileTestKotlinJs").forEach { name ->
+            val compile = project.tasks.getByName(name) as KotlinCompilationTask<*>
+            assertThat(compile.compilerOptions.allWarningsAsErrors.get()).isTrue()
+            assertThat(compile.compilerOptions.freeCompilerArgs.get()).describedAs(name)
+                .contains("-Xreturn-value-checker=disable", "-Wextra", "-Xreport-all-warnings")
+                .doesNotContain("-Xreturn-value-checker=full")
+        }
+        listOf("compileKotlinJvm", "compileKotlinJs").forEach { name ->
+            val compile = project.tasks.getByName(name) as KotlinCompilationTask<*>
+            assertThat(compile.compilerOptions.freeCompilerArgs.get()).describedAs(name)
+                .contains("-Xreturn-value-checker=full")
+                .doesNotContain("-Xreturn-value-checker=disable")
         }
     }
 

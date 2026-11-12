@@ -9,6 +9,7 @@ import io.komune.fixers.gradle.config.model.Npm
 import io.komune.fixers.gradle.config.model.Publication
 import io.komune.fixers.gradle.config.model.PublishConfig
 import io.komune.fixers.gradle.config.model.Sonar
+import io.komune.fixers.gradle.config.model.StrictCompilation
 import io.komune.fixers.gradle.config.model.sonarCloud
 import org.gradle.api.Action
 import org.gradle.api.GradleException
@@ -40,7 +41,8 @@ fun PluginDependenciesSpec.fixers(module: String): PluginDependencySpec = id("io
  * for property convention mapping and extension instantiation. This is a common pattern
  * in Gradle plugin development, even when the class doesn't have explicit abstract members.
  */
-@Suppress("UnnecessaryAbstractClass", "AbstractClassCanBeConcreteClass") // Gradle subclasses it, see above
+// Gradle subclasses it, see above; and the DSL has one function per block.
+@Suppress("UnnecessaryAbstractClass", "AbstractClassCanBeConcreteClass", "TooManyFunctions")
 abstract class ConfigExtension(
     val project: Project
 ) {
@@ -52,6 +54,8 @@ abstract class ConfigExtension(
     var kt2Ts: Kt2Ts = Kt2Ts(project)
 
     var jdk: Jdk = Jdk(project)
+
+    var strictCompilation: StrictCompilation = StrictCompilation(project)
 
     var pom: Publication = Publication(project)
 
@@ -83,6 +87,10 @@ abstract class ConfigExtension(
 
     fun jdk(configure: Action<Jdk>) {
         configure.execute(jdk)
+    }
+
+    fun strictCompilation(configure: Action<StrictCompilation>) {
+        configure.execute(strictCompilation)
     }
 
     fun pom(configure: Action<MavenPom>) {
@@ -121,6 +129,7 @@ abstract class ConfigExtension(
         bundle=$bundle,
         kt2Ts=$kt2Ts,
         jdk=$jdk,
+        strictCompilation=$strictCompilation,
         publication=$pom,
         npm=$npm,
         detekt=$detekt,

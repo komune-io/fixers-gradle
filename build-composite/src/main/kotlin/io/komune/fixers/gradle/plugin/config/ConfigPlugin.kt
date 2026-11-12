@@ -100,6 +100,7 @@ class ConfigPlugin : Plugin<Project> {
         subprojectConfig.detekt.mergeFrom(rootConfig.detekt)
         subprojectConfig.jacoco.mergeFrom(rootConfig.jacoco)
         subprojectConfig.jdk.mergeFrom(rootConfig.jdk)
+        subprojectConfig.strictCompilation.mergeFrom(rootConfig.strictCompilation)
         subprojectConfig.npm.mergeFrom(rootConfig.npm)
         subprojectConfig.pom.mergeFrom(rootConfig.pom)
         subprojectConfig.sonar.mergeFrom(rootConfig.sonar)
