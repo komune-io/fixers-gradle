@@ -36,57 +36,90 @@ internal class UploadRun(
 
     fun holdBack(files: List<File>) = files.forEach { tally.notAttempted(it.relativeTo(target.stagingDir).path) }
 
-    // A worker whose slot is past the gate's lowered concurrency retires after its current file.
-    suspend fun uploadAll(files: List<File>) = coroutineScope {
+    // A worker whose slot is past the gate's lowered concurrency hands its file back and stops.
+    // A file handed back after the last worker of a round ended goes out in the next round.
+    suspend fun uploadAll(files: List<File>) {
         val queue = ConcurrentLinkedQueue(files)
-        repeat(gate.concurrency) { slot ->
-            launch {
-                while (slot < gate.concurrency) {
-                    val file = queue.poll() ?: break
-                    upload(file)
+        while (queue.isNotEmpty()) {
+            coroutineScope {
+                repeat(gate.concurrency) { slot ->
+                    launch { work(slot, queue) }
                 }
             }
         }
     }
 
-    private suspend fun upload(file: File) {
+    private suspend fun work(slot: Int, queue: ConcurrentLinkedQueue<File>) {
+        var file = queue.poll()
+        while (file != null) {
+            if (upload(file, slot)) {
+                file = queue.poll()
+            } else {
+                queue.add(file)
+                file = null
+            }
+        }
+    }
+
+    // Returns `false` when this worker retired before the file was settled.
+    private suspend fun upload(file: File, slot: Int): Boolean {
         val relativePath = file.relativeTo(target.stagingDir).path
         val url = "${target.baseUrl.trimEnd('/')}/$relativePath"
-        val result = putWithRetry(url = url, file = file, label = relativePath)
-        if (result == null) tally.notAttempted(relativePath) else tally.record(result, relativePath)
+        val outcome = putWithRetry(item = Item(url = url, file = file, label = relativePath), slot = slot)
+        when (outcome) {
+            is Outcome.Sent -> tally.record(outcome.result, relativePath)
+            Outcome.NotSent -> tally.notAttempted(relativePath)
+            Outcome.Retired -> Unit
+        }
+        return outcome != Outcome.Retired
+    }
+
+    private data class Item(val url: String, val file: File, val label: String)
+
+    private sealed interface Outcome {
+        data class Sent(val result: HttpPutResult) : Outcome
+        data object NotSent : Outcome
+        data object Retired : Outcome
     }
 
     // Uploads a single file, retrying transient failures behind the shared gate. An I/O failure
-    // (connect timeout, connection reset, ...) counts as transient too. Returns the last result
-    // once the attempts are exhausted, so a persistent failure lands in the summary instead of
-    // cancelling the sibling uploads, or `null` when the gate gave up before this file was sent.
+    // (connect timeout, connection reset, ...) counts as transient too. A transient failure on the
+    // last attempt still pauses the other uploads. Returns the last result once the attempts are
+    // exhausted, so a persistent failure lands in the summary instead of cancelling the siblings.
     private tailrec suspend fun putWithRetry(
-        url: String,
-        file: File,
-        label: String,
+        item: Item,
+        slot: Int,
         attempt: Int = 1,
         last: HttpPutResult? = null,
-    ): HttpPutResult? {
-        val epoch = gate.awaitOpen() ?: return last
-        val result = put(url, file)
+    ): Outcome {
+        val opening = gate.awaitOpen(slot)
+        if (opening !is UploadGate.Opening.Open) return closedOutcome(opening, last)
+        val result = put(item.url, item.file)
         val isRetried = when {
             result !is HttpPutResult.Error -> {
-                gate.onSuccess(epoch)
+                gate.onSuccess(opening.epoch)
                 false
             }
-            !result.isTransient() || attempt >= maxAttempts -> {
+            !result.isTransient() -> {
                 false
             }
             else -> {
-                gate.onTransientFailure(error = result, startedIn = epoch, label = label)
+                gate.onTransientFailure(error = result, startedIn = opening.epoch, label = item.label) &&
+                    attempt < maxAttempts
             }
         }
-        if (isRetried) logger.info("  ↻ [$label] retrying, attempt ${attempt + 1}/$maxAttempts")
+        if (isRetried) logger.info("  ↻ [${item.label}] retrying, attempt ${attempt + 1}/$maxAttempts")
         return if (isRetried) {
-            putWithRetry(url = url, file = file, label = label, attempt = attempt + 1, last = result)
+            putWithRetry(item = item, slot = slot, attempt = attempt + 1, last = result)
         } else {
-            result
+            Outcome.Sent(result)
         }
+    }
+
+    private fun closedOutcome(opening: UploadGate.Opening, last: HttpPutResult?): Outcome = when {
+        opening == UploadGate.Opening.Retire -> Outcome.Retired
+        last != null -> Outcome.Sent(last)
+        else -> Outcome.NotSent
     }
 
     private fun put(url: String, file: File): HttpPutResult = try {

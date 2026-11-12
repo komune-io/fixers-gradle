@@ -52,7 +52,10 @@ object MavenRepositoryUploader {
         fun atUrl(url: String) = apply { baseUrl = url }
         fun withCredentials(user: String, tok: String) = apply { username = user; token = tok }
         fun withHttpClient(client: HttpPutClient) = apply { httpClient = client }
-        fun withConcurrency(n: Int) = apply { concurrency = n }
+        fun withConcurrency(n: Int) = apply {
+            require(n > 0) { "concurrency must be positive, got $n" }
+            concurrency = n
+        }
 
         /** [attempts] per file; [backoffMillis], when given, is the first pause after any transient failure. */
         fun withRetry(attempts: Int, backoffMillis: Long? = null) = apply {
@@ -91,20 +94,19 @@ object MavenRepositoryUploader {
             val (metadata, artifacts) = files.partition { it.name.startsWith(MAVEN_METADATA) }
             logger.lifecycle(
                 "Uploading ${files.size} files to $repoName (concurrency: $concurrency, " +
-                    "${metadata.size} maven-metadata file(s) last)"
+                    "one start every ${minRequestIntervalMillis}ms, ${metadata.size} maven-metadata file(s) last)"
             )
 
-            val run = UploadRun(
+            val run = newRun(
                 target = UploadRun.Target(stagingDir = stagingDir, baseUrl = baseUrl, authHeader = authHeader),
-                httpClient = httpClient,
-                gate = UploadGate(policy = pausePolicy, clock = clock, random = random, concurrency = concurrency),
-                maxAttempts = maxAttempts,
-                tally = UploadTally(files.size),
+                totalFiles = files.size,
             )
+            val metadataWaves = deepestFirst(metadata = metadata, stagingDir = stagingDir)
             val isMetadataSent = runBlocking(dispatcher) {
                 run.uploadAll(artifacts)
                 run.tally.isClean.also { clean ->
-                    if (clean) run.uploadAll(metadata) else run.holdBack(metadata)
+                    metadataWaves.forEach { wave -> if (run.tally.isClean) run.uploadAll(wave) else run.holdBack(wave) }
+                    if (!clean) logger.lifecycle("  ⏭ ${metadata.size} maven-metadata file(s) held back")
                 }
             }
 
@@ -117,12 +119,15 @@ object MavenRepositoryUploader {
             if (summary.failed + summary.notAttempted > 0) {
                 throw GradleException(
                     failureReport(
+                        repoName = repoName,
                         summary = summary,
                         totalFiles = files.size,
                         metadata = MetadataOutcome(
                             total = metadata.size,
                             isSent = isMetadataSent,
                             uploaded = run.tally.uploadedMetadataCount,
+                            isSnapshot = artifacts.isNotEmpty() &&
+                                artifacts.all { it.parentFile.name.endsWith("-SNAPSHOT") },
                         ),
                         exhaustion = run.exhaustion,
                     )
@@ -131,35 +136,19 @@ object MavenRepositoryUploader {
             return summary
         }
 
-        private data class MetadataOutcome(val total: Int, val isSent: Boolean, val uploaded: Int)
-
-        private fun failureReport(
-            summary: UploadSummary,
-            totalFiles: Int,
-            metadata: MetadataOutcome,
-            exhaustion: String?,
-        ): String = buildString {
-            append("$repoName upload failed for ${summary.failed + summary.notAttempted} file(s): ")
-            append("${summary.uploaded} of $totalFiles file(s) uploaded, ${summary.skipped} already existed, ")
-            append("${summary.failed} failed, ${summary.notAttempted} not attempted.")
-            exhaustion?.let { append("\nStopped: $it.") }
-            when {
-                metadata.total == 0 -> Unit
-                !metadata.isSent -> append(
-                    "\nNo maven-metadata.xml was uploaded, so resolvers still get what this repository " +
-                        "served before this run; the files uploaded are not referenced yet. Rerun the publication."
-                )
-                metadata.uploaded < metadata.total -> append(
-                    "\nThe repository is partially published: ${metadata.uploaded} of ${metadata.total} " +
-                        "maven-metadata file(s) uploaded, so some modules resolve to this run and others " +
-                        "to the previous one. Rerun the publication."
-                )
-            }
-            if (summary.errors.isNotEmpty()) {
-                append("\n")
-                append(summary.errors.joinToString("\n") { "  - $it" })
-            }
-        }
+        private fun newRun(target: UploadRun.Target, totalFiles: Int) = UploadRun(
+            target = target,
+            httpClient = httpClient,
+            gate = UploadGate(
+                policy = pausePolicy,
+                clock = clock,
+                random = random,
+                concurrency = concurrency,
+                minRequestIntervalMillis = minRequestIntervalMillis,
+            ),
+            maxAttempts = maxAttempts,
+            tally = UploadTally(totalFiles),
+        )
     }
 
     data class UploadSummary(
