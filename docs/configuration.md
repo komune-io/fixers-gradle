@@ -314,7 +314,7 @@ The `PublishConfig` class contains configuration for publishing settings.
 |----------|---------------------|------------------|---------------|-------------|
 | mavenCentralUrl | FIXERS_PUBLISH_MAVEN_CENTRAL_URL | fixers.publish.maven.central.url | "https://central.sonatype.com/api/v1/publisher" | The URL for Maven Central |
 | mavenSnapshotsUrl | FIXERS_PUBLISH_MAVEN_SNAPSHOTS_URL | fixers.publish.maven.snapshots.url | "https://central.sonatype.com/repository/maven-snapshots/" | The URL for Maven Snapshots |
-| mavenSnapshotsMinRequestIntervalMillis | FIXERS_PUBLISH_MAVEN_SNAPSHOTS_MIN_REQUEST_INTERVAL_MILLIS | fixers.publish.maven.snapshots.minRequestIntervalMillis | 250 | Least time between two upload starts to Maven Central Snapshots (4 a second), so a large snapshot stays under Maven Central's rate limiting. A 429 widens it further for the rest of the run. `0` disables the spacing. GitHub Packages is not spaced |
+| mavenSnapshotsMinRequestIntervalMillis | FIXERS_PUBLISH_MAVEN_SNAPSHOTS_MIN_REQUEST_INTERVAL_MILLIS | fixers.publish.maven.snapshots.minRequestIntervalMillis | 250 | Least time between two upload starts to Maven Central Snapshots (4 a second). A snapshot of more than 450 files is spaced from its first request to stay under Maven Central's quota (observed: about 490 uploads, then a 20-minute block): one start every 2.67 s. A 429 widens the spacing further for the rest of the run. `0` disables the configured spacing, not the quota's. GitHub Packages is not spaced |
 | mavenCentralPublishingType | FIXERS_PUBLISH_MAVEN_CENTRAL_PUBLISHING_TYPE | fixers.publish.maven.central.publishingType | "AUTOMATIC" | Central Portal publishing type. `AUTOMATIC` publishes once validation passes; `USER_MANAGED` stops at `VALIDATED` and waits for a manual release from the portal UI |
 | mavenCentralStatusPollTimeoutSeconds | FIXERS_PUBLISH_MAVEN_CENTRAL_STATUS_POLL_TIMEOUT_SECONDS | fixers.publish.maven.central.statusPollTimeoutSeconds | 600 | How long `promote` waits for a Central Portal deployment to reach a terminal state. A `FAILED` deployment fails the build; running out of time only warns. Set to `0` to skip polling entirely |
 | mavenCentralUsername | FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME | fixers.publish.maven.central.username | - | The Maven Central username |
@@ -328,6 +328,18 @@ The `PublishConfig` class contains configuration for publishing settings.
 | gradlePluginPortalEnabled | FIXERS_PUBLISH_GRADLE_PORTAL_ENABLED | fixers.publish.gradle.portal.enabled | true | Whether to publish to the Gradle Plugin Portal during promote |
 | stagingDirectory | FIXERS_PUBLISH_STAGING_DIRECTORY | fixers.publish.staging.directory | "staging-deploy" | Directory for staging deployments |
 | githubPackagesUrl | FIXERS_PUBLISH_GITHUB_PACKAGES_URL | fixers.publish.github.packages.url | Computed from root project name | GitHub Packages URL for publishing |
+
+#### What a snapshot publish sends
+
+A `-SNAPSHOT` version is not signed. `stage` (GitHub Packages) and `promote` (Maven Central
+Snapshots) send only what a resolver needs:
+- every `.pom`, `.module` and `maven-metadata.xml`;
+- every file a `.module` names, so the KMP sources jars stay;
+- the `.sha1` of each of those files.
+
+Left out: `.md5`/`.sha256`/`.sha512`, the placeholder javadoc jars, the sources jars of plain JVM
+modules (no `.module` names them) and `kotlin-tooling-metadata.json`. A release sends every staged
+file: javadoc, sources, all checksums and signatures, as Maven Central requires.
 
 #### Gradle Plugin Portal credential bridge
 

@@ -47,8 +47,14 @@ object MavenRepositoryUploader {
         private var clock: UploadClock = UploadClock.SYSTEM
         private var random: Random = Random.Default
         private var minRequestIntervalMillis: Long = 0
+        private var requestQuota: RequestQuota? = null
+        private var isSnapshot: Boolean = false
 
-        fun from(dir: File) = apply { stagingDir = dir }
+        /** Uploads [dir]; of a [snapshot], only the files resolution needs ([SnapshotFileSet]). */
+        fun from(dir: File, snapshot: Boolean = false) = apply {
+            stagingDir = dir
+            isSnapshot = snapshot
+        }
         fun atUrl(url: String) = apply { baseUrl = url }
         fun withCredentials(user: String, tok: String) = apply { username = user; token = tok }
         fun withHttpClient(client: HttpPutClient) = apply { httpClient = client }
@@ -70,10 +76,14 @@ object MavenRepositoryUploader {
 
         internal fun withPausePolicy(policy: PausePolicy) = apply { pausePolicy = policy }
 
-        /** The least time between two upload starts; `0` sends as fast as the concurrency allows. */
-        fun withMinRequestInterval(millis: Long) = apply {
+        /**
+         * The least time between two upload starts; `0` sends as fast as the concurrency allows. With a
+         * [quota], an upload of more files than it allows is spaced to stay under it from the start.
+         */
+        fun withMinRequestInterval(millis: Long, quota: RequestQuota? = null) = apply {
             require(millis >= 0) { "the least time between two upload starts must be 0 or more, got $millis ms" }
             minRequestIntervalMillis = millis
+            requestQuota = quota
         }
         internal fun withClock(uploadClock: UploadClock, jitter: Random = Random.Default) =
             apply { clock = uploadClock; random = jitter }
@@ -91,18 +101,22 @@ object MavenRepositoryUploader {
             val authHeader = "Basic " + Base64.getEncoder()
                 .encodeToString("$username:$token".toByteArray())
 
-            val files = stagingDir.walkTopDown().filter { it.isFile }
-                .sortedBy { it.relativeTo(stagingDir).path }
-                .toList()
+            val staged = stagingDir.walkTopDown().filter { it.isFile }.toList()
+            val files = SnapshotFileSet.uploaded(stagingDir = stagingDir, staged = staged, isSnapshot = isSnapshot)
             val (metadata, artifacts) = files.partition { it.name.startsWith(MAVEN_METADATA) }
+            val intervalMillis = requestQuota.spacingFor(
+                fileCount = files.size,
+                minIntervalMillis = minRequestIntervalMillis,
+            )
             logger.lifecycle(
-                "Uploading ${files.size} files to $repoName (concurrency: $concurrency, " +
-                    "one start every ${minRequestIntervalMillis}ms, ${metadata.size} maven-metadata file(s) last)"
+                "Uploading ${files.size} of ${staged.size} staged files to $repoName (concurrency: $concurrency, " +
+                    "one start every ${intervalMillis}ms, ${metadata.size} maven-metadata file(s) last)"
             )
 
             val run = newRun(
                 target = UploadRun.Target(stagingDir = stagingDir, baseUrl = baseUrl, authHeader = authHeader),
                 totalFiles = files.size,
+                intervalMillis = intervalMillis,
             )
             val metadataWaves = deepestFirst(metadata = metadata, stagingDir = stagingDir)
             val isMetadataSent = runBlocking(dispatcher) {
@@ -139,7 +153,7 @@ object MavenRepositoryUploader {
             return summary
         }
 
-        private fun newRun(target: UploadRun.Target, totalFiles: Int) = UploadRun(
+        private fun newRun(target: UploadRun.Target, totalFiles: Int, intervalMillis: Long) = UploadRun(
             target = target,
             httpClient = httpClient,
             gate = UploadGate(
@@ -147,7 +161,7 @@ object MavenRepositoryUploader {
                 clock = clock,
                 random = random,
                 concurrency = concurrency,
-                minRequestIntervalMillis = minRequestIntervalMillis,
+                minRequestIntervalMillis = intervalMillis,
             ),
             maxAttempts = maxAttempts,
             tally = UploadTally(totalFiles),

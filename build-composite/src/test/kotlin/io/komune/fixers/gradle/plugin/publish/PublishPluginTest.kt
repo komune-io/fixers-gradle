@@ -117,6 +117,22 @@ class PublishPluginTest {
         }
 
         @Test
+        fun `should not sign a snapshot even when a key is provided`() {
+            val (root, config) = rootWithConfig(version = "1.0.0-SNAPSHOT")
+            config.publish.signingGpgKey.set("dummy-armored-key")
+            config.publish.signingGpgKeyPassword.set("password")
+            val child = childOf(root)
+            child.version = "1.0.0-SNAPSHOT"
+            child.plugins.apply(PublishPlugin::class.java)
+            child.extensions.getByType(PublishingExtension::class.java)
+                .publications.create("test", MavenPublication::class.java)
+
+            (child as ProjectInternal).evaluate()
+
+            assertThat(child.tasks.withType(Sign::class.java).filter { it.enabled }).isEmpty()
+        }
+
+        @Test
         fun `should configure signing when key and password are provided`() {
             val (root, config) = rootWithConfig()
             config.publish.signingGpgKey.set("dummy-armored-key")
