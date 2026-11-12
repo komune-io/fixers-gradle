@@ -84,6 +84,32 @@ class SnapshotUploadTest {
     }
 
     @Test
+    fun `a 429 on a quota-spaced upload never speeds it up`() {
+        stageJvmModule("a")
+        stageJvmModule("b")
+        val clock = MavenRepositoryUploaderPacingTest.FakeClock()
+        val calls = java.util.concurrent.atomic.AtomicInteger(0)
+        val refusedOnce = HttpPutClient { _, _, _ ->
+            if (calls.getAndIncrement() == 2) HttpPutResult.Error(429, "error code: 1015") else HttpPutResult.Success
+        }
+
+        MavenRepositoryUploader.toRepository("Test Repo")
+            .from(stagingDir, snapshot = true)
+            .atUrl("https://repo.example.com")
+            .withCredentials("user", "token")
+            .withHttpClient(refusedOnce)
+            .withConcurrency(1)
+            .withMinRequestInterval(250, quota = RequestQuota(requests = 4, windowMillis = 40_000))
+            .withClock(clock, MavenRepositoryUploaderPacingTest.NoJitter)
+            .upload()
+
+        // 12 files over 4 per 40 s: spaced 10 s. After the 429's pause the spacing doubles, never drops.
+        val starts = clock.spacedUntil.sorted()
+        assertThat(clock.pauses).containsExactly(30_000L)
+        assertThat(starts.zipWithNext { a, b -> b - a }).allMatch { it >= 10_000L }
+    }
+
+    @Test
     fun `the uploader applies the quota's spacing to a large upload`() {
         stageJvmModule("a")
         stageJvmModule("b")
