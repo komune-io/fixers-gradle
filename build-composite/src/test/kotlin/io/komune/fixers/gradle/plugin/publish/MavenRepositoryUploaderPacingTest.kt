@@ -1,5 +1,7 @@
 package io.komune.fixers.gradle.plugin.publish
 
+import io.komune.fixers.gradle.buildFixersRoot
+import io.komune.fixers.gradle.config.ConfigExtension
 import java.io.File
 import java.time.Duration
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -13,6 +15,7 @@ import kotlinx.coroutines.yield
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.GradleException
+import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -686,6 +689,46 @@ class MavenRepositoryUploaderPacingTest {
             .hasMessageContaining("x.jar → HTTP 503")
 
         assertThat(client.calls.count { it.path == "x.jar" }).isEqualTo(3)
+    }
+
+    @Test
+    fun `a negative spacing is refused by the builder`() {
+        assertThatThrownBy { uploader(HttpPutClient { _, _, _ -> HttpPutResult.Success }, FakeClock()).withMinRequestInterval(-1) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("0 or more")
+    }
+
+    @Test
+    fun `a negative spacing is refused from the Gradle property`() {
+        val project = ProjectBuilder.builder().buildFixersRoot()
+        val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+        config.publish.mavenSnapshotsMinRequestIntervalMillis.set(-250)
+        createFile("a.jar")
+
+        assertThatThrownBy { uploadToMavenSnapshots(stagingDir, config) }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("fixers.publish.maven.snapshots.minRequestIntervalMillis must be 0 (no spacing) or more")
+    }
+
+    @Test
+    fun `a file handed back by a retiring worker keeps the attempts it spent`() {
+        val clock = FakeClock()
+        val firstWave = CountDownLatch(2)
+        val client = RecordingClient(clock) { _, call ->
+            if (call < 2) {
+                firstWave.countDown()
+                firstWave.await(2, TimeUnit.SECONDS)
+            }
+            HttpPutResult.Error(429, "error code: 1015")
+        }
+        createFile("a.jar")
+        createFile("b.jar")
+
+        assertThatThrownBy { uploader(client, clock).withConcurrency(2).withRetry(attempts = 2).upload() }
+            .isInstanceOf(GradleException::class.java)
+            .hasMessageContaining("0 of 2 file(s) uploaded, 0 already existed, 2 failed")
+
+        assertThat(client.calls.groupingBy { it.path }.eachCount()).containsEntry("a.jar", 2).containsEntry("b.jar", 2)
     }
 
     private fun createFile(relativePath: String): File {
