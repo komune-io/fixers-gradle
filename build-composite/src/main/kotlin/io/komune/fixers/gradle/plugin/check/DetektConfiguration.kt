@@ -58,17 +58,19 @@ internal fun Project.detektReportsWithExtension(extension: String): Provider<Fil
 
 /**
  * Every Detekt rule, the configuration fixers ships ([fixersDetektConfig]) and no baseline, held
- * final on the extension and on every Detekt task: a build cannot switch a rule off, only a
- * reasoned `@Suppress` can. A `detekt.yml` at the root of the build fails it.
+ * final on the extension and on every Detekt task: a build script cannot switch a rule off.
+ *
+ * A `detekt.yml` at the root of the build is read after the fixers configuration, by every Detekt
+ * task of every project, and wins over it: it holds the exceptions the repository decides for
+ * itself or for a path (a rule switched off, paths excluded from a rule, a threshold). An
+ * exception local to one site stays a reasoned `@Suppress`.
  */
 fun Project.configureDetekt() {
     val fixersDetekt = rootProject.extensions.fixers?.detekt
-    val projectConfig = rootDir.resolve(PROJECT_CONFIG)
-    if (projectConfig.exists()) {
-        throw GradleException(
-            "$projectConfig: fixers ships the Detekt configuration and runs every rule; delete this file, " +
-                "and suppress a finding with @Suppress and its reason where a rule does not apply."
-        )
+    val projectConfig = rootProject.layout.projectDirectory.file(PROJECT_CONFIG).asFile
+        .takeIf { it.exists() }
+    if (projectConfig != null) {
+        logger.lifecycle("Detekt reads $projectConfig on top of the fixers configuration.")
     }
     // A task output, so that `clean` and the configuration cache keep it where Detekt reads it.
     val configLocation = rootProject.layout.buildDirectory.file("fixers/detekt.yml")
@@ -77,6 +79,9 @@ fun Project.configureDetekt() {
         outputFile.set(configLocation)
     }
     val fixersConfig = writeConfig.flatMap { it.outputFile }
+    // The order matters: Detekt lets a later file win over an earlier one.
+    val configs = listOfNotNull(fixersConfig, projectConfig)
+    val expectedConfig = configLocation.map { location -> listOfNotNull(location.asFile, projectConfig) }
 
     val detektReportMergeSarif = tasks.register<ReportMergeTask>("detektReportMergeSarif") {
         output.set(layout.buildDirectory.file("reports/detekt/merge.sarif"))
@@ -96,7 +101,7 @@ fun Project.configureDetekt() {
                 disableDefaultRuleSets.lock(false)
                 ignoreFailures.lock(false)
                 failOnSeverity.lock(FailOnSeverity.Info)
-                config.setFrom(fixersConfig)
+                config.setFrom(configs)
                 config.disallowChanges()
                 baseline.disallowChanges()
             }
@@ -108,12 +113,11 @@ fun Project.configureDetekt() {
                 disableDefaultRuleSets.set(false)
                 ignoreFailures.set(false)
                 failOnSeverity.set(FailOnSeverity.Info)
-                config.setFrom(fixersConfig)
+                config.setFrom(configs)
                 // Code a tool generates (KSP, OpenAPI) is not the project's to fix, whether it sits under a
                 // source root or is one.
                 exclude { element -> GENERATED_DIRECTORY in element.file.invariantSeparatorsPath }
                 val task = this
-                val expectedConfig = configLocation.map { location -> location.asFile }
                 doFirst { task.failOnWeakenedRules(expectedConfig.get()) }
 
                 configureReports(fixersDetekt)
@@ -155,7 +159,7 @@ private fun Detekt.configureReports(chosen: FixersDetekt?) {
     }
 }
 
-private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
+private fun Detekt.failOnWeakenedRules(expectedConfig: List<File>) {
     val baselineFile = baseline.orNull?.asFile
     if (baselineFile != null && baselineFile.exists()) {
         throw GradleException(
@@ -168,7 +172,7 @@ private fun Detekt.failOnWeakenedRules(fixersConfig: File) {
         "disableDefaultRuleSets".takeIf { disableDefaultRuleSets.get() },
         "ignoreFailures".takeIf { ignoreFailures.get() },
         "failOnSeverity".takeUnless { failOnSeverity.get() == FailOnSeverity.Info },
-        "config".takeUnless { config.files == setOf(fixersConfig) },
+        "config".takeUnless { config.files.toList() == expectedConfig },
     )
     if (weakened.isNotEmpty()) {
         throw GradleException("$path changes what fixers sets on Detekt: ${weakened.joinToString()}.")

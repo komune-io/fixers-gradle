@@ -312,7 +312,23 @@ fixers {
 }
 ```
 
-Detekt runs every rule (`allRules`) on top of its default configuration, with the configuration fixers ships, which holds the exemptions decided once for every Komune build; no baseline, and every finding fails the build. These are final on the extension, and a Detekt task that changes them refuses to run; a `detekt.yml` at the root of the build fails it. The exemptions: no KDoc required on public declarations, while one over a private declaration fails (rename it, or say the why in a `//` comment); `LongParameterList` ignores Spring stereotypes (`@Service`, `@Component`, `@Configuration`, `@ConfigurationProperties`, `@Controller`, `@RestController`, `@Repository`); `ForbiddenVoid` accepts `Void` as a type argument; `FunctionNameMaxLength` skips test sources. Where a rule does not apply, suppress the finding with `@Suppress("RuleName")` and the reason next to it. Sources under a `generated` directory (KSP, OpenAPI) are left out.
+Detekt runs every rule (`allRules`) on top of its default configuration, with the configuration fixers ships, which holds the exemptions decided once for every Komune build; no baseline, and every finding fails the build. These are final on the extension, and a Detekt task that changes them, or reads a configuration file other than fixers' and the root `detekt.yml` below, refuses to run. The exemptions: no KDoc required on public declarations, while one over a private declaration fails (rename it, or say the why in a `//` comment); `LongParameterList` ignores Spring stereotypes (`@Service`, `@Component`, `@Configuration`, `@ConfigurationProperties`, `@Controller`, `@RestController`, `@Repository`); `ForbiddenVoid` accepts `Void` as a type argument; `FunctionNameMaxLength` skips test sources. Where a rule does not apply, suppress the finding with `@Suppress("RuleName")` and the reason next to it. Sources under a `generated` directory (KSP, OpenAPI) are left out.
+
+Where a rule does not fit the repository, or a zone of its code, a `detekt.yml` at the root of the build says so: every Detekt task of every project reads it after the configuration fixers ships, and it wins over it. The build logs `Detekt reads <path> on top of the fixers configuration.` when it does. Put there what is decided for the whole repository or for a path — a rule switched off, paths excluded from a rule, a threshold — with the reason as a comment; a decision local to one site stays a `@Suppress`. A key set there replaces the same key underneath, a list included: `excludes` restates the paths Detekt's default already excluded and should still be.
+
+```yaml
+# detekt.yml, at the root of the build
+style:
+  MagicNumber:
+    # Test fixtures: the numbers are the data.
+    excludes:
+      - '**/test/**'
+      - '**/fixtures/**'
+complexity:
+  LongParameterList:
+    # The command classes mirror the API payload, field for field.
+    allowedConstructorParameters: 12
+```
 
 The `detekt` task of a JVM module receives its main and test compile classpaths, so the rules that need types run; in a multiplatform module, `check` runs `detektMain<Target>` and `detektTest<Target>` (`detektMainJvm`, `detektTestJvm` for `jvm()`), the typed tasks of every JVM target, and the source set tasks of what only non-JVM compilations compile (`detektJsMainSourceSet`, `detektJsTestSourceSet`), without types: Detekt registers no typed task for those targets.
 

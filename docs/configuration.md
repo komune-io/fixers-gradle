@@ -411,7 +411,7 @@ fixers {
 
 ### Detekt
 
-The `Detekt` class chooses the reports Detekt writes. The rules are fixers' own: every rule, the configuration fixers ships, no baseline, final; a `detekt.yml` at the root of the build fails it (see the README).
+The `Detekt` class chooses the reports Detekt writes. The rules are fixers' own: every rule, the configuration fixers ships, no baseline, final; a `detekt.yml` at the root of the build is read on top of it, for the exceptions the repository decides for itself or for a path (see the README).
 
 #### Properties
 
