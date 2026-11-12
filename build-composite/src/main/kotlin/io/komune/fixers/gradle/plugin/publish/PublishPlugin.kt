@@ -145,16 +145,18 @@ class PublishPlugin : Plugin<Project> {
     }
 
     private fun Project.setupSign(fixersConfig: ConfigExtension) {
-        if (!fixersConfig.publish.signingGpgKey.isPresent || !fixersConfig.publish.signingGpgKeyPassword.isPresent) {
-            logger.info("No signing config provided, skip signing")
-            disableSigningTasks()
-            return
+        val key = fixersConfig.publish.signingGpgKey.orNull
+        val password = fixersConfig.publish.signingGpgKeyPassword.orNull
+        val skipReason = when {
+            // Signatures are a release requirement; a snapshot is not signed, and its uploads send none.
+            // The root's version, as `stage` and `promote` read it: a release bundle is signed whole.
+            rootProject.version.toString().endsWith("-SNAPSHOT") -> "SNAPSHOT version"
+            key == null || password == null -> "No signing config provided"
+            key.isEmpty() -> "Empty signing key provided"
+            else -> null
         }
-
-        val inMemoryKey = fixersConfig.publish.signingGpgKey.get()
-        val password = fixersConfig.publish.signingGpgKeyPassword.get()
-        if (inMemoryKey.isEmpty()) {
-            logger.info("Empty signing key provided, skip signing")
+        if (skipReason != null || key == null || password == null) {
+            logger.info("${skipReason.orEmpty()}, skip signing")
             disableSigningTasks()
             return
         }
@@ -163,7 +165,7 @@ class PublishPlugin : Plugin<Project> {
 
         extensions.getByType(SigningExtension::class.java).apply {
             isRequired = true
-            useInMemoryPgpKeys(inMemoryKey, password)
+            useInMemoryPgpKeys(key, password)
 
             if (!hasPublishPlugin) {
                 sign(
@@ -247,7 +249,7 @@ class PublishPlugin : Plugin<Project> {
             dependsOn(cleanStagingTask)
             dependsOn(allPublishToStagingTasks)
             doLast {
-                uploadToGithubPackages(stagingDirProvider.get().asFile, fixersConfig)
+                uploadToGithubPackages(stagingDirProvider.get().asFile, fixersConfig, snapshot = isSnapshot)
             }
         }
 

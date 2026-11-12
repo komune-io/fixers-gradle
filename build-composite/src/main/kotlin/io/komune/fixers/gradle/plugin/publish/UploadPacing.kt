@@ -64,3 +64,24 @@ internal data class PausePolicy(
         const val DEFAULT_MAX_REQUEST_INTERVAL_MS = 1_000L
     }
 }
+
+/**
+ * A repository's request quota: [requests] accepted per [windowMillis]. Maven Central Snapshots
+ * accepted 469 to 544 uploads from one CI job before answering 429 with `Retry-After: 1200`.
+ */
+internal data class RequestQuota(val requests: Int, val windowMillis: Long) {
+    init {
+        require(requests > 0 && windowMillis > 0) { "a request quota needs requests and a window, got $this" }
+    }
+}
+
+/**
+ * The spacing for an upload of [fileCount] files: [minIntervalMillis] when the quota holds them,
+ * otherwise wide enough that the quota's window is never overrun.
+ */
+internal fun RequestQuota?.spacingFor(fileCount: Int, minIntervalMillis: Long): Long =
+    if (this == null || fileCount <= requests) {
+        minIntervalMillis
+    } else {
+        maxOf(a = minIntervalMillis, b = (windowMillis + requests - 1) / requests)
+    }

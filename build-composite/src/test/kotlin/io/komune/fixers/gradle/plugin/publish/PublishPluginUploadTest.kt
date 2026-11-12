@@ -117,6 +117,59 @@ class PublishPluginUploadTest {
         assertThat(requests).contains("PUT /maven/io/komune/lib/1.0.0/lib-1.0.0.jar")
     }
 
+    private fun stageSignedSnapshotModule(root: Project) {
+        val dir = File(root.stagingDir(), "io/komune/lib/1.0.0-SNAPSHOT").apply { mkdirs() }
+        val module = """{ "variants": [ { "files": [ { "url": "lib-1.0.0-SNAPSHOT.jar" } ] } ] }"""
+        listOf(".pom" to "pom", ".module" to module, ".jar" to "jar", "-javadoc.jar" to "doc").forEach { (suffix, text) ->
+            val file = File(dir, "lib-1.0.0-20261112.084413-1$suffix").apply { writeText(text) }
+            File(file.path + ".asc").writeText("sig")
+            listOf("md5", "sha1", "sha256", "sha512").forEach { File(file.path + ".$it").writeText(it) }
+        }
+    }
+
+    @Test
+    fun `stage sends a snapshot to github packages with the same files as maven central snapshots`() {
+        val snapshotsRoot = evaluatedBuild("1.0.0-SNAPSHOT") { config ->
+            config.publish.mavenCentralUsername.set("central-user")
+            config.publish.mavenCentralPassword.set("central-pass")
+            config.publish.mavenSnapshotsUrl.set("${baseUrl()}/repo")
+            config.publish.mavenSnapshotsMinRequestIntervalMillis.set(0)
+        }
+        stageSignedSnapshotModule(snapshotsRoot)
+        snapshotsRoot.tasks.getByName("promote").executeActions()
+        val toCentral = requests.toSet()
+        requests.clear()
+
+        val githubRoot = evaluatedBuild("1.0.0-SNAPSHOT") { config ->
+            config.publish.pkgGithubUsername.set("gh-user")
+            config.publish.pkgGithubToken.set("gh-token")
+            config.publish.githubPackagesUrl.set("${baseUrl()}/repo")
+        }
+        stageSignedSnapshotModule(githubRoot)
+        githubRoot.tasks.getByName("stage").executeActions()
+
+        assertThat(requests.toSet()).isEqualTo(toCentral)
+        assertThat(toCentral).hasSize(6)
+        assertThat(toCentral).noneMatch { it.endsWith(".asc") || it.endsWith(".md5") || it.contains("javadoc") }
+    }
+
+    @Test
+    fun `stage sends a release to github packages with every staged file`() {
+        val root = evaluatedBuild("1.0.0") { config ->
+            config.publish.pkgGithubUsername.set("gh-user")
+            config.publish.pkgGithubToken.set("gh-token")
+            config.publish.githubPackagesUrl.set("${baseUrl()}/maven")
+        }
+        File(root.stagingDir(), "io/komune/lib/1.0.0").mkdirs()
+        listOf("lib-1.0.0.jar", "lib-1.0.0.jar.asc", "lib-1.0.0.jar.md5", "lib-1.0.0-javadoc.jar").forEach {
+            File(root.stagingDir(), "io/komune/lib/1.0.0/$it").writeText("bytes")
+        }
+
+        root.tasks.getByName("stage").executeActions()
+
+        assertThat(requests).hasSize(4)
+    }
+
     @Test
     fun `stage should fail when github credentials are missing`() {
         val root = evaluatedBuild("1.0.0")

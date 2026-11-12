@@ -4,8 +4,13 @@ import io.komune.fixers.gradle.config.ConfigExtension
 import java.io.File
 import org.gradle.api.GradleException
 
-internal fun uploadToGithubPackages(stagingDir: File, fixersConfig: ConfigExtension) = uploadTo(
-    repository = Repository(name = "GitHub Packages", url = fixersConfig.publish.githubPackagesUrl.get()),
+// A snapshot goes to GitHub Packages with the same files as to Maven Central Snapshots; a release with all.
+internal fun uploadToGithubPackages(stagingDir: File, fixersConfig: ConfigExtension, snapshot: Boolean) = uploadTo(
+    repository = Repository(
+        name = "GitHub Packages",
+        url = fixersConfig.publish.githubPackagesUrl.get(),
+        isSnapshot = snapshot,
+    ),
     stagingDir = stagingDir,
     username = requireCredential(
         value = fixersConfig.publish.pkgGithubUsername.orNull,
@@ -22,6 +27,8 @@ internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtens
         name = "Maven Central Snapshots",
         url = fixersConfig.publish.mavenSnapshotsUrl.get(),
         minRequestIntervalMillis = snapshotsMinRequestInterval(fixersConfig),
+        quota = MAVEN_SNAPSHOTS_QUOTA,
+        isSnapshot = true,
     ),
     stagingDir = stagingDir,
     username = requireCredential(
@@ -69,7 +76,21 @@ private fun requireCredential(value: String?, envVar: String): String =
     value ?: throw GradleException("$envVar is not set")
 
 // GitHub Packages took a 3 022-file publish at full speed: only Maven Central Snapshots is spaced.
-private data class Repository(val name: String, val url: String, val minRequestIntervalMillis: Long = 0)
+private data class Repository(
+    val name: String,
+    val url: String,
+    val isSnapshot: Boolean,
+    val minRequestIntervalMillis: Long = 0,
+    val quota: RequestQuota? = null,
+)
+
+// Observed, not documented: 469 to 544 accepted, then a 20 min block. 450 keeps a margin.
+private const val MAVEN_SNAPSHOTS_QUOTA_REQUESTS = 450
+private const val MAVEN_SNAPSHOTS_QUOTA_WINDOW_MS = 1_200_000L
+private val MAVEN_SNAPSHOTS_QUOTA = RequestQuota(
+    requests = MAVEN_SNAPSHOTS_QUOTA_REQUESTS,
+    windowMillis = MAVEN_SNAPSHOTS_QUOTA_WINDOW_MS,
+)
 
 private fun uploadTo(
     repository: Repository,
@@ -78,9 +99,9 @@ private fun uploadTo(
     password: String,
 ) {
     MavenRepositoryUploader.toRepository(repository.name)
-        .from(stagingDir)
+        .from(stagingDir, snapshot = repository.isSnapshot)
         .atUrl(repository.url)
         .withCredentials(user = username, tok = password)
-        .withMinRequestInterval(repository.minRequestIntervalMillis)
+        .withMinRequestInterval(repository.minRequestIntervalMillis, quota = repository.quota)
         .upload()
 }
