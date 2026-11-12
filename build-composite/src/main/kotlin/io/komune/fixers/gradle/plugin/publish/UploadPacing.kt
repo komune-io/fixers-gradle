@@ -38,7 +38,10 @@ internal interface UploadClock {
  * @property jitterRatio A computed pause is lengthened by a random fraction up to this ratio.
  * @property rateLimitedMinIntervalMillis The spacing between upload starts after a 429, when the
  * repository had none; an existing spacing doubles instead.
- * @property maxRequestIntervalMillis The widest spacing a 429 can push the uploads to.
+ * @property maxRequestIntervalMillis The widest spacing a 429 can push the uploads to: one start a
+ * second. Assumed, not documented: if Maven Central counts over a window of ten minutes or more,
+ * even this pace can keep tripping it and the run ends on [rateLimitBudgetMillis]; the knob is
+ * `fixers.publish.maven.snapshots.minRequestIntervalMillis`, which sets the pace from the start.
  */
 internal data class PausePolicy(
     val rateLimitInitialPauseMillis: Long = DEFAULT_RATE_LIMIT_INITIAL_PAUSE_MS,

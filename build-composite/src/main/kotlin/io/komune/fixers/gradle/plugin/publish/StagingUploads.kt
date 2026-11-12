@@ -21,7 +21,7 @@ internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtens
     repository = Repository(
         name = "Maven Central Snapshots",
         url = fixersConfig.publish.mavenSnapshotsUrl.get(),
-        minRequestIntervalMillis = fixersConfig.publish.mavenSnapshotsMinRequestIntervalMillis.get().toLong(),
+        minRequestIntervalMillis = snapshotsMinRequestInterval(fixersConfig),
     ),
     stagingDir = stagingDir,
     username = requireCredential(
@@ -53,6 +53,16 @@ internal fun uploadToCentralPortal(
         bundleName = bundleName,
         options = options,
     )
+}
+
+private fun snapshotsMinRequestInterval(fixersConfig: ConfigExtension): Long {
+    val millis = fixersConfig.publish.mavenSnapshotsMinRequestIntervalMillis.get().toLong()
+    if (millis < 0) {
+        throw GradleException(
+            "fixers.publish.maven.snapshots.minRequestIntervalMillis must be 0 (no spacing) or more, got $millis"
+        )
+    }
+    return millis
 }
 
 private fun requireCredential(value: String?, envVar: String): String =

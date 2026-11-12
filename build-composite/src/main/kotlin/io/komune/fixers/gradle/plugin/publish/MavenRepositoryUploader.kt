@@ -71,7 +71,10 @@ object MavenRepositoryUploader {
         internal fun withPausePolicy(policy: PausePolicy) = apply { pausePolicy = policy }
 
         /** The least time between two upload starts; `0` sends as fast as the concurrency allows. */
-        fun withMinRequestInterval(millis: Long) = apply { minRequestIntervalMillis = millis }
+        fun withMinRequestInterval(millis: Long) = apply {
+            require(millis >= 0) { "the least time between two upload starts must be 0 or more, got $millis ms" }
+            minRequestIntervalMillis = millis
+        }
         internal fun withClock(uploadClock: UploadClock, jitter: Random = Random.Default) =
             apply { clock = uploadClock; random = jitter }
 

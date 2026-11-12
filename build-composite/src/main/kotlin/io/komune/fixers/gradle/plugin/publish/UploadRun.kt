@@ -36,10 +36,11 @@ internal class UploadRun(
 
     fun holdBack(files: List<File>) = files.forEach { tally.notAttempted(it.relativeTo(target.stagingDir).path) }
 
-    // A worker whose slot is past the gate's lowered concurrency hands its file back and stops.
-    // A file handed back after the last worker of a round ended goes out in the next round.
+    // A worker whose slot is past the gate's lowered concurrency hands its file back, with the
+    // attempts it already spent, and stops. A file handed back after the last worker of a round
+    // ended goes out in the next round.
     suspend fun uploadAll(files: List<File>) {
-        val queue = ConcurrentLinkedQueue(files)
+        val queue = ConcurrentLinkedQueue(files.map { Pending(file = it) })
         while (queue.isNotEmpty()) {
             coroutineScope {
                 repeat(gate.concurrency) { slot ->
@@ -49,29 +50,34 @@ internal class UploadRun(
         }
     }
 
-    private suspend fun work(slot: Int, queue: ConcurrentLinkedQueue<File>) {
-        var file = queue.poll()
-        while (file != null) {
-            if (upload(file, slot)) {
-                file = queue.poll()
+    private suspend fun work(slot: Int, queue: ConcurrentLinkedQueue<Pending>) {
+        var pending = queue.poll()
+        while (pending != null) {
+            val handedBack = upload(pending, slot)
+            if (handedBack == null) {
+                pending = queue.poll()
             } else {
-                queue.add(file)
-                file = null
+                queue.add(handedBack)
+                pending = null
             }
         }
     }
 
-    // Returns `false` when this worker retired before the file was settled.
-    private suspend fun upload(file: File, slot: Int): Boolean {
-        val relativePath = file.relativeTo(target.stagingDir).path
+    /** A file still to send, with the attempt it is at and the last answer it got. */
+    private data class Pending(val file: File, val attempt: Int = 1, val last: HttpPutResult? = null)
+
+    // Returns the file to hand back when this worker retired before the file was settled.
+    private suspend fun upload(pending: Pending, slot: Int): Pending? {
+        val relativePath = pending.file.relativeTo(target.stagingDir).path
         val url = "${target.baseUrl.trimEnd('/')}/$relativePath"
-        val outcome = putWithRetry(item = Item(url = url, file = file, label = relativePath), slot = slot)
+        val item = Item(url = url, file = pending.file, label = relativePath)
+        val outcome = putWithRetry(item = item, slot = slot, attempt = pending.attempt, last = pending.last)
         when (outcome) {
             is Outcome.Sent -> tally.record(outcome.result, relativePath)
             Outcome.NotSent -> tally.notAttempted(relativePath)
-            Outcome.Retired -> Unit
+            is Outcome.Retired -> Unit
         }
-        return outcome != Outcome.Retired
+        return (outcome as? Outcome.Retired)?.let { pending.copy(attempt = it.attempt, last = it.last) }
     }
 
     private data class Item(val url: String, val file: File, val label: String)
@@ -79,7 +85,7 @@ internal class UploadRun(
     private sealed interface Outcome {
         data class Sent(val result: HttpPutResult) : Outcome
         data object NotSent : Outcome
-        data object Retired : Outcome
+        data class Retired(val attempt: Int, val last: HttpPutResult?) : Outcome
     }
 
     // Uploads a single file, retrying transient failures behind the shared gate. An I/O failure
@@ -93,7 +99,7 @@ internal class UploadRun(
         last: HttpPutResult? = null,
     ): Outcome {
         val opening = gate.awaitOpen(slot)
-        if (opening !is UploadGate.Opening.Open) return closedOutcome(opening, last)
+        if (opening !is UploadGate.Opening.Open) return closedOutcome(opening = opening, attempt = attempt, last = last)
         val result = put(item.url, item.file)
         val isRetried = when {
             result !is HttpPutResult.Error -> {
@@ -116,8 +122,8 @@ internal class UploadRun(
         }
     }
 
-    private fun closedOutcome(opening: UploadGate.Opening, last: HttpPutResult?): Outcome = when {
-        opening == UploadGate.Opening.Retire -> Outcome.Retired
+    private fun closedOutcome(opening: UploadGate.Opening, attempt: Int, last: HttpPutResult?): Outcome = when {
+        opening == UploadGate.Opening.Retire -> Outcome.Retired(attempt = attempt, last = last)
         last != null -> Outcome.Sent(last)
         else -> Outcome.NotSent
     }
