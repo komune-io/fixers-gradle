@@ -12,7 +12,8 @@ class ReturnValueCheckerIntegrationTest : BaseIntegrationTest() {
 
     private val unusedReturnValue = "Unused return value of 'answer'"
 
-    private fun writeBuild(plugin: String, testsChecked: Boolean?) {
+    private fun writeBuild(plugin: String, testsChecked: Boolean?, kapt: Boolean = false) {
+        val kaptPlugin = if (kapt) """id("org.jetbrains.kotlin.kapt")""" else ""
         val strictCompilation = testsChecked?.let { checked ->
             "strictCompilation {\n        returnValueCheckerInTests = $checked\n    }"
         }.orEmpty()
@@ -20,6 +21,7 @@ class ReturnValueCheckerIntegrationTest : BaseIntegrationTest() {
             plugins {
                 id("io.komune.fixers.gradle.config")
                 id("io.komune.fixers.gradle.kotlin.$plugin")
+                $kaptPlugin
             }
 
             repositories {
@@ -124,12 +126,103 @@ class ReturnValueCheckerIntegrationTest : BaseIntegrationTest() {
         writeAnswer(sourceSet = "commonMain")
         writeIgnoredCall(sourceSet = "commonMain")
 
-        val result = runGradleAndFail("compileKotlinJvm", "compileKotlinJs", "--continue")
+        val result = runGradleAndFail(
+            "compileKotlinJvm",
+            "compileKotlinJs",
+            "compileCommonMainKotlinMetadata",
+            "--continue",
+        )
 
         assertThat(result.task(":compileKotlinJvm")?.outcome).isEqualTo(TaskOutcome.FAILED)
         assertThat(result.task(":compileKotlinJs")?.outcome).isEqualTo(TaskOutcome.FAILED)
+        assertThat(result.task(":compileCommonMainKotlinMetadata")?.outcome).isEqualTo(TaskOutcome.FAILED)
         assertThat(result.output.windowed(unusedReturnValue.length).count { it == unusedReturnValue })
             .describedAs("one report per compilation")
-            .isEqualTo(2)
+            .isEqualTo(3)
+    }
+
+    @Test
+    fun `should give the kapt stubs the value of their compilation`() {
+        writeBuild(plugin = "jvm", testsChecked = false, kapt = true)
+        buildFile.appendText(
+            "\n" + """
+                dependencies {
+                    kapt("com.google.auto.service:auto-service:1.1.1")
+                    kaptTest("com.google.auto.service:auto-service:1.1.1")
+                }
+
+                tasks.withType<org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask>().configureEach {
+                    val args = compilerOptions.freeCompilerArgs
+                    doFirst { println("${'$'}name: ${'$'}{args.get().filter { it.startsWith("-Xreturn") }}") }
+                }
+            """.trimIndent()
+        )
+        writeAnswer(sourceSet = "main")
+        writeIgnoredCall(sourceSet = "test")
+
+        val result = runGradle("compileTestKotlin")
+
+        assertThat(result.task(":kaptGenerateStubsKotlin")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":kaptGenerateStubsTestKotlin")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.task(":compileTestKotlin")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+        assertThat(result.output)
+            .contains("kaptGenerateStubsKotlin: [-Xreturn-value-checker=full]")
+            .contains("kaptGenerateStubsTestKotlin: [-Xreturn-value-checker=disable]")
+    }
+
+    @Test
+    fun `should exempt the tests of a subproject when the root decides it`() {
+        settingsFile.appendText("\n" + """include("sub")""")
+        writeBuildFile("""
+            plugins {
+                id("io.komune.fixers.gradle.config")
+            }
+
+            fixers {
+                strictCompilation {
+                    returnValueCheckerInTests = false
+                }
+            }
+        """.trimIndent())
+        propertiesFile.appendText("\nfixers.jdk.version=${Runtime.version().feature()}\n")
+        createFile(relativePath = "sub/build.gradle.kts", content = """
+            plugins {
+                id("io.komune.fixers.gradle.kotlin.jvm")
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+        """.trimIndent())
+        createFile(relativePath = "sub/src/main/kotlin/com/example/Answer.kt", content = """
+            package com.example
+
+            fun answer(): Int = 42
+
+        """.trimIndent())
+        createFile(relativePath = "sub/src/test/kotlin/com/example/Effect.kt", content = """
+            package com.example
+
+            fun callForEffect() {
+                answer()
+            }
+
+        """.trimIndent())
+
+        val tests = runGradle(":sub:compileTestKotlin")
+        assertThat(tests.task(":sub:compileTestKotlin")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+        createFile(relativePath = "sub/src/main/kotlin/com/example/Effect.kt", content = """
+            package com.example
+
+            fun mainCallForEffect() {
+                answer()
+            }
+
+        """.trimIndent())
+        val main = runGradleAndFail(":sub:compileKotlin")
+        assertThat(main.task(":sub:compileKotlin")?.outcome).isEqualTo(TaskOutcome.FAILED)
+        assertThat(main.output).contains(unusedReturnValue)
     }
 }

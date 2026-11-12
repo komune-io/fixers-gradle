@@ -224,13 +224,13 @@ fixers {
 
 ### StrictCompilation
 
-The `StrictCompilation` class holds what the strict Kotlin compilation lets a repository decide for itself. Every compilation fails on an ignored return value (`-Xreturn-value-checker=full`); a repository whose tests call functions for their effect can exempt its test compilations, a decision for the whole repository, read from the root project. Production code stays checked, and so do test fixtures, which other modules call. `-Wextra`, `-Xreport-all-warnings` and warnings as errors stay on in the tests.
+The `StrictCompilation` class holds what the strict Kotlin compilation lets a repository decide for itself. Every compilation fails on an ignored return value (`-Xreturn-value-checker=full`), and a compile task given its own value (`check`, `disable`) refuses to run: a breaking change for a build that passed one. A repository whose tests call functions for their effect can exempt its test compilations, a decision for the whole repository, read from the root project (a `strictCompilation {}` in a subproject is ignored). Production code stays checked, and so do test fixtures, which other modules call. `-Wextra`, `-Xreport-all-warnings` and warnings as errors stay on in the tests. The project property is read only when the root project applies the fixers config plugin.
 
 #### Properties
 
 | Property | Environment Variable | Project Property | Default Value | Description |
 |----------|---------------------|------------------|---------------|-------------|
-| returnValueCheckerInTests | — | fixers.strictCompilation.returnValueCheckerInTests | true | Whether the test compilations (`test` and every JVM test suite, `jvmTest`, `jsTest` and every other target's `test` compilation in a multiplatform module) fail on an ignored return value. `false` compiles them with `-Xreturn-value-checker=disable` |
+| returnValueCheckerInTests | — | fixers.strictCompilation.returnValueCheckerInTests | true | Whether the test compilations fail on an ignored return value: the compilations named `test` (JVM `test`; `jvmTest`, `jsTest` with `commonTest` in a multiplatform module) and those of a JVM test suite. A test source set named otherwise (Android `debugUnitTest`, a hand-made one) stays checked. `false` compiles them with `-Xreturn-value-checker=disable` |
 
 #### Example
 

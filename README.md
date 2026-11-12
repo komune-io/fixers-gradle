@@ -135,7 +135,7 @@ plugins {
 // - JS tests run by Playwright in headless Chromium and Firefox (jsBrowserTest)
 ```
 
-Every compilation fails on an ignored return value. A repository whose tests call functions for their effect can exempt its test compilations, in its root build script: production code stays checked.
+Every compilation fails on an ignored return value, and a compile task given its own `-Xreturn-value-checker` value (`check`, `disable`) refuses to run: a breaking change for a build that passed one. A repository whose tests call functions for their effect can exempt its test compilations instead, in its root build script: production code stays checked.
 
 ```kotlin
 fixers {
@@ -145,7 +145,7 @@ fixers {
 }
 ```
 
-The test compilations are then compiled with `-Xreturn-value-checker=disable`: `check` would not do, since it still reports the functions of the main code, which `full` marks as must-use. They are a JVM module's `test` and every JVM test suite, and in a multiplatform module the `test` compilation of each target (`commonTest`, `jvmTest`, `jsTest`); test fixtures stay checked, as code other modules call. `-Wextra`, `-Xreport-all-warnings` and warnings as errors stay on in the tests. The same value can come from the `fixers.strictCompilation.returnValueCheckerInTests` property in `gradle.properties`.
+The test compilations are then compiled with `-Xreturn-value-checker=disable`: `check` would not do, since it still reports the functions of the main code, which `full` marks as must-use. They are the compilations named `test` (a JVM module's `test`; `jvmTest` and `jsTest`, with `commonTest`, in a multiplatform module) and those of a JVM test suite (`testing.suites`), the kapt stubs of each following it. Any other compilation stays on `full`: test fixtures, as code other modules call, and a test source set named otherwise (a hand-made `e2e` source set, Android's `debugUnitTest`). `-Wextra`, `-Xreport-all-warnings` and warnings as errors stay on in the tests. The same value can come from the `fixers.strictCompilation.returnValueCheckerInTests` property in `gradle.properties`, read only when the root project applies the fixers config plugin; a `strictCompilation {}` in a subproject is ignored.
 
 An exported declaration whose signature uses a type the JS export cannot express (`NON_EXPORTABLE_TYPE`) would appear as `any` in the TypeScript declarations, and two exported declarations of one name in two packages (`EXPORTING_JS_NAME_CLASH_ES`) would merge into one TypeScript type: both fail the compilation. Fix them in the code: for a non-exportable type, export the type, or stop exporting the declaration; for a clash, rename one of the two declarations, or give one a distinct JavaScript name with `@JsName("…")`. There is no option to turn them back into warnings. The compiler reports a clash when the declaring module compiles; `checkTsGen` catches the same names coming from dependencies: it fails when one `.d.mts` of the contract declares a top-level name twice, exported or not (the helpers of `Json<T>` and the emitter's `Nullable` included), whatever the two declarations are (class, interface, function, `const`/`let`/`var`, enum or type alias, under their `@JsName` when they have one), except a class or an interface and the namespace of its companion, and one type (interface, type alias) and one value (function, `const`/`let`/`var`) of the same name, which TypeScript keeps apart.
 

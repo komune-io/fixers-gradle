@@ -29,8 +29,9 @@ private val SILENCING_ARGS = Regex(
  *
  * Every compilation checks ignored return values (`-Xreturn-value-checker=full`), except the test
  * compilations of a build whose root sets `fixers.strictCompilation.returnValueCheckerInTests` to
- * false: they get `disable`, since `check` still reports the main functions `full` marks. A compile
- * task given another value refuses to run.
+ * false: they get `disable`, since `check` still reports the main functions `full` marks. A test
+ * compilation is one named `test` or one of a JVM test suite; the kapt stubs follow their compilation.
+ * A compile task given another value refuses to run.
  */
 internal fun Project.compileStrictly(options: KotlinCommonCompilerOptions) {
     options.allWarningsAsErrors.set(true)
@@ -98,5 +99,10 @@ private fun Project.kotlinCompilations(action: (KotlinCompilation<*>) -> Unit) {
     when (val kotlin = extensions.getByName("kotlin")) {
         is KotlinMultiplatformExtension -> kotlin.targets.configureEach { compilations.configureEach(action) }
         is KotlinSingleTargetExtension<*> -> kotlin.target.compilations.configureEach(action)
+        // Its compilations would get no return value checker, and the check above none to look at.
+        else -> throw GradleException(
+            "$path: fixers sets the return value checker on Kotlin JVM and Multiplatform modules, " +
+                "not on a ${kotlin::class.java.name}."
+        )
     }
 }

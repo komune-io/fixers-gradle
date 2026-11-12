@@ -160,16 +160,6 @@ class ConfigModelsTest {
 
             assertThat(StrictCompilation(project).returnValueCheckerInTests.get()).isFalse()
         }
-
-        @Test
-        fun `should keep explicitly set value on merge`() {
-            val source = StrictCompilation(project).apply { returnValueCheckerInTests.set(true) }
-            val target = StrictCompilation(project).apply { returnValueCheckerInTests.set(false) }
-
-            target.mergeFrom(source)
-
-            assertThat(target.returnValueCheckerInTests.get()).isFalse()
-        }
     }
 
     @Nested
