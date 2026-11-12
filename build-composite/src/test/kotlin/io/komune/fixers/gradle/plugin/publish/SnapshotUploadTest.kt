@@ -103,7 +103,7 @@ class SnapshotUploadTest {
             .withClock(clock, MavenRepositoryUploaderPacingTest.NoJitter)
             .upload()
 
-        // 12 files over 4 per 40 s: spaced 10 s. After the 429's pause the spacing doubles, never drops.
+        // 12 files over 4 per 40 s: spaced 10 s. After the 429's pause the spacing never drops.
         val starts = clock.spacedUntil.sorted()
         assertThat(clock.pauses).containsExactly(30_000L)
         assertThat(starts.zipWithNext { a, b -> b - a }).allMatch { it >= 10_000L }

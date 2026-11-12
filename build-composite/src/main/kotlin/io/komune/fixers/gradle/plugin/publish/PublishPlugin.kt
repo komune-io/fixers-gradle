@@ -149,7 +149,8 @@ class PublishPlugin : Plugin<Project> {
         val password = fixersConfig.publish.signingGpgKeyPassword.orNull
         val skipReason = when {
             // Signatures are a release requirement; a snapshot is not signed, and its uploads send none.
-            version.toString().endsWith("-SNAPSHOT") -> "SNAPSHOT version"
+            // The root's version, as `stage` and `promote` read it: a release bundle is signed whole.
+            rootProject.version.toString().endsWith("-SNAPSHOT") -> "SNAPSHOT version"
             key == null || password == null -> "No signing config provided"
             key.isEmpty() -> "Empty signing key provided"
             else -> null

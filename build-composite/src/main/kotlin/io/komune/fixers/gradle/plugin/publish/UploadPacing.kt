@@ -69,7 +69,7 @@ internal data class PausePolicy(
  * A repository's request quota: [requests] accepted per [windowMillis]. Maven Central Snapshots
  * accepted 469 to 544 uploads from one CI job before answering 429 with `Retry-After: 1200`.
  */
-data class RequestQuota(val requests: Int, val windowMillis: Long) {
+internal data class RequestQuota(val requests: Int, val windowMillis: Long) {
     init {
         require(requests > 0 && windowMillis > 0) { "a request quota needs requests and a window, got $this" }
     }

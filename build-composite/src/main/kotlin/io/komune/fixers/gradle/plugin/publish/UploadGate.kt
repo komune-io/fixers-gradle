@@ -182,9 +182,14 @@ internal class UploadGate(
         if (isRateLimit) {
             rateLimitPausedMillis += pause.millis
             limit = maxOf(a = 1, b = limit / 2)
-            minRequestIntervalMillis = minOf(
-                a = policy.maxRequestIntervalMillis,
-                b = maxOf(a = policy.rateLimitedMinIntervalMillis, b = minRequestIntervalMillis * 2),
+            // Doubles up to the cap, and never below the current spacing: a run the quota already
+            // spaces wider than the cap keeps that pace.
+            minRequestIntervalMillis = maxOf(
+                a = minRequestIntervalMillis,
+                b = minOf(
+                    a = policy.maxRequestIntervalMillis,
+                    b = maxOf(a = policy.rateLimitedMinIntervalMillis, b = minRequestIntervalMillis * 2),
+                ),
             )
         } else {
             transientPausedMillis += pause.millis

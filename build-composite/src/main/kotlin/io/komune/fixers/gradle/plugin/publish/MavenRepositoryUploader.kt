@@ -80,7 +80,7 @@ object MavenRepositoryUploader {
          * The least time between two upload starts; `0` sends as fast as the concurrency allows. With a
          * [quota], an upload of more files than it allows is spaced to stay under it from the start.
          */
-        fun withMinRequestInterval(millis: Long, quota: RequestQuota? = null) = apply {
+        internal fun withMinRequestInterval(millis: Long, quota: RequestQuota? = null) = apply {
             require(millis >= 0) { "the least time between two upload starts must be 0 or more, got $millis ms" }
             minRequestIntervalMillis = millis
             requestQuota = quota
