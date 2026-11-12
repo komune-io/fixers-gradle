@@ -6,6 +6,7 @@ import io.komune.fixers.gradle.config.ConfigExtension
 import java.io.File
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.TimeUnit
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.gradle.api.GradleException
@@ -26,10 +27,12 @@ class PublishPluginUploadTest {
 
     private lateinit var server: HttpServer
     private val requests = ConcurrentLinkedQueue<String>()
+    private val arrivals = ConcurrentLinkedQueue<Long>()
 
     @BeforeEach
     fun startServer() {
         server = HttpServer.create(InetSocketAddress(0), 0)
+        server.executor = java.util.concurrent.Executors.newFixedThreadPool(UPLOAD_THREADS)
         // The Central Portal deployment status endpoint: answer terminal straight away so the
         // promote test does not sit in the polling loop.
         server.createContext("/status") { exchange ->
@@ -40,6 +43,7 @@ class PublishPluginUploadTest {
             exchange.responseBody.use { it.write(response) }
         }
         server.createContext("/") { exchange ->
+            arrivals.add(System.nanoTime())
             requests.add("${exchange.requestMethod} ${exchange.requestURI}")
             exchange.requestBody.readBytes()
             val response = "ok".toByteArray()
@@ -58,10 +62,12 @@ class PublishPluginUploadTest {
 
     private fun evaluatedBuild(
         version: String,
+        gradleProperties: Map<String, Any> = emptyMap(),
         configure: (ConfigExtension) -> Unit = {}
     ): Project {
         val root = ProjectBuilder.builder().buildFixersRoot()
         root.version = version
+        gradleProperties.forEach { (key, value) -> root.extensions.extraProperties[key] = value }
         val config = root.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, root)
         configure(config)
         val child = ProjectBuilder.builder().withParent(root).withName("lib").build()
@@ -173,5 +179,66 @@ class PublishPluginUploadTest {
         assertThatThrownBy { root.tasks.getByName("promote").executeActions() }
             .isInstanceOf(GradleException::class.java)
             .hasMessageContaining("FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME")
+    }
+
+    // Upload starts as the server saw them, in milliseconds after the first one.
+    private fun arrivalOffsetsMillis(): List<Long> {
+        val sorted = arrivals.sorted()
+        return sorted.map { TimeUnit.NANOSECONDS.toMillis(it - sorted.first()) }
+    }
+
+    private fun stageThreeFiles(root: Project, version: String) = listOf("a", "b", "c").forEach { name ->
+        File(root.stagingDir(), "io/komune/lib/$version/lib-$name.jar").apply {
+            parentFile.mkdirs()
+            writeText("bytes")
+        }
+    }
+
+    @Test
+    fun `promote spaces snapshot uploads by the interval the Gradle key sets`() {
+        val root = evaluatedBuild(
+            version = "1.0.0-SNAPSHOT",
+            gradleProperties = mapOf(SPACING_KEY to SPACING_MILLIS),
+        ) { config ->
+            config.publish.mavenCentralUsername.set("central-user")
+            config.publish.mavenCentralPassword.set("central-pass")
+            config.publish.mavenSnapshotsUrl.set("${baseUrl()}/snapshots")
+        }
+        stageThreeFiles(root, "1.0.0-SNAPSHOT")
+
+        root.tasks.getByName("promote").executeActions()
+
+        // Not the 250 ms default: the key was read, and handed to the uploader.
+        val offsets = arrivalOffsetsMillis()
+        assertThat(offsets).hasSize(3)
+        assertThat(offsets.zipWithNext { a, b -> b - a }).allMatch { it >= SPACING_MILLIS - TOLERANCE_MILLIS }
+    }
+
+    @Test
+    fun `stage sends to github packages unspaced whatever the snapshots key says`() {
+        val root = evaluatedBuild(
+            version = "1.0.0",
+            gradleProperties = mapOf(SPACING_KEY to SPACING_MILLIS),
+        ) { config ->
+            config.publish.pkgGithubUsername.set("gh-user")
+            config.publish.pkgGithubToken.set("gh-token")
+            config.publish.githubPackagesUrl.set("${baseUrl()}/maven")
+        }
+        stageThreeFiles(root, "1.0.0")
+
+        root.tasks.getByName("stage").executeActions()
+
+        val offsets = arrivalOffsetsMillis()
+        assertThat(offsets).hasSize(3)
+        // Spaced by the key, the third upload could not start before 2 × 600 ms: well under that
+        // is unspaced, with room for a slow runner.
+        assertThat(offsets.last()).isLessThan(2 * SPACING_MILLIS - 2 * TOLERANCE_MILLIS)
+    }
+
+    private companion object {
+        const val SPACING_KEY = "fixers.publish.maven.snapshots.minRequestIntervalMillis"
+        const val SPACING_MILLIS = 600L
+        const val TOLERANCE_MILLIS = 50L
+        const val UPLOAD_THREADS = 4
     }
 }

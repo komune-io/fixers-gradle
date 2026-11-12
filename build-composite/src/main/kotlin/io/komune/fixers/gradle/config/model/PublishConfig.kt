@@ -31,6 +31,16 @@ open class PublishConfig(
     )
 
     /**
+     * The least time between two upload starts to Maven Central Snapshots, in milliseconds.
+     * Maven Central rate limits by source IP; `0` sends as fast as the upload concurrency allows.
+     */
+    val mavenSnapshotsMinRequestIntervalMillis: Property<Int> = project.property(
+        envKey = "FIXERS_PUBLISH_MAVEN_SNAPSHOTS_MIN_REQUEST_INTERVAL_MILLIS",
+        projectKey = "fixers.publish.maven.snapshots.minRequestIntervalMillis",
+        defaultValue = DEFAULT_SNAPSHOTS_MIN_REQUEST_INTERVAL_MILLIS
+    )
+
+    /**
      * Central Portal publishing type: `AUTOMATIC` publishes as soon as validation passes,
      * `USER_MANAGED` stops at `VALIDATED` and waits for a manual release from the portal UI.
      */
@@ -184,6 +194,7 @@ open class PublishConfig(
     fun mergeFrom(source: PublishConfig) {
         mavenCentralUrl.mergeIfNotPresent(source.mavenCentralUrl)
         mavenSnapshotsUrl.mergeIfNotPresent(source.mavenSnapshotsUrl)
+        mavenSnapshotsMinRequestIntervalMillis.mergeIfNotPresent(source.mavenSnapshotsMinRequestIntervalMillis)
         mavenCentralPublishingType.mergeIfNotPresent(source.mavenCentralPublishingType)
         mavenCentralStatusPollTimeoutSeconds.mergeIfNotPresent(source.mavenCentralStatusPollTimeoutSeconds)
         mavenCentralUsername.mergeIfNotPresent(source.mavenCentralUsername)
@@ -205,6 +216,7 @@ open class PublishConfig(
         PublishConfig(
             mavenCentralUrl=${mavenCentralUrl.orNullText()},
             mavenSnapshotsUrl=${mavenSnapshotsUrl.orNullText()},
+            mavenSnapshotsMinRequestIntervalMillis=${mavenSnapshotsMinRequestIntervalMillis.orNullText()},
             mavenCentralPublishingType=${mavenCentralPublishingType.orNullText()},
             mavenCentralStatusPollTimeoutSeconds=${mavenCentralStatusPollTimeoutSeconds.orNullText()},
             mavenCentralUsername=${mavenCentralUsername.map { it.take(USERNAME_PREVIEW_LENGTH) }.orNullText()}***,
@@ -227,5 +239,8 @@ open class PublishConfig(
 
         // 10 minutes: generous enough for Central Portal validation, short enough to not stall CI.
         private const val DEFAULT_STATUS_POLL_TIMEOUT_SECONDS = 600
+
+        // 4 uploads a second: a connect-im publish was blocked after ~490 files sent at ~31 a second.
+        private const val DEFAULT_SNAPSHOTS_MIN_REQUEST_INTERVAL_MILLIS = 250
     }
 }

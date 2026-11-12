@@ -1,52 +1,34 @@
 package io.komune.fixers.gradle.plugin.publish
 
 import java.io.File
-import java.io.IOException
 import java.util.Base64
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import org.gradle.api.GradleException
+import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 
 /**
  * Fluent builder for uploading artifacts from a local staging directory
  * to any Maven repository (GitHub Packages, Maven Central Snapshots, etc.),
  * skipping files that already exist (HTTP 409 Conflict).
+ *
+ * Every `maven-metadata.xml` (and its checksums) goes last, and only once every other file
+ * is in: the metadata is what points resolvers at a new snapshot, so a run that stops early
+ * leaves the repository serving what it served before. Transient failures pause every
+ * upload together (see [UploadGate]).
  */
 object MavenRepositoryUploader {
 
     private const val MAX_CONCURRENT_UPLOADS = 10
 
-    private val logger = Logging.getLogger(MavenRepositoryUploader::class.java)
+    // Enough tries for a file to outlast the pauses the budget allows (six from 30s, doubling
+    // to the 5 min cap, fit in 20 min); the budget, not this count, is what normally stops a run.
+    private const val DEFAULT_MAX_ATTEMPTS = 10
 
-    private const val DEFAULT_MAX_ATTEMPTS = 3
-    private const val DEFAULT_INITIAL_BACKOFF_MS = 1_000L
-    private const val BACKOFF_FACTOR = 2
-    private const val HTTP_TOO_MANY_REQUESTS = 429
-    private const val HTTP_SERVER_ERROR = 500
-    private const val HTTP_LAST_SERVER_ERROR = 599
-
-    // Status reported for an upload that never got an HTTP response (connect timeout, reset, ...).
-    private const val NO_HTTP_RESPONSE = 0
-
-    // A repository that is briefly overloaded, rate-limiting or unreachable should not abort
-    // a release that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
-    // and is returned as-is.
-    private fun HttpPutResult.Error.isTransient(): Boolean =
-        code == NO_HTTP_RESPONSE ||
-            code == HTTP_TOO_MANY_REQUESTS ||
-            code in HTTP_SERVER_ERROR..HTTP_LAST_SERVER_ERROR
-
-    private fun HttpPutResult.Error.describe(): String =
-        if (code == NO_HTTP_RESPONSE) "I/O error" else "HTTP $code"
+    private val logger: Logger = Logging.getLogger(MavenRepositoryUploader::class.java)
 
     fun toRepository(repoName: String): Builder = Builder(repoName)
 
@@ -61,41 +43,40 @@ object MavenRepositoryUploader {
         private var httpClient: HttpPutClient = DefaultHttpPutClient()
         private var concurrency: Int = MAX_CONCURRENT_UPLOADS
         private var maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
-        private var initialBackoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS
+        private var pausePolicy: PausePolicy = PausePolicy()
+        private var clock: UploadClock = UploadClock.SYSTEM
+        private var random: Random = Random.Default
+        private var minRequestIntervalMillis: Long = 0
 
         fun from(dir: File) = apply { stagingDir = dir }
         fun atUrl(url: String) = apply { baseUrl = url }
         fun withCredentials(user: String, tok: String) = apply { username = user; token = tok }
         fun withHttpClient(client: HttpPutClient) = apply { httpClient = client }
-        fun withConcurrency(n: Int) = apply { concurrency = n }
-        fun withRetry(attempts: Int, backoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS) =
-            apply { maxAttempts = attempts; initialBackoffMillis = backoffMillis }
+        fun withConcurrency(n: Int) = apply {
+            require(n > 0) { "concurrency must be positive, got $n" }
+            concurrency = n
+        }
 
-        // Uploads a single file, retrying transient failures with exponential backoff.
-        // An I/O failure (connect timeout, connection reset, ...) counts as transient too.
-        // Returns the last result once the attempts are exhausted, so a persistent failure
-        // lands in the summary instead of cancelling the sibling uploads.
-        private suspend fun putWithRetry(url: String, authHeader: String, file: File, label: String): HttpPutResult {
-            var backoff = initialBackoffMillis
-            var attempt = 1
-            while (true) {
-                val result = try {
-                    httpClient.put(url, authHeader, file)
-                } catch (e: IOException) {
-                    HttpPutResult.Error(NO_HTTP_RESPONSE, e.toString())
-                }
-                if (result !is HttpPutResult.Error || !result.isTransient() || attempt >= maxAttempts) {
-                    return result
-                }
-                logger.lifecycle(
-                    "  ↻ [$label] ${result.describe()}, retrying in ${backoff}ms " +
-                        "(attempt ${attempt + 1}/$maxAttempts)"
+        /** [attempts] per file; [backoffMillis], when given, is the first pause after any transient failure. */
+        fun withRetry(attempts: Int, backoffMillis: Long? = null) = apply {
+            maxAttempts = attempts
+            if (backoffMillis != null) {
+                pausePolicy = pausePolicy.copy(
+                    rateLimitInitialPauseMillis = backoffMillis,
+                    transientInitialPauseMillis = backoffMillis,
                 )
-                delay(backoff)
-                backoff *= BACKOFF_FACTOR
-                attempt++
             }
         }
+
+        internal fun withPausePolicy(policy: PausePolicy) = apply { pausePolicy = policy }
+
+        /** The least time between two upload starts; `0` sends as fast as the concurrency allows. */
+        fun withMinRequestInterval(millis: Long) = apply {
+            require(millis >= 0) { "the least time between two upload starts must be 0 or more, got $millis ms" }
+            minRequestIntervalMillis = millis
+        }
+        internal fun withClock(uploadClock: UploadClock, jitter: Random = Random.Default) =
+            apply { clock = uploadClock; random = jitter }
 
         fun upload(): UploadSummary {
             val stagingDir = checkNotNull(stagingDir) { "from() was not called" }
@@ -110,80 +91,66 @@ object MavenRepositoryUploader {
             val authHeader = "Basic " + Base64.getEncoder()
                 .encodeToString("$username:$token".toByteArray())
 
-            val files = stagingDir.walkTopDown().filter { it.isFile }.toList()
-            val totalFiles = files.size
-            logger.lifecycle("Uploading $totalFiles files to $repoName (concurrency: $concurrency)")
-
-            val tally = Tally()
-            val completed = AtomicInteger(0)
-            val semaphore = Semaphore(concurrency)
-
-            runBlocking(dispatcher) {
-                files.map { file ->
-                    async {
-                        semaphore.withPermit {
-                            val relativePath = file.relativeTo(stagingDir).path
-                            val url = "${baseUrl.trimEnd('/')}/$relativePath"
-                            val result = putWithRetry(
-                                url = url,
-                                authHeader = authHeader,
-                                file = file,
-                                label = relativePath,
-                            )
-                            tally.record(result, "${completed.incrementAndGet()}/$totalFiles", relativePath)
-                        }
-                    }
-                }.awaitAll()
-            }
-
-            val summary = tally.summary()
-
+            val files = stagingDir.walkTopDown().filter { it.isFile }
+                .sortedBy { it.relativeTo(stagingDir).path }
+                .toList()
+            val (metadata, artifacts) = files.partition { it.name.startsWith(MAVEN_METADATA) }
             logger.lifecycle(
-                "$repoName upload: ${summary.uploaded} uploaded, " +
-                    "${summary.skipped} already existed, ${summary.failed} failed"
+                "Uploading ${files.size} files to $repoName (concurrency: $concurrency, " +
+                    "one start every ${minRequestIntervalMillis}ms, ${metadata.size} maven-metadata file(s) last)"
             )
 
-            if (summary.errors.isNotEmpty()) {
+            val run = newRun(
+                target = UploadRun.Target(stagingDir = stagingDir, baseUrl = baseUrl, authHeader = authHeader),
+                totalFiles = files.size,
+            )
+            val metadataWaves = deepestFirst(metadata = metadata, stagingDir = stagingDir)
+            val isMetadataSent = runBlocking(dispatcher) {
+                run.uploadAll(artifacts)
+                run.tally.isClean.also { clean ->
+                    metadataWaves.forEach { wave -> if (run.tally.isClean) run.uploadAll(wave) else run.holdBack(wave) }
+                    if (!clean) logger.lifecycle("  ⏭ ${metadata.size} maven-metadata file(s) held back")
+                }
+            }
+
+            val summary = run.tally.summary()
+            logger.lifecycle(
+                "$repoName upload: ${summary.uploaded} uploaded, " +
+                    "${summary.skipped} already existed, ${summary.failed} failed, " +
+                    "${summary.notAttempted} not attempted"
+            )
+            if (summary.failed + summary.notAttempted > 0) {
                 throw GradleException(
-                    "$repoName upload failed for ${summary.errors.size} file(s):\n" +
-                        summary.errors.joinToString("\n") { "  - $it" }
+                    failureReport(
+                        repoName = repoName,
+                        summary = summary,
+                        totalFiles = files.size,
+                        metadata = MetadataOutcome(
+                            total = metadata.size,
+                            isSent = isMetadataSent,
+                            uploaded = run.tally.uploadedMetadataCount,
+                            isSnapshot = artifacts.isNotEmpty() &&
+                                artifacts.all { it.parentFile.name.endsWith("-SNAPSHOT") },
+                        ),
+                        exhaustion = run.exhaustion,
+                    )
                 )
             }
-
             return summary
         }
-    }
 
-    /** What the concurrent uploads of one run gave, logged as each one ends. */
-    private class Tally {
-        private val uploaded = AtomicInteger(0)
-        private val skipped = AtomicInteger(0)
-        private val failed = AtomicInteger(0)
-        private val errors = ConcurrentLinkedQueue<String>()
-
-        fun record(result: HttpPutResult, progress: String, relativePath: String) {
-            when (result) {
-                HttpPutResult.Success -> {
-                    uploaded.incrementAndGet()
-                    logger.lifecycle("  ✔ [$progress] Uploaded: $relativePath")
-                }
-                HttpPutResult.Conflict -> {
-                    skipped.incrementAndGet()
-                    logger.lifecycle("  ⚠ [$progress] Already exists, skipping: $relativePath")
-                }
-                is HttpPutResult.Error -> {
-                    failed.incrementAndGet()
-                    logger.lifecycle("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
-                    errors.add("$relativePath → ${result.describe()}: ${result.message}")
-                }
-            }
-        }
-
-        fun summary() = UploadSummary(
-            uploaded = uploaded.get(),
-            skipped = skipped.get(),
-            failed = failed.get(),
-            errors = errors.toList(),
+        private fun newRun(target: UploadRun.Target, totalFiles: Int) = UploadRun(
+            target = target,
+            httpClient = httpClient,
+            gate = UploadGate(
+                policy = pausePolicy,
+                clock = clock,
+                random = random,
+                concurrency = concurrency,
+                minRequestIntervalMillis = minRequestIntervalMillis,
+            ),
+            maxAttempts = maxAttempts,
+            tally = UploadTally(totalFiles),
         )
     }
 
@@ -192,5 +159,6 @@ object MavenRepositoryUploader {
         val skipped: Int,
         val failed: Int,
         val errors: List<String>,
+        val notAttempted: Int = 0,
     )
 }

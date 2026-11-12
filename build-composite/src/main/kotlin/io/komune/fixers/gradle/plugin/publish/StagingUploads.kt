@@ -5,9 +5,8 @@ import java.io.File
 import org.gradle.api.GradleException
 
 internal fun uploadToGithubPackages(stagingDir: File, fixersConfig: ConfigExtension) = uploadTo(
-    repositoryName = "GitHub Packages",
+    repository = Repository(name = "GitHub Packages", url = fixersConfig.publish.githubPackagesUrl.get()),
     stagingDir = stagingDir,
-    url = fixersConfig.publish.githubPackagesUrl.get(),
     username = requireCredential(
         value = fixersConfig.publish.pkgGithubUsername.orNull,
         envVar = "FIXERS_PUBLISH_GITHUB_USERNAME",
@@ -19,9 +18,12 @@ internal fun uploadToGithubPackages(stagingDir: File, fixersConfig: ConfigExtens
 )
 
 internal fun uploadToMavenSnapshots(stagingDir: File, fixersConfig: ConfigExtension) = uploadTo(
-    repositoryName = "Maven Central Snapshots",
+    repository = Repository(
+        name = "Maven Central Snapshots",
+        url = fixersConfig.publish.mavenSnapshotsUrl.get(),
+        minRequestIntervalMillis = snapshotsMinRequestInterval(fixersConfig),
+    ),
     stagingDir = stagingDir,
-    url = fixersConfig.publish.mavenSnapshotsUrl.get(),
     username = requireCredential(
         value = fixersConfig.publish.mavenCentralUsername.orNull,
         envVar = "FIXERS_PUBLISH_MAVEN_CENTRAL_USERNAME",
@@ -53,19 +55,32 @@ internal fun uploadToCentralPortal(
     )
 }
 
+private fun snapshotsMinRequestInterval(fixersConfig: ConfigExtension): Long {
+    val millis = fixersConfig.publish.mavenSnapshotsMinRequestIntervalMillis.get().toLong()
+    if (millis < 0) {
+        throw GradleException(
+            "fixers.publish.maven.snapshots.minRequestIntervalMillis must be 0 (no spacing) or more, got $millis"
+        )
+    }
+    return millis
+}
+
 private fun requireCredential(value: String?, envVar: String): String =
     value ?: throw GradleException("$envVar is not set")
 
+// GitHub Packages took a 3 022-file publish at full speed: only Maven Central Snapshots is spaced.
+private data class Repository(val name: String, val url: String, val minRequestIntervalMillis: Long = 0)
+
 private fun uploadTo(
-    repositoryName: String,
+    repository: Repository,
     stagingDir: File,
-    url: String,
     username: String,
     password: String,
 ) {
-    MavenRepositoryUploader.toRepository(repositoryName)
+    MavenRepositoryUploader.toRepository(repository.name)
         .from(stagingDir)
-        .atUrl(url)
+        .atUrl(repository.url)
         .withCredentials(user = username, tok = password)
+        .withMinRequestInterval(repository.minRequestIntervalMillis)
         .upload()
 }

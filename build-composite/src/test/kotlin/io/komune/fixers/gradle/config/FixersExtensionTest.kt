@@ -92,6 +92,16 @@ class FixersExtensionTest {
     }
 
     @Test
+    fun `PublishConfig spaces Maven Central Snapshots uploads by 250 ms unless told otherwise`() {
+        val project = ProjectBuilder.builder().buildFixersRoot()
+        val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)
+
+        assertThat(config.publish.mavenSnapshotsMinRequestIntervalMillis.get()).isEqualTo(250)
+        config.publish.mavenSnapshotsMinRequestIntervalMillis.set(0)
+        assertThat(config.publish.mavenSnapshotsMinRequestIntervalMillis.get()).isZero()
+    }
+
+    @Test
     fun `PublishConfig should accept an overridden central portal publishing type`() {
         val project = ProjectBuilder.builder().buildFixersRoot()
         val config = project.extensions.create(ConfigExtension.NAME, ConfigExtension::class.java, project)

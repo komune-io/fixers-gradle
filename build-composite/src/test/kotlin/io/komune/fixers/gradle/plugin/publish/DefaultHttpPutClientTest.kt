@@ -24,6 +24,7 @@ class DefaultHttpPutClientTest {
     private var requestBody: String? = null
     private var responseCode: Int = 201
     private var responseBody: String = ""
+    private var retryAfter: String? = null
 
     @BeforeEach
     fun startServer() {
@@ -34,6 +35,7 @@ class DefaultHttpPutClientTest {
             contentType = exchange.requestHeaders.getFirst("Content-Type")
             requestBody = String(exchange.requestBody.readBytes())
             val bytes = responseBody.toByteArray()
+            retryAfter?.let { exchange.responseHeaders.add("Retry-After", it) }
             exchange.sendResponseHeaders(responseCode, if (bytes.isEmpty()) -1 else bytes.size.toLong())
             if (bytes.isNotEmpty()) {
                 exchange.responseBody.use { it.write(bytes) }
@@ -88,5 +90,25 @@ class DefaultHttpPutClientTest {
         val error = result as HttpPutResult.Error
         assertThat(error.code).isEqualTo(500)
         assertThat(error.message).isEqualTo("Internal failure")
+    }
+
+    @Test
+    fun `should carry the Retry-After header of a refusal`() {
+        responseCode = 429
+        responseBody = "error code: 1015"
+        retryAfter = "30"
+
+        val result = DefaultHttpPutClient().put(url(), "Basic auth", artifactFile())
+
+        assertThat(result).isEqualTo(HttpPutResult.Error(429, "error code: 1015", retryAfter = "30"))
+    }
+
+    @Test
+    fun `should leave Retry-After empty when the server sends none`() {
+        responseCode = 503
+
+        val result = DefaultHttpPutClient().put(url(), "Basic auth", artifactFile())
+
+        assertThat((result as HttpPutResult.Error).retryAfter).isNull()
     }
 }
