@@ -9,5 +9,9 @@ fun interface HttpPutClient {
 sealed interface HttpPutResult {
     data object Success : HttpPutResult
     data object Conflict : HttpPutResult
-    data class Error(val code: Int, val message: String) : HttpPutResult
+    /**
+     * A refused or failed upload. [retryAfter] is the raw `Retry-After` header of the answer,
+     * when the server sent one: delay-seconds or an HTTP-date.
+     */
+    data class Error(val code: Int, val message: String, val retryAfter: String? = null) : HttpPutResult
 }

@@ -5,6 +5,7 @@ import java.io.IOException
 import java.util.Base64
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -62,6 +63,9 @@ object MavenRepositoryUploader {
         private var concurrency: Int = MAX_CONCURRENT_UPLOADS
         private var maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         private var initialBackoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS
+        private var pausePolicy: PausePolicy = PausePolicy()
+        private var clock: UploadClock = UploadClock.SYSTEM
+        private var random: Random = Random.Default
 
         fun from(dir: File) = apply { stagingDir = dir }
         fun atUrl(url: String) = apply { baseUrl = url }
@@ -70,6 +74,9 @@ object MavenRepositoryUploader {
         fun withConcurrency(n: Int) = apply { concurrency = n }
         fun withRetry(attempts: Int, backoffMillis: Long = DEFAULT_INITIAL_BACKOFF_MS) =
             apply { maxAttempts = attempts; initialBackoffMillis = backoffMillis }
+        fun withPausePolicy(policy: PausePolicy) = apply { pausePolicy = policy }
+        internal fun withClock(uploadClock: UploadClock, jitter: Random = Random.Default) =
+            apply { clock = uploadClock; random = jitter }
 
         // Uploads a single file, retrying transient failures with exponential backoff.
         // An I/O failure (connect timeout, connection reset, ...) counts as transient too.
@@ -192,5 +199,6 @@ object MavenRepositoryUploader {
         val skipped: Int,
         val failed: Int,
         val errors: List<String>,
+        val notAttempted: Int = 0,
     )
 }
