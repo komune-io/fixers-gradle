@@ -3,7 +3,7 @@ package io.komune.fixers.gradle.plugin.publish
 import kotlinx.coroutines.delay
 
 /** Time as the uploader sees it, so that tests can pause for minutes without waiting. */
-interface UploadClock {
+internal interface UploadClock {
     fun nowMillis(): Long
     suspend fun sleep(millis: Long)
 
@@ -26,7 +26,7 @@ interface UploadClock {
  * @property budgetMillis The total pause a run accepts before it gives up on the remaining files.
  * @property jitterRatio A computed pause is lengthened by a random fraction up to this ratio.
  */
-data class PausePolicy(
+internal data class PausePolicy(
     val rateLimitInitialPauseMillis: Long = DEFAULT_RATE_LIMIT_INITIAL_PAUSE_MS,
     val transientInitialPauseMillis: Long = DEFAULT_TRANSIENT_INITIAL_PAUSE_MS,
     val maxPauseMillis: Long = DEFAULT_MAX_PAUSE_MS,

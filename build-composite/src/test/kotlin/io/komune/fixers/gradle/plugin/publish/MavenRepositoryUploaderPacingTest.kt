@@ -91,8 +91,9 @@ class MavenRepositoryUploaderPacingTest {
 
         assertThat(summary.uploaded).isEqualTo(6)
         assertThat(clock.pauses).containsExactly(30_000L)
+        // Only the 429 and, when its worker had already started it, b.jar run before the pause ends.
         val beforeTheEnd = client.calls.filter { it.at < 30_000L }.map { it.path }
-        assertThat(beforeTheEnd).containsExactlyInAnyOrder("a.jar", "b.jar")
+        assertThat(beforeTheEnd).contains("a.jar").isSubsetOf("a.jar", "b.jar")
     }
 
     @Test
@@ -184,21 +185,29 @@ class MavenRepositoryUploaderPacingTest {
     @Test
     fun `after a 429 fewer uploads run at once`() {
         val clock = FakeClock()
-        val inFlight = AtomicInteger(0)
+        // The four first calls are all in flight before the 429 is answered, and finish only once
+        // the pause began: a worker past the lowered limit then retires instead of taking a file.
+        val firstWave = CountDownLatch(4)
+        val gateClosed = CountDownLatch(1)
+        clock.onSleep.add { gateClosed.countDown() }
+        val startedAfterPause = AtomicInteger(0)
         val peakAfterPause = AtomicInteger(0)
-        val first = AtomicInteger(0)
+        val calls = AtomicInteger(0)
         val client = HttpPutClient { _, _, _ ->
-            val current = inFlight.incrementAndGet()
+            val call = calls.getAndIncrement()
+            val afterPause = clock.nowMillis() >= 30_000L
+            firstWave.countDown()
+            if (call == 0) {
+                firstWave.await(2, TimeUnit.SECONDS)
+                return@HttpPutClient HttpPutResult.Error(429, "error code: 1015")
+            }
+            if (call < 4) gateClosed.await(2, TimeUnit.SECONDS)
+            if (afterPause) peakAfterPause.updateAndGet { maxOf(it, startedAfterPause.incrementAndGet()) }
             try {
-                if (first.getAndIncrement() == 0) {
-                    HttpPutResult.Error(429, "error code: 1015")
-                } else {
-                    if (clock.nowMillis() >= 30_000L) peakAfterPause.updateAndGet { maxOf(it, current) }
-                    Thread.sleep(20)
-                    HttpPutResult.Success
-                }
+                Thread.sleep(20)
+                HttpPutResult.Success
             } finally {
-                inFlight.decrementAndGet()
+                if (afterPause) startedAfterPause.decrementAndGet()
             }
         }
         repeat(24) { createFile("artifact-$it.jar") }

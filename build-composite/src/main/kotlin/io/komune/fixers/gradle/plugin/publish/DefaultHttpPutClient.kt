@@ -29,7 +29,7 @@ class DefaultHttpPutClient : HttpPutClient {
             }
             else -> {
                 val body = connection.errorStream?.run { bufferedReader().use { it.readText() } }.orEmpty()
-                HttpPutResult.Error(responseCode, body)
+                HttpPutResult.Error(responseCode, body, retryAfter = connection.getHeaderField("Retry-After"))
             }
         }
     }

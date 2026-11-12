@@ -1,0 +1,153 @@
+package io.komune.fixers.gradle.plugin.publish
+
+import java.io.File
+import java.io.IOException
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
+
+internal const val MAVEN_METADATA = "maven-metadata.xml"
+
+private const val HTTP_SERVER_ERROR = 500
+private const val HTTP_LAST_SERVER_ERROR = 599
+
+// A repository that is briefly overloaded, rate-limiting or unreachable should not abort
+// a release that is otherwise fine. Everything else (auth, bad request, 409) is a hard answer
+// and is returned as-is.
+private fun HttpPutResult.Error.isTransient(): Boolean =
+    code == NO_HTTP_RESPONSE ||
+        code == HTTP_TOO_MANY_REQUESTS ||
+        code in HTTP_SERVER_ERROR..HTTP_LAST_SERVER_ERROR
+
+/** One upload of a staging directory: the files go through [gate], their outcomes into [tally]. */
+internal class UploadRun(
+    private val target: Target,
+    private val httpClient: HttpPutClient,
+    private val gate: UploadGate,
+    private val maxAttempts: Int,
+    val tally: UploadTally,
+) {
+    data class Target(val stagingDir: File, val baseUrl: String, val authHeader: String)
+
+    val exhaustion: String? get() = gate.exhaustion
+
+    fun holdBack(files: List<File>) = files.forEach { tally.notAttempted(it.relativeTo(target.stagingDir).path) }
+
+    // A worker whose slot is past the gate's lowered concurrency retires after its current file.
+    suspend fun uploadAll(files: List<File>) = coroutineScope {
+        val queue = ConcurrentLinkedQueue(files)
+        repeat(gate.concurrency) { slot ->
+            launch {
+                while (slot < gate.concurrency) {
+                    val file = queue.poll() ?: break
+                    upload(file)
+                }
+            }
+        }
+    }
+
+    private suspend fun upload(file: File) {
+        val relativePath = file.relativeTo(target.stagingDir).path
+        val url = "${target.baseUrl.trimEnd('/')}/$relativePath"
+        val result = putWithRetry(url = url, file = file, label = relativePath)
+        if (result == null) tally.notAttempted(relativePath) else tally.record(result, relativePath)
+    }
+
+    // Uploads a single file, retrying transient failures behind the shared gate. An I/O failure
+    // (connect timeout, connection reset, ...) counts as transient too. Returns the last result
+    // once the attempts are exhausted, so a persistent failure lands in the summary instead of
+    // cancelling the sibling uploads, or `null` when the gate gave up before this file was sent.
+    private tailrec suspend fun putWithRetry(
+        url: String,
+        file: File,
+        label: String,
+        attempt: Int = 1,
+        last: HttpPutResult? = null,
+    ): HttpPutResult? {
+        val epoch = gate.awaitOpen() ?: return last
+        val result = put(url, file)
+        val isRetried = when {
+            result !is HttpPutResult.Error -> {
+                gate.onSuccess(epoch)
+                false
+            }
+            !result.isTransient() || attempt >= maxAttempts -> {
+                false
+            }
+            else -> {
+                gate.onTransientFailure(error = result, startedIn = epoch, label = label)
+            }
+        }
+        if (isRetried) logger.info("  ↻ [$label] retrying, attempt ${attempt + 1}/$maxAttempts")
+        return if (isRetried) {
+            putWithRetry(url = url, file = file, label = label, attempt = attempt + 1, last = result)
+        } else {
+            result
+        }
+    }
+
+    private fun put(url: String, file: File): HttpPutResult = try {
+        httpClient.put(url, target.authHeader, file)
+    } catch (e: IOException) {
+        HttpPutResult.Error(NO_HTTP_RESPONSE, e.toString())
+    }
+
+    private companion object {
+        val logger: Logger = Logging.getLogger(UploadRun::class.java)
+    }
+}
+
+/** What the concurrent uploads of one run gave, logged as each one ends. */
+internal class UploadTally(private val totalFiles: Int) {
+    private val completed = AtomicInteger(0)
+    private val uploaded = AtomicInteger(0)
+    private val uploadedMetadata = AtomicInteger(0)
+    private val skipped = AtomicInteger(0)
+    private val failed = AtomicInteger(0)
+    private val notAttempted = AtomicInteger(0)
+    private val errors = ConcurrentLinkedQueue<String>()
+
+    val uploadedMetadataCount: Int get() = uploadedMetadata.get()
+    val isClean: Boolean get() = failed.get() == 0 && notAttempted.get() == 0
+
+    fun record(result: HttpPutResult, relativePath: String) {
+        val progress = "${completed.incrementAndGet()}/$totalFiles"
+        when (result) {
+            HttpPutResult.Success -> {
+                uploaded.incrementAndGet()
+                if (File(relativePath).name.startsWith(MAVEN_METADATA)) uploadedMetadata.incrementAndGet()
+                logger.lifecycle("  ✔ [$progress] Uploaded: $relativePath")
+            }
+            HttpPutResult.Conflict -> {
+                skipped.incrementAndGet()
+                logger.lifecycle("  ⚠ [$progress] Already exists, skipping: $relativePath")
+            }
+            is HttpPutResult.Error -> {
+                failed.incrementAndGet()
+                logger.lifecycle("  ✘ [$progress] Failed: $relativePath → ${result.describe()}")
+                errors.add("$relativePath → ${result.describe()}: ${result.message}")
+            }
+        }
+    }
+
+    fun notAttempted(relativePath: String) {
+        completed.incrementAndGet()
+        notAttempted.incrementAndGet()
+        logger.info("  ⏭ Not attempted: $relativePath")
+    }
+
+    fun summary() = MavenRepositoryUploader.UploadSummary(
+        uploaded = uploaded.get(),
+        skipped = skipped.get(),
+        failed = failed.get(),
+        errors = errors.toList(),
+        notAttempted = notAttempted.get(),
+    )
+
+    private companion object {
+        val logger: Logger = Logging.getLogger(UploadTally::class.java)
+    }
+}
