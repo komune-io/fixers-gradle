@@ -242,6 +242,8 @@ fixers {
 }
 ```
 
+With the checker disabled, the compiler also takes unnamed local variables away from those compilations: as of Kotlin 2.4, they are enabled only together with the checker. A `val _ = call()` left in a test source then fails with `The feature "unnamed local variables" is experimental and should be enabled explicitly`. Switching the setting off therefore means removing every `val _ =` from the test sources, back to the plain call.
+
 ### NPM
 
 The `Npm` class contains configuration for NPM package publishing.
