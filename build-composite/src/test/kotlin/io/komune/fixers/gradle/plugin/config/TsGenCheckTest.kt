@@ -659,6 +659,8 @@ class TsGenCheckTest {
                 objectClass + nestedNamespace +
                     metadataNamespace.replace("    namespace \$metadata\$ {", "    const id: string;\n    namespace \$metadata\$ {"),
                 objectClass + nestedNamespace + metadataNamespace + metadataNamespace,
+                objectClass + metadataNamespace +
+                    metadataNamespace.replace("    namespace \$metadata\$ {", "    const id: string;\n    namespace \$metadata\$ {"),
                 objectClass + nestedNamespace + metadataNamespace +
                     "export declare abstract class Codes extends KtSingleton<Codes.\$metadata\$.constructor>() {\n" +
                     "    private constructor();\n}\n",

@@ -182,19 +182,24 @@ private val metadataOnlyNamespace = Regex(
         """    namespace [$]metadata[$] \{\n(?:(?!    }\n)[^\n]*\n)*    }\n}$""",
     RegexOption.MULTILINE,
 )
+private val namespaceWithMetadata = Regex(
+    """(?U)^export declare namespace ([\w$]+) \{\n(?:(?!}\n)[^\n]*\n)*?    namespace [$]metadata[$] \{$""",
+    RegexOption.MULTILINE,
+)
 
 internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
         val text = file.readText()
         val objects = objectWithNestedObjects.findAll(text).map { it.groupValues[1] }.toSet()
         val metadata = metadataOnlyNamespace.findAll(text).map { it.groupValues[1] }.toList()
+        val withMetadata = namespaceWithMetadata.findAll(text).map { it.groupValues[1] }.toList()
         declaredName.findAll(text)
             .map { it.groupValues[1].removePrefix("const ") to it.groupValues[2] }
             .groupBy { (kind, name) -> (kind == "namespace") to name }
             .filterValues { declarations ->
                 val (kind, name) = declarations.first()
                 val isObjectPair = kind == "namespace" && declarations.size == 2 && name in objects &&
-                    metadata.count { it == name } == 1
+                    metadata.count { it == name } == 1 && withMetadata.count { it == name } == 1
                 !isObjectPair && isDuplicate(declarations.map { it.first })
             }
             .map { (key, declarations) ->
