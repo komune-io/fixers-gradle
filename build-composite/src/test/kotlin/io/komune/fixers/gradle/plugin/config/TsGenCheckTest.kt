@@ -615,6 +615,26 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should accept an object and the two namespaces of its nested class and its metadata`() {
+            val nestedClass = "export declare namespace Codes {\n" +
+                "    class Auth {\n" +
+                "        constructor(code: string);\n" +
+                "        get code(): string;\n" +
+                "    }\n" +
+                "    namespace Auth {\n" +
+                "        namespace \$metadata\$ {\n" +
+                "            const constructor: abstract new () => Auth;\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+            emit("pkg/kotlin/pkg.d.mts", objectClass + nestedClass + metadataNamespace)
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
         fun `should name two namespaces of a name that are not the shape of an object with nested objects`() {
             listOf(
                 "export declare class Codes {\n}\n" + nestedNamespace + metadataNamespace,

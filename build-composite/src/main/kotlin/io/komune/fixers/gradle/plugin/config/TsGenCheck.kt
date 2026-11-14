@@ -32,7 +32,7 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
  * when the output directory differs from them, or when a `.d.mts` declares a name twice at its top
  * level: two of its classes, interfaces, functions, constants, variables, enums or type aliases, as
  * named in JavaScript, exported or not (the helpers of `Json`, the emitter's `Nullable`), or two
- * namespaces, the one namespace of a companion, the two of an object with nested objects, and the
+ * namespaces, the one namespace of a companion, the two of an object with nested declarations, and the
  * pair of one type (interface, type alias) and one value (function, constant, variable) being
  * allowed. `check` runs it in a build that emits Kotlin/JS.
  *
@@ -170,8 +170,8 @@ private val isDuplicate: (List<String>) -> Boolean = { kinds ->
     kinds.size > 1 && !(kinds.size == 2 && kinds.count { it in typeOnly } == 1 && kinds.count { it in valueOnly } == 1)
 }
 
-// A Kotlin object with nested objects: the emitter writes its class, one namespace for the nested
-// objects, and a second that holds its `$metadata$` only.
+// A Kotlin object with nested declarations: the emitter writes its class, one namespace for what is
+// nested, and a second that holds its `$metadata$` only.
 private val objectWithNestedObjects = Regex(
     """(?U)^export declare abstract class ([\w$]+) \{\n""" +
         """    static readonly getInstance: \(\) => typeof \1\.[$]metadata[$]\.type;$""",
