@@ -635,6 +635,22 @@ class TsGenCheckTest {
         }
 
         @Test
+        fun `should accept an object whose member documentation holds a line that is not indented`() {
+            val documented = metadataNamespace.replace(
+                "        abstract class constructor {\n",
+                "        abstract class constructor {\n" +
+                    "            /**\n             * First line\nsecond line\n             */\n" +
+                    "            get NOT_FOUND(): string;\n",
+            )
+            assertThat(documented).isNotEqualTo(metadataNamespace)
+            emit("pkg/kotlin/pkg.d.mts", objectClass + nestedNamespace + documented)
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
         fun `should name two namespaces of a name that are not the shape of an object with nested objects`() {
             listOf(
                 "export declare class Codes {\n}\n" + nestedNamespace + metadataNamespace,

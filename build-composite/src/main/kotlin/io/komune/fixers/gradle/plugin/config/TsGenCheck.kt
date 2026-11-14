@@ -179,7 +179,7 @@ private val objectWithNestedObjects = Regex(
 )
 private val metadataOnlyNamespace = Regex(
     """(?U)^export declare namespace ([\w$]+) \{\n(?:    /\*\*[^\n]*\*/\n)?""" +
-        """    namespace [$]metadata[$] \{\n(?:        [^\n]*\n)*    }\n}$""",
+        """    namespace [$]metadata[$] \{\n(?:(?!    }\n)[^\n]*\n)*    }\n}$""",
     RegexOption.MULTILINE,
 )
 
