@@ -32,9 +32,9 @@ internal fun Map<String, List<Pair<Regex, String>>>.fingerprint(): Map<String, L
  * when the output directory differs from them, or when a `.d.mts` declares a name twice at its top
  * level: two of its classes, interfaces, functions, constants, variables, enums or type aliases, as
  * named in JavaScript, exported or not (the helpers of `Json`, the emitter's `Nullable`), or two
- * namespaces, the one namespace of a companion and the pair of one type
- * (interface, type alias) and one value (function, constant, variable) being allowed. `check` runs it
- * in a build that emits Kotlin/JS.
+ * namespaces, the one namespace of a companion, the two of an object with nested declarations, and the
+ * pair of one type (interface, type alias) and one value (function, constant, variable) being
+ * allowed. `check` runs it in a build that emits Kotlin/JS.
  *
  * The compiler's `EXPORTING_JS_NAME_CLASH_ES` is reported when the declaring module compiles:
  * two declarations of one name that come from dependencies reach the linked declarations
@@ -170,12 +170,38 @@ private val isDuplicate: (List<String>) -> Boolean = { kinds ->
     kinds.size > 1 && !(kinds.size == 2 && kinds.count { it in typeOnly } == 1 && kinds.count { it in valueOnly } == 1)
 }
 
+// A Kotlin object with nested declarations: the emitter writes its class, one namespace for what is
+// nested, and a second that holds its `$metadata$` only.
+private val objectWithNestedObjects = Regex(
+    """(?U)^export declare abstract class ([\w$]+) \{\n""" +
+        """    static readonly getInstance: \(\) => typeof \1\.[$]metadata[$]\.type;$""",
+    RegexOption.MULTILINE,
+)
+private val metadataOnlyNamespace = Regex(
+    """(?U)^export declare namespace ([\w$]+) \{\n(?:    /\*\*[^\n]*\*/\n)?""" +
+        """    namespace [$]metadata[$] \{\n(?:(?!    }\n)[^\n]*\n)*    }\n}$""",
+    RegexOption.MULTILINE,
+)
+private val namespaceWithMetadata = Regex(
+    """(?U)^export declare namespace ([\w$]+) \{\n(?:(?!}\n)[^\n]*\n)*?    namespace [$]metadata[$] \{$""",
+    RegexOption.MULTILINE,
+)
+
 internal fun duplicatedDeclarations(fresh: File): List<String> =
     fresh.comparedFiles().filterKeys { it.endsWith(".d.mts") }.flatMap { (path, file) ->
-        declaredName.findAll(file.readText())
+        val text = file.readText()
+        val objects = objectWithNestedObjects.findAll(text).map { it.groupValues[1] }.toSet()
+        val metadata = metadataOnlyNamespace.findAll(text).map { it.groupValues[1] }.toList()
+        val withMetadata = namespaceWithMetadata.findAll(text).map { it.groupValues[1] }.toList()
+        declaredName.findAll(text)
             .map { it.groupValues[1].removePrefix("const ") to it.groupValues[2] }
             .groupBy { (kind, name) -> (kind == "namespace") to name }
-            .filterValues { declarations -> isDuplicate(declarations.map { it.first }) }
+            .filterValues { declarations ->
+                val (kind, name) = declarations.first()
+                val isObjectPair = kind == "namespace" && declarations.size == 2 && name in objects &&
+                    metadata.count { it == name } == 1 && withMetadata.count { it == name } == 1
+                !isObjectPair && isDuplicate(declarations.map { it.first })
+            }
             .map { (key, declarations) ->
                 "$path declares `${key.second}` twice: " +
                     declarations.joinToString(", ") { (kind, name) -> "$kind $name" } +

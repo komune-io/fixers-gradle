@@ -573,6 +573,108 @@ class TsGenCheckTest {
             project.run("checkTsGen")
         }
 
+        private val metadataNamespace = "export declare namespace Codes {\n" +
+            "    /** @deprecated \$metadata\$ is used for internal purposes, please don't use it in your code, " +
+            "because it can be removed at any moment */\n" +
+            "    namespace \$metadata\$ {\n" +
+            "        abstract class type extends KtSingleton<constructor>() {\n" +
+            "            private constructor();\n" +
+            "        }\n" +
+            "        abstract class constructor {\n" +
+            "            private constructor();\n" +
+            "        }\n" +
+            "    }\n" +
+            "}\n"
+
+        private val objectClass = "export declare abstract class Codes {\n" +
+            "    static readonly getInstance: () => typeof Codes.\$metadata\$.type;\n" +
+            "    private constructor();\n" +
+            "}\n"
+
+        private val nestedNamespace = "export declare namespace Codes {\n" +
+            "    abstract class Auth extends KtSingleton<Auth.\$metadata\$.constructor>() {\n" +
+            "        private constructor();\n" +
+            "    }\n" +
+            "    namespace Auth {\n" +
+            "        namespace \$metadata\$ {\n" +
+            "            abstract class constructor {\n" +
+            "                get NOT_FOUND(): string;\n" +
+            "                private constructor();\n" +
+            "            }\n" +
+            "        }\n" +
+            "    }\n" +
+            "}\n"
+
+        @Test
+        fun `should accept an object and the two namespaces of its nested objects and its metadata`() {
+            emit("pkg/kotlin/pkg.d.mts", objectClass + nestedNamespace + metadataNamespace)
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
+        fun `should accept an object and the two namespaces of its nested class and its metadata`() {
+            val nestedClass = "export declare namespace Codes {\n" +
+                "    class Auth {\n" +
+                "        constructor(code: string);\n" +
+                "        get code(): string;\n" +
+                "    }\n" +
+                "    namespace Auth {\n" +
+                "        namespace \$metadata\$ {\n" +
+                "            const constructor: abstract new () => Auth;\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+            emit("pkg/kotlin/pkg.d.mts", objectClass + nestedClass + metadataNamespace)
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
+        fun `should accept an object whose member documentation holds a line that is not indented`() {
+            val documented = metadataNamespace.replace(
+                "        abstract class constructor {\n",
+                "        abstract class constructor {\n" +
+                    "            /**\n             * First line\nsecond line\n             */\n" +
+                    "            get NOT_FOUND(): string;\n",
+            )
+            assertThat(documented).isNotEqualTo(metadataNamespace)
+            emit("pkg/kotlin/pkg.d.mts", objectClass + nestedNamespace + documented)
+            val project = project()
+            project.run("tsGen")
+
+            project.run("checkTsGen")
+        }
+
+        @Test
+        fun `should name two namespaces of a name that are not the shape of an object with nested objects`() {
+            listOf(
+                "export declare class Codes {\n}\n" + nestedNamespace + metadataNamespace,
+                nestedNamespace + metadataNamespace,
+                objectClass + nestedNamespace + nestedNamespace,
+                objectClass + nestedNamespace +
+                    metadataNamespace.replace("    namespace \$metadata\$ {", "    const id: string;\n    namespace \$metadata\$ {"),
+                objectClass + nestedNamespace + metadataNamespace + metadataNamespace,
+                objectClass + metadataNamespace +
+                    metadataNamespace.replace("    namespace \$metadata\$ {", "    const id: string;\n    namespace \$metadata\$ {"),
+                objectClass + nestedNamespace + metadataNamespace +
+                    "export declare abstract class Codes extends KtSingleton<Codes.\$metadata\$.constructor>() {\n" +
+                    "    private constructor();\n}\n",
+            ).forEach { declarations ->
+                emit("pkg/kotlin/pkg.d.mts", declarations)
+                val project = project()
+                project.run("tsGen")
+
+                assertThatThrownBy { project.run("checkTsGen") }
+                    .`as`(declarations)
+                    .hasMessageContaining("out/pkg/kotlin/pkg.d.mts declares `Codes` twice")
+            }
+        }
+
         @Test
         fun `should still compare a dependency named version`() {
             val project = generate()
