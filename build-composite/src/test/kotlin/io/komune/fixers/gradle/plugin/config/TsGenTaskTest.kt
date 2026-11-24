@@ -153,21 +153,21 @@ class TsGenTaskTest {
         @Test
         fun `should rewrite the packages pinned at any depth only`() {
             val rules = pinnedDependencyCleaning(
-                mapOf("**/ws" to "8.22.2", "**/@scope/pkg" to "1.0.0", "**/mocha/glob" to "14.0.4", "@other/x" to "2.0.0")
+                mapOf("**/ws" to "8.23.0", "**/@scope/pkg" to "1.0.0", "**/mocha/glob" to "14.0.4", "@other/x" to "2.0.0")
             )
             val json = """{"ws":"8.20.1", "@scope/pkg": "^0.9.0", "glob": "10.4.5", "@other/x": "1.0.0"}"""
 
             assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
-                .isEqualTo("""{"ws":"8.22.2", "@scope/pkg": "1.0.0", "glob": "10.4.5", "@other/x": "1.0.0"}""")
+                .isEqualTo("""{"ws":"8.23.0", "@scope/pkg": "1.0.0", "glob": "10.4.5", "@other/x": "1.0.0"}""")
         }
 
         @Test
         fun `should rewrite every declaration of a pinned package`() {
-            val rules = pinnedDependencyCleaning(mapOf("**/ws" to "8.22.2"))
+            val rules = pinnedDependencyCleaning(mapOf("**/ws" to "8.23.0"))
             val json = """{"dependencies": {"ws": "8.20.1"}, "peerDependencies": {"ws": "^8.0.0"}}"""
 
             assertThat(rules.fold(json) { acc, (regex, replacement) -> acc.replace(regex, replacement) })
-                .isEqualTo("""{"dependencies": {"ws": "8.22.2"}, "peerDependencies": {"ws": "8.22.2"}}""")
+                .isEqualTo("""{"dependencies": {"ws": "8.23.0"}, "peerDependencies": {"ws": "8.23.0"}}""")
         }
     }
 

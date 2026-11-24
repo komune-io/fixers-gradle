@@ -22,7 +22,7 @@ bouncycastle = "1.86"
 # a fixed version. The manifest rewrite is unconditional: a pin left behind lowers what a newer
 # dependency declares (ws 8.23 or 9.x back to 8.22.2, major included), so review these at every
 # Ktor bump.
-npm-ws = "8.22.2"
+npm-ws = "8.23.0"
 npm-ajv = "8.20.0"
 
 [libraries]

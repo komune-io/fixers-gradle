@@ -99,6 +99,7 @@ tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
 
 tasks.withType<Test> {
 	systemProperty("fixers.version", project.version.toString())
+	systemProperty("fixers.test.kotlin.version", libs.versions.kotlin.get())
 	// CheckPluginIntegrationTest runs the detekt.yml example of the README.
 	inputs.file(rootProject.layout.projectDirectory.file("README.md"))
 		.withPathSensitivity(PathSensitivity.NONE)
