@@ -13,3 +13,13 @@ updates:
       - "/.github/actions/*"
     schedule:
       interval: "weekly"
+  # The images of the Spring Boot image convention (BootImageConvention.kt), pinned by tag and digest in
+  # build-composite/boot-images/Dockerfile. One PR for all of them: the run image must stay the builder's.
+  - package-ecosystem: "docker"
+    directory: "/build-composite/boot-images"
+    schedule:
+      interval: "weekly"
+    groups:
+      paketo:
+        patterns:
+          - "paketobuildpacks/*"
