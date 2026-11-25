@@ -8,8 +8,9 @@ on:
         required: false
         type: "string"
 
+      # Kept so callers that still pass it (trace-cccev, `with-chromatic: false`) do not fail on an unknown input.
       with-chromatic:
-        description: "Determines whether to publish the Storybook to Chromatic."
+        description: "Deprecated and ignored: Chromatic publishing was removed."
         required: false
         type: "boolean"
         default: false
@@ -75,8 +76,6 @@ on:
         default: ""
 
     secrets:
-      FIXERS_CHROMATIC_PROJECT_TOKEN:
-        required: false
       DOCKER_STAGE_USERNAME:
         required: false
       DOCKER_STAGE_PASSWORD:
@@ -104,28 +103,6 @@ jobs:
       DOCKER_STAGE_PASSWORD: ${{ secrets.DOCKER_STAGE_PASSWORD }}
       DOCKER_PROMOTE_USERNAME: ${{ secrets.DOCKER_PROMOTE_USERNAME }}
       DOCKER_PROMOTE_PASSWORD: ${{ secrets.DOCKER_PROMOTE_PASSWORD }}
-
-  publish-chromatic:
-    if: inputs.with-chromatic
-    runs-on: ubuntu-latest
-    name: Publish to Chromatic
-    needs: [package-storybook]
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Initialize Node.js
-        uses: komune-io/fixers-gradle/.github/actions/nodejs@main
-        with:
-          node-version: ${{ inputs.node-version }}
-          base-dir: ${{ inputs.base-dir }}
-      - name: Publish Storybook to Chromatic
-        uses: komune-io/fixers-gradle/.github/actions/chromatic@main
-        with:
-          storybook-dir: ${{ inputs.storybook-dir }}
-          storybook-static-dir: ${{ inputs.storybook-static-dir }}
-          storybook-static-dir-separator: ${{ inputs.storybook-static-dir-separator }}
-          project-token: ${{ secrets.FIXERS_CHROMATIC_PROJECT_TOKEN }}
 
   publish-github-page:
     if: github.ref == 'refs/heads/main' || (contains(inputs.on-tag, 'promote') && startsWith(github.ref, 'refs/tags/'))
