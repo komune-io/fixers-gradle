@@ -1,5 +1,6 @@
 package io.komune.fixers.gradle.plugin.config
 
+import io.komune.fixers.gradle.config.model.FixersBootImages
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -13,13 +14,11 @@ internal const val HEALTH_CHECKER_ENABLED = "BP_HEALTH_CHECKER_ENABLED"
 internal const val DIGEST = "@sha256:"
 internal const val JAVA_BUILDPACK = "urn:cnb:builder:paketo-buildpacks/java"
 
+// Pinned in build-composite/boot-images/Dockerfile, which Dependabot keeps current.
 // The run image is the one the builder names, which it names by tag only.
-internal const val DEFAULT_BUILDER = "docker.io/paketobuildpacks/builder-noble-java-tiny:0.0.212" +
-    "@sha256:8da9782949bb9f39f4b9d8079216531fe2791286fe33bbf450e533949cfbcc91"
-internal const val DEFAULT_RUN_IMAGE = "docker.io/paketobuildpacks/ubuntu-noble-run-tiny:0.0.157" +
-    "@sha256:7af66d69f095b46ea8f470751beacbf4eed7a801eb54cee4f18f4f04b94d7e07"
-internal const val DEFAULT_HEALTH_CHECKER = "docker.io/paketobuildpacks/health-checker:2.14.2" +
-    "@sha256:a9cf9dbff2f1460a6a2e88def93c9d760c79f1412619231a1981ddcab3e002f9"
+internal const val DEFAULT_BUILDER = FixersBootImages.builder
+internal const val DEFAULT_RUN_IMAGE = FixersBootImages.runImage
+internal const val DEFAULT_HEALTH_CHECKER = FixersBootImages.healthChecker
 
 private const val HEALTH_CHECKER = "health-checker"
 

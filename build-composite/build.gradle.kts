@@ -40,8 +40,11 @@ val generateToolVersions = tasks.register("generateToolVersions") {
     }
 }
 
+apply(from = "boot-images/generate-boot-images.gradle.kts")
+
 kotlin.sourceSets.named("main") {
     kotlin.srcDir(generateToolVersions)
+    kotlin.srcDir(tasks.named("generateBootImages"))
 }
 
 dependencies {
